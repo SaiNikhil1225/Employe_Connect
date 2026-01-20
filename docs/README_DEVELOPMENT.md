@@ -76,7 +76,7 @@ Login → auth (adaptive) → ✓ Mock Mode → users.json
 |-------|----------|------|-----------|
 | `sainikhil.bomma@acuvate.com` | `Nikhil@123` | **EMPLOYEE** | Employee Dashboard |
 | `rajesh.kumar@acuvate.com` | `Rajesh@123` | **MANAGER** | Manager Dashboard |
-| `manoj.tupakula@acuvate.com` | `Manoj@123` | **HR** | HR Dashboard |
+| `hr@acuvate.com` | `Hr@123` | **HR** | HR Dashboard |
 | `mohan.reddy@acuvate.com` | `Mohan@123` | **RMG** | RMG Dashboard |
 | `priya.sharma@acuvate.com` | `Priya@123` | **IT_ADMIN** | IT Admin Dashboard |
 

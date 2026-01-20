@@ -30,7 +30,7 @@ Use any of these test accounts:
 |-------|----------|------|
 | `sainikhil.bomma@acuvate.com` | `Nikhil@123` | EMPLOYEE |
 | `mohan.reddy@acuvate.com` | `Mohan@123` | RMG |
-| `manoj.tupakula@acuvate.com` | `Manoj@123` | HR |
+| `hr@acuvate.com` | `Hr@123` | HR |
 | `rajesh.kumar@acuvate.com` | `Rajesh@123` | MANAGER |
 | `priya.sharma@acuvate.com` | `Priya@123` | IT_ADMIN |
 
@@ -324,8 +324,8 @@ Access: Employee features + team management, approvals
 
 ### HR Role
 ```
-Email: manoj.tupakula@acuvate.com
-Password: Manoj@123
+Email: hr@acuvate.com
+Password: Hr@123
 Access: Employee management, payroll, recruitment
 ```
 
@@ -481,7 +481,7 @@ or
 All passwords follow pattern: `Name@123`
 - Nikhil@123
 - Mohan@123
-- Manoj@123
+- Hr@123
 - Rajesh@123
 - Priya@123
 

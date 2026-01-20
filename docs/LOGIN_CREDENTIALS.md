@@ -17,8 +17,8 @@
 - **Employee ID:** RMG001
 
 ### HR Account
-- **Email:** manoj.tupakula@acuvate.com
-- **Password:** Manoj@123
+- **Email:** hr@acuvate.com
+- **Password:** Hr@123
 - **Role:** HR
 - **Department:** Human Resources
 - **Employee ID:** HR001

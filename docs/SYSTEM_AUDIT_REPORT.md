@@ -103,7 +103,7 @@ User Confirmation → Closed
 **Sample Login Users:**
 - Sai Nikhil Bomma (sainikhil.bomma@acuvate.com) - EMPLOYEE
 - Mohan Reddy (mohan.reddy@acuvate.com) - RMG
-- Manoj Tupakula (manoj.tupakula@acuvate.com) - HR
+- HR Admin (hr@acuvate.com) - HR
 - Rajesh Kumar (rajesh.kumar@acuvate.com) - MANAGER
 - Priya Sharma (priya.sharma@acuvate.com) - IT_ADMIN
 

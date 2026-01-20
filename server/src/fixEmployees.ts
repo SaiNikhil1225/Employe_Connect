@@ -61,20 +61,20 @@ async function fixEmployeeData() {
       { upsert: true }
     );
 
-    // Fix HR001 - Manoj Tupakula
-    console.log('Updating HR001 - Manoj Tupakula...');
+    // Fix HR001 - HR User
+    console.log('Updating HR001 - HR User...');
     await Employee.findOneAndUpdate(
       { employeeId: 'HR001' },
       {
         $set: {
-          name: 'Manoj Tupakula',
-          email: 'manoj.tupakula@acuvate.com',
+          name: 'HR Admin',
+          email: 'hr@acuvate.com',
           phone: '+91-9876543212',
           designation: 'HR Manager',
           department: 'Human Resources',
           location: 'Hyderabad',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Manoj',
-          profilePhoto: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Manoj',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=HR',
+          profilePhoto: 'https://api.dicebear.com/7.x/avataaars/svg?seed=HR',
           dateOfBirth: '1987-08-25',
           dateOfJoining: '2017-06-15',
           businessUnit: 'Human Resources',
@@ -134,7 +134,7 @@ async function fixEmployeeData() {
     console.log('\nUpdated employees:');
     console.log('  - EMP001: Sai Nikhil Bomma');
     console.log('  - RMG001: Mohan Reddy');
-    console.log('  - HR001: Manoj Tupakula');
+    console.log('  - HR001: HR Admin');
     console.log('  - MGR001: Rajesh Kumar');
     console.log('  - IT001: Priya Sharma');
 
