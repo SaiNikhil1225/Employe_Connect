@@ -1,0 +1,255 @@
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuthStore } from '@/store/authStore';
+import { getNavigationForRole } from '@/router/roleConfig';
+import { profileService } from '@/services/profileService';
+import { cn } from '@/lib/utils';
+import acuvateLogo from '@/assets/acuvateLogo_light.png';
+import acuvateIcon from '@/assets/acu_v_icon.png';
+import {
+  ChevronLeft,
+  ChevronRight,
+  LayoutDashboard,
+  User,
+  Users,
+  Calendar,
+  Clock,
+  DollarSign,
+  TrendingUp,
+  FileText,
+  Headphones,
+  ClipboardCheck,
+  Shield,
+  Ticket,
+  CalendarCheck,
+  ClipboardList,
+  Wallet,
+  UserPlus,
+  Target,
+  Database,
+  GitBranch,
+  Activity,
+  LineChart,
+  BarChart3,
+  CircleDot,
+  type LucideIcon,
+} from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+// Icon map for navigation - only imports icons that are actually used
+// This improves bundle size by avoiding importing all lucide-react icons
+const iconMap: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  User,
+  Users,
+  Calendar,
+  Clock,
+  DollarSign,
+  TrendingUp,
+  FileText,
+  Headphones,
+  ClipboardCheck,
+  Shield,
+  Ticket,
+  CalendarCheck,
+  ClipboardList,
+  Wallet,
+  UserPlus,
+  Target,
+  Database,
+  GitBranch,
+  Activity,
+  LineChart,
+  BarChart3,
+  CircleDot,
+};
+
+interface MenuSection {
+  title?: string;
+  items: Array<{
+    path: string;
+    label: string;
+    icon: string;
+    action?: () => void;
+  }>;
+}
+
+export function Sidebar() {
+  const location = useLocation();
+  const user = useAuthStore((state) => state.user);
+  const updateUser = useAuthStore((state) => state.updateUser);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Fetch user profile photo
+  useEffect(() => {
+    const fetchProfilePhoto = async () => {
+      if (user?.employeeId) {
+        try {
+          const profile = await profileService.getProfile(user.employeeId);
+          if (profile.photo && profile.photo !== user.avatar) {
+            updateUser({ avatar: profile.photo });
+          }
+        } catch (error) {
+          // Silently fail - photo is optional
+        }
+      }
+    };
+
+    fetchProfilePhoto();
+  }, [user?.employeeId, user?.avatar, updateUser]);
+
+  if (!user) return null;
+
+  const navigation = getNavigationForRole(user.role);
+
+  const getIcon = (iconName: string): LucideIcon => {
+    return iconMap[iconName] || iconMap.CircleDot;
+  };
+
+  // Organize navigation into sections
+  const menuSections: MenuSection[] = [
+    {
+      items: navigation.map(item => ({
+        path: item.path,
+        label: item.label,
+        icon: item.icon || 'CircleDot',
+      })),
+    },
+  ];
+
+  return (
+    <TooltipProvider delayDuration={0}>
+      <aside
+        className={cn(
+          "h-screen sticky top-0 flex flex-col transition-all duration-300 ease-in-out rounded-r-3xl shadow-lg",
+          isCollapsed ? "w-20" : "w-[220px]",
+          "bg-gray-900 border-r border-gray-800"
+        )}
+        role="navigation"
+        aria-label="Sidebar"
+      >
+        {/* Header with Logo */}
+        <div className="p-5 border-b border-gray-800">
+          <div className={cn(
+            "flex items-center",
+            isCollapsed ? "justify-center" : "justify-between"
+          )}>
+            {!isCollapsed && (
+              <div>
+                <img 
+                  src={acuvateLogo} 
+                  alt="Acuvate" 
+                  className="h-8 w-auto object-contain"
+                />
+              </div>
+            )}
+            {isCollapsed && (
+              <div className="h-10 w-10 flex items-center justify-center">
+                <img 
+                  src={acuvateIcon} 
+                  alt="Acuvate" 
+                  className="h-8 w-8 object-contain"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Navigation Sections */}
+        <nav
+          className="flex-1 p-3 overflow-y-auto scrollbar-thin"
+          aria-label="Main navigation"
+        >
+          {menuSections.map((section, sectionIndex) => (
+            <div key={sectionIndex} className="mb-6">
+              {/* Section Items */}
+              <ul className="space-y-1" role="list">
+                {section.items.map((item) => {
+                  const Icon = getIcon(item.icon);
+                  const isActive = location.pathname === item.path;
+
+                  const handleClick = (e: React.MouseEvent) => {
+                    if (item.action) {
+                      e.preventDefault();
+                      item.action();
+                    }
+                  };
+
+                  const linkContent = (
+                    <Link
+                      to={item.path}
+                      onClick={handleClick}
+                      aria-label={item.label}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+                        isCollapsed && "justify-center px-2",
+                        isActive
+                          ? "bg-brand-green/20 text-brand-green"
+                          : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                      )}
+                    >
+                      <Icon 
+                        className={cn(
+                          "h-5 w-5 flex-shrink-0 transition-transform duration-200",
+                          isActive && "scale-110"
+                        )} 
+                        aria-hidden="true" 
+                      />
+
+                      {!isCollapsed && (
+                        <span className={cn(
+                          "font-medium text-sm whitespace-nowrap transition-opacity duration-300",
+                          isCollapsed ? "opacity-0" : "opacity-100"
+                        )}>
+                          {item.label}
+                        </span>
+                      )}
+                    </Link>
+                  );
+
+                  return (
+                    <li key={item.path}>
+                      {isCollapsed ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {linkContent}
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="bg-slate-800 text-white border-slate-700">
+                            {item.label}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        linkContent
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
+
+        {/* Toggle Button */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!isCollapsed}
+          className="fixed -right-3 top-20 h-6 w-6 rounded-full flex items-center justify-center transition-all duration-300 z-50 shadow-md bg-brand-green text-white hover:bg-brand-green-dark focus:outline-none focus:ring-2 focus:ring-brand-green focus:ring-offset-2 focus:ring-offset-gray-900"
+          style={{ left: isCollapsed ? '68px' : '208px' }}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+          )}
+        </button>
+      </aside>
+    </TooltipProvider>
+  );
+}

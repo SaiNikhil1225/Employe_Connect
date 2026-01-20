@@ -1,0 +1,347 @@
+import type { UserRole } from '@/types';
+
+export type RoutePermission = {
+  path: string;
+  label: string;
+  icon?: string;
+  roles: UserRole[];
+};
+
+export const rolePermissions: Record<UserRole, string[]> = {
+  EMPLOYEE: [
+    '/dashboard',
+    '/profile',
+    '/my-team',
+    '/attendance',
+    '/leave',
+    '/payroll',
+    '/performance',
+    '/documents',
+    '/employees-directory',
+    '/helpdesk',
+  ],
+  MANAGER: [
+    '/dashboard',
+    '/manager/dashboard',
+    '/manager/leave-approvals',
+    '/profile',
+    '/my-team',
+    '/attendance',
+    '/leave',
+    '/payroll',
+    '/performance',
+    '/documents',
+    '/helpdesk',
+    '/employees-directory',
+  ],
+  IT_ADMIN: [
+    '/dashboard',
+    '/itadmin/dashboard',
+    '/itadmin/tickets',
+    '/itadmin/analytics',
+    '/profile',
+    '/my-team',
+    '/attendance',
+    '/leave',
+    '/payroll',
+    '/performance',
+    '/documents',
+    '/employees-directory',
+  ],
+  IT_EMPLOYEE: [
+    '/dashboard',
+    '/itadmin/tickets',
+    '/itadmin/analytics',
+    '/profile',
+    '/my-team',
+    '/attendance',
+    '/leave',
+    '/payroll',
+    '/performance',
+    '/documents',
+    '/employees-directory',
+  ],
+  L1_APPROVER: [
+    '/dashboard',
+    '/approver',
+    '/profile',
+    '/employees-directory',
+  ],
+  L2_APPROVER: [
+    '/dashboard',
+    '/approver',
+    '/profile',
+    '/employees-directory',
+  ],
+  L3_APPROVER: [
+    '/dashboard',
+    '/approver',
+    '/profile',
+    '/employees-directory',
+  ],
+  SUPER_ADMIN: [
+    '/dashboard',
+    '/superadmin/dashboard',
+    '/superadmin/categories',
+    '/superadmin/approvers',
+    '/superadmin/users',
+    '/superadmin/configuration',
+    '/profile',
+    '/employees-directory',
+    // Full access to all routes
+    '/my-team',
+    '/attendance',
+    '/leave',
+    '/payroll',
+    '/performance',
+    '/documents',
+    '/helpdesk',
+    '/approver',
+    '/itadmin/dashboard',
+    '/itadmin/tickets',
+    '/manager/dashboard',
+    '/manager/leave-approvals',
+    '/employees',
+    '/attendance-management',
+    '/leave-management',
+    '/payroll-management',
+    '/recruitment',
+    '/performance-management',
+    '/reports',
+    '/resource-pool',
+    '/allocations',
+    '/utilization',
+    '/forecasting',
+    '/new-announcement',
+    '/admin-announcements',
+  ],
+  HR: [
+    '/dashboard',
+    '/employees',
+    '/attendance-management',
+    '/leave-management',
+    '/payroll-management',
+    '/recruitment',
+    '/performance-management',
+    '/reports',
+    '/employees-directory',
+    '/new-announcement',
+    '/admin-announcements',
+  ],
+  RMG: [
+    '/dashboard',
+    '/resource-pool',
+    '/allocations',
+    '/utilization',
+    '/forecasting',
+    '/reports',
+    '/employees-directory',
+  ],
+};
+
+export const navigationConfig: RoutePermission[] = [
+  // Common Dashboard
+  {
+    path: '/dashboard',
+    label: 'Dashboard',
+    icon: 'LayoutDashboard',
+    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN', 'IT_EMPLOYEE', 'L1_APPROVER', 'L2_APPROVER', 'L3_APPROVER', 'HR', 'RMG', 'SUPER_ADMIN'],
+  },
+  // Super Admin Routes
+  {
+    path: '/superadmin/dashboard',
+    label: 'Super Admin',
+    icon: 'ShieldCheck',
+    roles: ['SUPER_ADMIN'],
+  },
+  {
+    path: '/superadmin/categories',
+    label: 'Category Management',
+    icon: 'FolderCog',
+    roles: ['SUPER_ADMIN'],
+  },
+  {
+    path: '/superadmin/approvers',
+    label: 'Approver Management',
+    icon: 'UserCheck',
+    roles: ['SUPER_ADMIN'],
+  },
+  {
+    path: '/superadmin/users',
+    label: 'User Management',
+    icon: 'Users',
+    roles: ['SUPER_ADMIN'],
+  },
+  // Approver Routes
+  {
+    path: '/approver',
+    label: 'Approvals',
+    icon: 'CheckSquare',
+    roles: ['L1_APPROVER', 'L2_APPROVER', 'L3_APPROVER'],
+  },
+  // Employee Routes
+  {
+    path: '/my-team',
+    label: 'My Team',
+    icon: 'Users',
+    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN', 'IT_EMPLOYEE'],
+  },
+  {
+    path: '/attendance',
+    label: 'My Attendance',
+    icon: 'Calendar',
+    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN'],
+  },
+  {
+    path: '/leave',
+    label: 'Leave & Remote Work',
+    icon: 'Clock',
+    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN'],
+  },
+  {
+    path: '/payroll',
+    label: 'My Payroll',
+    icon: 'DollarSign',
+    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN'],
+  },
+  {
+    path: '/performance',
+    label: 'Performance',
+    icon: 'TrendingUp',
+    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN'],
+  },
+  {
+    path: '/documents',
+    label: 'Documents',
+    icon: 'FileText',
+    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN'],
+  },
+  {
+    path: '/helpdesk',
+    label: 'Helpdesk',
+    icon: 'Headphones',
+    roles: ['EMPLOYEE', 'MANAGER'],
+  },
+  // Manager Routes
+  {
+    path: '/manager/dashboard',
+    label: 'Manager Dashboard',
+    icon: 'LayoutDashboard',
+    roles: ['MANAGER'],
+  },
+  {
+    path: '/manager/leave-approvals',
+    label: 'Leave Approvals',
+    icon: 'ClipboardCheck',
+    roles: ['MANAGER'],
+  },
+  // IT Admin Routes
+  {
+    path: '/itadmin/dashboard',
+    label: 'IT Admin Dashboard',
+    icon: 'Shield',
+    roles: ['IT_ADMIN'],
+  },
+  {
+    path: '/itadmin/tickets',
+    label: 'Ticket Management',
+    icon: 'Ticket',
+    roles: ['IT_ADMIN', 'IT_EMPLOYEE'],
+  },
+  {
+    path: '/itadmin/analytics',
+    label: 'Analytics',
+    icon: 'BarChart',
+    roles: ['IT_ADMIN', 'IT_EMPLOYEE'],
+  },
+  // Common Routes (All Roles)
+  {
+    path: '/employees-directory',
+    label: 'Employees',
+    icon: 'Users',
+    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN', 'HR', 'RMG'],
+  },
+  // HR Routes
+  {
+    path: '/employees',
+    label: 'Employee Management',
+    icon: 'Users',
+    roles: ['HR'],
+  },
+  {
+    path: '/attendance-management',
+    label: 'Attendance Management',
+    icon: 'CalendarCheck',
+    roles: ['HR'],
+  },
+  {
+    path: '/leave-management',
+    label: 'Leave Management',
+    icon: 'ClipboardList',
+    roles: ['HR'],
+  },
+  {
+    path: '/payroll-management',
+    label: 'Payroll Management',
+    icon: 'Wallet',
+    roles: ['HR'],
+  },
+  {
+    path: '/recruitment',
+    label: 'Recruitment',
+    icon: 'UserPlus',
+    roles: ['HR'],
+  },
+  {
+    path: '/performance-management',
+    label: 'Performance Management',
+    icon: 'Target',
+    roles: ['HR'],
+  },
+  {
+    path: '/admin-announcements',
+    label: 'Announcements Admin',
+    icon: 'Megaphone',
+    roles: ['HR', 'SUPER_ADMIN'],
+  },
+  // RMG Routes
+  {
+    path: '/resource-pool',
+    label: 'Resource Pool',
+    icon: 'Database',
+    roles: ['RMG'],
+  },
+  {
+    path: '/allocations',
+    label: 'Allocations',
+    icon: 'GitBranch',
+    roles: ['RMG'],
+  },
+  {
+    path: '/utilization',
+    label: 'Utilization',
+    icon: 'Activity',
+    roles: ['RMG'],
+  },
+  {
+    path: '/forecasting',
+    label: 'Demand Forecasting',
+    icon: 'LineChart',
+    roles: ['RMG'],
+  },
+  // Common Routes
+  {
+    path: '/reports',
+    label: 'Reports',
+    icon: 'BarChart3',
+    roles: ['HR', 'RMG'],
+  },
+];
+
+export function hasPermission(userRole: UserRole, path: string): boolean {
+  return rolePermissions[userRole]?.includes(path) || false;
+}
+
+export function getNavigationForRole(userRole: UserRole): RoutePermission[] {
+  return navigationConfig.filter((nav) => nav.roles.includes(userRole));
+}
