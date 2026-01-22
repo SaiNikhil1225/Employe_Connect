@@ -288,14 +288,14 @@ export default function Helpdesk() {
     }
   };
 
-  // Handler for reopening a cancelled ticket
+  // Handler for raising a similar request from a cancelled ticket
   const handleReopenTicket = useCallback((ticket: HelpdeskTicket) => {
-    // Pre-fill the form with the cancelled ticket's data
+    // Pre-fill the form with the cancelled ticket's data (creates a new ticket)
     setReopenData({
       previousTicketNumber: ticket.ticketNumber,
       highLevelCategory: ticket.highLevelCategory,
       subCategory: ticket.subCategory,
-      subject: `[Reopened] ${ticket.subject}`,
+      subject: ticket.subject, // Keep original subject without prefix
       description: ticket.description,
       urgency: ticket.urgency,
     });

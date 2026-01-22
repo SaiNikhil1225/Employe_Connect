@@ -1,4 +1,4 @@
-export type UserRole = 'EMPLOYEE' | 'HR' | 'RMG' | 'MANAGER' | 'IT_ADMIN' | 'IT_EMPLOYEE' | 'L1_APPROVER' | 'L2_APPROVER' | 'L3_APPROVER' | 'SUPER_ADMIN';
+export type UserRole = 'EMPLOYEE' | 'HR' | 'RMG' | 'MANAGER' | 'IT_ADMIN' | 'IT_EMPLOYEE' | 'L1_APPROVER' | 'L2_APPROVER' | 'L3_APPROVER' | 'SUPER_ADMIN' | 'FINANCE_ADMIN' | 'FACILITIES_ADMIN';
 
 export interface User {
   id: string;

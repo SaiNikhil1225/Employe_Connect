@@ -18,6 +18,8 @@ export type UserRole =
   | 'L2_APPROVER'
   | 'L3_APPROVER'
   | 'RMG'
+  | 'FINANCE_ADMIN'
+  | 'FACILITIES_ADMIN'
   | 'all';
 
 export interface NotificationMeta {

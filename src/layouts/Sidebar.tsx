@@ -107,6 +107,20 @@ export function Sidebar() {
 
   const navigation = getNavigationForRole(user.role);
 
+  // Filter navigation based on department for EMPLOYEE role
+  const filteredNavigation = navigation.filter(item => {
+    // If user is EMPLOYEE, only show department-specific ticket pages
+    if (user.role === 'EMPLOYEE') {
+      if (item.path === '/financeadmin/tickets') {
+        return user.department === 'Finance' || user.businessUnit === 'Finance';
+      }
+      if (item.path === '/facilitiesadmin/tickets') {
+        return user.department === 'Facilities' || user.businessUnit === 'Facilities';
+      }
+    }
+    return true;
+  });
+
   const getIcon = (iconName: string): LucideIcon => {
     return iconMap[iconName] || iconMap.CircleDot;
   };
@@ -114,7 +128,7 @@ export function Sidebar() {
   // Organize navigation into sections
   const menuSections: MenuSection[] = [
     {
-      items: navigation.map(item => ({
+      items: filteredNavigation.map(item => ({
         path: item.path,
         label: item.label,
         icon: item.icon || 'CircleDot',

@@ -19,6 +19,8 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/documents',
     '/employees-directory',
     '/helpdesk',
+    '/financeadmin/tickets',
+    '/facilitiesadmin/tickets',
   ],
   MANAGER: [
     '/dashboard',
@@ -137,6 +139,22 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/reports',
     '/employees-directory',
   ],
+  FINANCE_ADMIN: [
+    '/dashboard',
+    '/financeadmin/dashboard',
+    '/financeadmin/tickets',
+    '/financeadmin/analytics',
+    '/profile',
+    '/employees-directory',
+  ],
+  FACILITIES_ADMIN: [
+    '/dashboard',
+    '/facilitiesadmin/dashboard',
+    '/facilitiesadmin/tickets',
+    '/facilitiesadmin/analytics',
+    '/profile',
+    '/employees-directory',
+  ],
 };
 
 export const navigationConfig: RoutePermission[] = [
@@ -145,7 +163,7 @@ export const navigationConfig: RoutePermission[] = [
     path: '/dashboard',
     label: 'Dashboard',
     icon: 'LayoutDashboard',
-    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN', 'IT_EMPLOYEE', 'L1_APPROVER', 'L2_APPROVER', 'L3_APPROVER', 'HR', 'RMG', 'SUPER_ADMIN'],
+    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN', 'IT_EMPLOYEE', 'L1_APPROVER', 'L2_APPROVER', 'L3_APPROVER', 'HR', 'RMG', 'SUPER_ADMIN', 'FINANCE_ADMIN', 'FACILITIES_ADMIN'],
   },
   // Super Admin Routes
   {
@@ -253,6 +271,44 @@ export const navigationConfig: RoutePermission[] = [
     label: 'Analytics',
     icon: 'BarChart',
     roles: ['IT_ADMIN', 'IT_EMPLOYEE'],
+  },
+  // Finance Admin Routes
+  {
+    path: '/financeadmin/dashboard',
+    label: 'Finance Admin Dashboard',
+    icon: 'Wallet',
+    roles: ['FINANCE_ADMIN'],
+  },
+  {
+    path: '/financeadmin/tickets',
+    label: 'Finance Tickets',
+    icon: 'Ticket',
+    roles: ['FINANCE_ADMIN', 'EMPLOYEE'],
+  },
+  {
+    path: '/financeadmin/analytics',
+    label: 'Analytics',
+    icon: 'BarChart',
+    roles: ['FINANCE_ADMIN'],
+  },
+  // Facilities Admin Routes
+  {
+    path: '/facilitiesadmin/dashboard',
+    label: 'Facilities Admin Dashboard',
+    icon: 'Building2',
+    roles: ['FACILITIES_ADMIN'],
+  },
+  {
+    path: '/facilitiesadmin/tickets',
+    label: 'Facilities Tickets',
+    icon: 'Ticket',
+    roles: ['FACILITIES_ADMIN', 'EMPLOYEE'],
+  },
+  {
+    path: '/facilitiesadmin/analytics',
+    label: 'Analytics',
+    icon: 'BarChart',
+    roles: ['FACILITIES_ADMIN'],
   },
   // Common Routes (All Roles)
   {

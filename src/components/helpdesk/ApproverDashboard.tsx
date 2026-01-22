@@ -63,8 +63,8 @@ export function ApproverDashboard() {
   // Filter tickets based on active/history filter
   const filteredTickets = useMemo(() => {
     return allTickets.filter(ticket => {
-      // Check if ticket is historical (completed or rejected)
-      const historicalStatuses = ['Approved', 'Rejected', 'Completed', 'Closed', 'Auto-Closed', 'Routed'];
+      // Check if ticket is historical (completed, rejected, or cancelled)
+      const historicalStatuses = ['Approved', 'Rejected', 'Completed', 'Closed', 'Auto-Closed', 'Routed', 'Cancelled'];
       const isHistoricalByStatus = historicalStatuses.includes(ticket.status);
       const isHistoricalByApproval = ticket.approvalCompleted === true || ticket.approvalStatus === 'Rejected';
       const isHistorical = isHistoricalByStatus || isHistoricalByApproval;
@@ -79,13 +79,13 @@ export function ApproverDashboard() {
 
   // Calculate counts using the same logic as filtering
   const activeCount = allTickets.filter(t => {
-    const historicalStatuses = ['Approved', 'Rejected', 'Completed', 'Closed', 'Auto-Closed', 'Routed'];
+    const historicalStatuses = ['Approved', 'Rejected', 'Completed', 'Closed', 'Auto-Closed', 'Routed', 'Cancelled'];
     const isHistoricalByStatus = historicalStatuses.includes(t.status);
     const isHistoricalByApproval = t.approvalCompleted === true || t.approvalStatus === 'Rejected';
     return !(isHistoricalByStatus || isHistoricalByApproval);
   }).length;
   const historyCount = allTickets.filter(t => {
-    const historicalStatuses = ['Approved', 'Rejected', 'Completed', 'Closed', 'Auto-Closed', 'Routed'];
+    const historicalStatuses = ['Approved', 'Rejected', 'Completed', 'Closed', 'Auto-Closed', 'Routed', 'Cancelled'];
     const isHistoricalByStatus = historicalStatuses.includes(t.status);
     const isHistoricalByApproval = t.approvalCompleted === true || t.approvalStatus === 'Rejected';
     return isHistoricalByStatus || isHistoricalByApproval;

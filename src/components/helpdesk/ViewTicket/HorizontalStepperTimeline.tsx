@@ -1,6 +1,12 @@
 import { cn } from '@/lib/utils';
 import type { HelpdeskTicket } from '@/types/helpdeskNew';
 import { Check, Circle, X, RotateCcw } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface Step {
   id: string;
@@ -205,25 +211,42 @@ export function HorizontalStepperTimeline({ ticket }: HorizontalStepperTimelineP
     const isCancelled = ticket.status === 'Cancelled';
     
     if (isRejected) {
+      // Find who rejected from history
+      const rejectHistory = ticket.history?.find(h => 
+        h.action.toLowerCase().includes('rejected') || 
+        h.newStatus === 'Rejected'
+      );
+      const rejectedBy = rejectHistory?.performedBy || rejectHistory?.by || 
+                         ticket.approval?.level1?.approverName || 
+                         ticket.approval?.level2?.approverName || 
+                         ticket.approval?.level3?.approverName;
+      
       // Add final Rejected step
       steps.push({
         id: 'rejected',
         label: 'Rejected',
         status: 'rejected',
-        timestamp: ticket.updatedAt,
-        description: 'Request rejected'
+        timestamp: rejectHistory?.timestamp || ticket.updatedAt,
+        description: rejectedBy ? `Rejected by ${rejectedBy}` : 'Request rejected'
       });
       return steps; // Don't show further steps if rejected
     }
 
     if (isCancelled) {
+      // Find who cancelled from history
+      const cancelHistory = ticket.history?.find(h => 
+        h.action.toLowerCase().includes('cancelled') || 
+        h.newStatus === 'Cancelled'
+      );
+      const cancelledBy = cancelHistory?.performedBy || cancelHistory?.by || ticket.closedBy;
+      
       // Add final Cancelled step
       steps.push({
         id: 'cancelled',
         label: 'Cancelled',
         status: 'rejected',
-        timestamp: ticket.updatedAt,
-        description: 'Request cancelled'
+        timestamp: cancelHistory?.timestamp || ticket.updatedAt,
+        description: cancelledBy ? `Cancelled by ${cancelledBy}` : 'Request cancelled'
       });
       return steps; // Don't show further steps if cancelled
     }
@@ -532,63 +555,72 @@ export function HorizontalStepperTimeline({ ticket }: HorizontalStepperTimelineP
       </div>
       
       {/* Scrollable container for steps */}
-      <div className="overflow-x-auto pb-2">
-        <div className="flex items-start gap-0" style={{ minWidth: `${Math.max(steps.length * 120, 100)}px` }}>
-          {steps.map((step, index) => (
-            <div key={step.id} className="flex items-start flex-1 relative min-w-[100px]">
-              {/* Connecting Line - positioned behind */}
-              {index < steps.length - 1 && (
-                <div className="absolute top-[17px] left-[calc(50%+18px)] right-[calc(-50%+18px)] h-0.5 pointer-events-none">
-                  <div className={cn(
-                    'h-full w-full',
-                    getLineColor(step.status, steps[index + 1].status)
-                  )} />
-                </div>
-              )}
-
-              {/* Step Content */}
-              <div className="flex flex-col items-center w-full">
-                {/* Icon */}
-                <div className={cn(
-                  'w-9 h-9 rounded-full border-2 flex items-center justify-center shadow-sm relative z-10 bg-white dark:bg-gray-800',
-                  getStepColor(step.status, step.id)
-                )}>
-                  {getStepIcon(step.status, step.id)}
-                </div>
-
-                {/* Label and Info */}
-                <div className="mt-3 text-center px-2">
-                  <div className={cn(
-                    'text-xs font-semibold whitespace-nowrap mb-1',
-                    step.id === 'reopened' ? 'text-amber-700 dark:text-amber-400' :
-                    step.status === 'completed' ? 'text-green-700 dark:text-green-400' :
-                    step.status === 'active' ? 'text-blue-700 dark:text-blue-400' :
-                    step.status === 'rejected' ? 'text-red-700 dark:text-red-400' :
-                    'text-gray-500 dark:text-gray-500'
-                  )}>
-                    {step.label}
+      <TooltipProvider>
+        <div className="overflow-x-auto pb-2">
+          <div className="flex items-start gap-0" style={{ minWidth: `${Math.max(steps.length * 120, 100)}px` }}>
+            {steps.map((step, index) => (
+              <div key={step.id} className="flex items-start flex-1 relative min-w-[100px]">
+                {/* Connecting Line - positioned behind */}
+                {index < steps.length - 1 && (
+                  <div className="absolute top-[17px] left-[calc(50%+18px)] right-[calc(-50%+18px)] h-0.5 pointer-events-none">
+                    <div className={cn(
+                      'h-full w-full',
+                      getLineColor(step.status, steps[index + 1].status)
+                    )} />
                   </div>
-                  {step.description && (
-                    <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1 max-w-[100px] truncate">
-                      {step.description}
+                )}
+
+                {/* Step Content */}
+                <div className="flex flex-col items-center w-full">
+                  {/* Icon */}
+                  <div className={cn(
+                    'w-9 h-9 rounded-full border-2 flex items-center justify-center shadow-sm relative z-10 bg-white dark:bg-gray-800',
+                    getStepColor(step.status, step.id)
+                  )}>
+                    {getStepIcon(step.status, step.id)}
+                  </div>
+
+                  {/* Label and Info */}
+                  <div className="mt-3 text-center px-2">
+                    <div className={cn(
+                      'text-xs font-semibold whitespace-nowrap mb-1',
+                      step.id === 'reopened' ? 'text-amber-700 dark:text-amber-400' :
+                      step.status === 'completed' ? 'text-green-700 dark:text-green-400' :
+                      step.status === 'active' ? 'text-blue-700 dark:text-blue-400' :
+                      step.status === 'rejected' ? 'text-red-700 dark:text-red-400' :
+                      'text-gray-500 dark:text-gray-500'
+                    )}>
+                      {step.label}
                     </div>
-                  )}
-                  {step.timestamp && (
-                    <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                      {new Date(step.timestamp).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </div>
-                  )}
+                    {step.description && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1 max-w-[100px] truncate cursor-help">
+                            {step.description}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">{step.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {step.timestamp && (
+                      <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                        {new Date(step.timestamp).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      </TooltipProvider>
     </div>
   );
 }

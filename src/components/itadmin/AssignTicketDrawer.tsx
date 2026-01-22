@@ -31,6 +31,7 @@ interface AssignTicketDrawerProps {
   onOpenChange: (open: boolean) => void;
   onAssign: (ticketId: string, employeeId: string, notes?: string) => Promise<void>;
   isAssigning?: boolean;
+  department?: 'IT' | 'Finance' | 'Facilities';
 }
 
 export function AssignTicketDrawer({
@@ -39,6 +40,7 @@ export function AssignTicketDrawer({
   onOpenChange,
   onAssign,
   isAssigning = false,
+  department = 'IT',
 }: AssignTicketDrawerProps) {
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
   const [assignmentNotes, setAssignmentNotes] = useState('');
@@ -93,10 +95,10 @@ export function AssignTicketDrawer({
         <SheetHeader>
           <SheetTitle className="text-brand-navy dark:text-gray-100 flex items-center gap-2">
             <UserPlus className="h-5 w-5 text-brand-green" />
-            Assign Ticket to IT Employee
+            Assign Ticket to {department} Employee
           </SheetTitle>
           <SheetDescription className="text-brand-slate dark:text-gray-400">
-            Select an IT employee based on their specialization and current workload
+            Select a {department.toLowerCase()} employee based on their specialization and current workload
           </SheetDescription>
         </SheetHeader>
 
@@ -154,13 +156,14 @@ export function AssignTicketDrawer({
             )}
           </div>
 
-          {/* IT Employee Selection */}
+          {/* Employee Selection */}
           <div>
             <ITEmployeeSelect
               value={selectedEmployee}
               onValueChange={setSelectedEmployee}
               specialization={ticket.subCategory}
               disabled={isAssigning}
+              department={department}
             />
           </div>
 
@@ -178,7 +181,7 @@ export function AssignTicketDrawer({
               className="min-h-[100px] resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              These notes will be visible to the assigned IT employee
+              These notes will be visible to the assigned {department.toLowerCase()} employee
             </p>
           </div>
         </div>

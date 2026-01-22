@@ -82,6 +82,11 @@ export function ManagerApprovals({
       return [];
     }
     return tickets.filter((ticket) => {
+      // Skip cancelled or rejected tickets - they should not be actionable
+      if (ticket.status === 'Cancelled' || ticket.status === 'Rejected') {
+        return false;
+      }
+
       // Must have approval flow
       if (!ticket.approvalFlow || ticket.approvalFlow.length === 0) return false;
 

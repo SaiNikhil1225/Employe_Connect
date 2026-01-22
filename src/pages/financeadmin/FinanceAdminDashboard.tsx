@@ -29,7 +29,7 @@ import {
   TrendingUp,
   Activity,
   Search,
-  Shield,
+  Wallet,
   Calendar,
   User,
   BarChart3,
@@ -38,18 +38,19 @@ import {
   Eye,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useITAdminGuard } from '@/hooks/useITAdminGuard';
+import { useFinanceAdminGuard } from '@/hooks/useFinanceAdminGuard';
 import { AssignTicketDrawer } from '@/components/itadmin/AssignTicketDrawer';
 import { ViewTicket } from '@/components/helpdesk/ViewTicket';
 import { helpdeskService } from '@/services/helpdeskService';
+import apiClient from '@/services/api';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { SLAComplianceDashboard } from '@/components/helpdesk/SLAComplianceDashboard';
 import AgentWorkloadIndicators from '@/components/helpdesk/AgentWorkloadIndicators';
 
-export function ITAdminDashboard() {
+export function FinanceAdminDashboard() {
   const navigate = useNavigate();
-  const { isITAdmin, user } = useITAdminGuard();
+  const { isFinanceAdmin, user } = useFinanceAdminGuard();
   const { tickets, fetchTickets, isLoading } = useHelpdeskStore();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,19 +63,19 @@ export function ITAdminDashboard() {
   const [isAssigning, setIsAssigning] = useState(false);
 
   useEffect(() => {
-    if (isITAdmin) {
+    if (isFinanceAdmin) {
       fetchTickets();
     }
-  }, [fetchTickets, isITAdmin]);
+  }, [fetchTickets, isFinanceAdmin]);
 
-  // Filter IT tickets only - CRITICAL: Module-driven approval gating (NEW ARCHITECTURE)
-  const itTickets = useMemo(() => {
+  // Filter Finance tickets only - CRITICAL: Module-driven approval gating (NEW ARCHITECTURE)
+  const financeTickets = useMemo(() => {
     const allTickets = tickets as unknown as NewHelpdeskTicket[];
 
     return allTickets.filter(t => {
-      // Must be IT module (immutable field)
+      // Must be Finance module (immutable field)
       const module = t.module || t.highLevelCategory;
-      if (module !== 'IT') return false;
+      if (module !== 'Finance') return false;
 
       // Type guard to ensure we have the new ticket structure
       const ticket = t as NewHelpdeskTicket;
@@ -94,47 +95,47 @@ export function ITAdminDashboard() {
       }
 
       // Additional safety check: routedTo must be set
-      if (!ticket.routedTo || ticket.routedTo !== 'IT') {
+      if (!ticket.routedTo || ticket.routedTo !== 'Finance') {
         return false;
       }
 
-      // Passed all gates - ticket is visible to IT Admin
+      // Passed all gates - ticket is visible to Finance Admin
       return true;
     });
   }, [tickets]);
 
   // KPI calculations
   const stats = useMemo(() => {
-    const unassigned = itTickets.filter(t => 
+    const unassigned = financeTickets.filter(t => 
       !t.assignment?.assignedToId && 
       ['open', 'pending', 'Reopened', 'In Queue', 'Routed', 'Approved'].includes(t.status)
     ).length;
     
-    const assigned = itTickets.filter(t => 
+    const assigned = financeTickets.filter(t => 
       t.assignment?.assignedToId && 
       ['Assigned'].includes(t.status)
     ).length;
     
-    const inProgress = itTickets.filter(t => 
+    const inProgress = financeTickets.filter(t => 
       ['In Progress'].includes(t.status)
     ).length;
     
-    const reopened = itTickets.filter(t =>
+    const reopened = financeTickets.filter(t =>
       t.status === 'Reopened'
     ).length;
     
-    const closed = itTickets.filter(t =>
+    const closed = financeTickets.filter(t =>
       ['Completed', 'Confirmed', 'Closed', 'Auto-Closed', 'Cancelled'].includes(t.status)
     ).length;
     
-    const total = itTickets.length;
+    const total = financeTickets.length;
 
     return { total, unassigned, assigned, inProgress, reopened, closed };
-  }, [itTickets]);
+  }, [financeTickets]);
 
   // Unassigned tickets (primary focus)
   const unassignedTickets = useMemo(() => {
-    let filtered = itTickets.filter(t => 
+    let filtered = financeTickets.filter(t => 
       !t.assignment?.assignedToId && 
       ['open', 'pending', 'Reopened', 'In Queue', 'Routed', 'Approved'].includes(t.status)
     );
@@ -159,30 +160,30 @@ export function ITAdminDashboard() {
       if (aUrgency !== bUrgency) return aUrgency - bUrgency;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [itTickets, searchQuery]);
+  }, [financeTickets, searchQuery]);
 
   // Get unique statuses and types for filters
   const uniqueStatuses = useMemo(() => {
-    const allStatuses = itTickets
+    const allStatuses = financeTickets
       .filter(t => t.assignment?.assignedToId && (t.assignment?.assignedBy === user?.id || t.assignment?.assignedByName === user?.name))
       .map(t => t.status);
     return Array.from(new Set(allStatuses)).sort();
-  }, [itTickets, user]);
+  }, [financeTickets, user]);
 
   const uniqueTypes = useMemo(() => {
-    const allTypes = itTickets
+    const allTypes = financeTickets
       .filter(t => t.assignment?.assignedToId && (t.assignment?.assignedBy === user?.id || t.assignment?.assignedByName === user?.name))
       .map(t => t.subCategory)
       .filter(Boolean);
     return Array.from(new Set(allTypes)).sort();
-  }, [itTickets, user]);
+  }, [financeTickets, user]);
 
   // Assigned tickets (by this admin) - including closed for reference
   const assignedTickets = useMemo(() => {
-    let filtered = itTickets.filter(t =>
+    let filtered = financeTickets.filter(t =>
       t.assignment?.assignedToId &&
       (t.assignment?.assignedBy === user?.id || t.assignment?.assignedByName === user?.name) &&
-      ['Assigned', 'In Progress', 'Work Completed', 'Completed - Awaiting IT Closure', 'Completed', 'Confirmed', 'Closed', 'Auto-Closed', 'Cancelled'].includes(t.status)
+      ['Assigned', 'In Progress', 'Work Completed', 'Completed - Awaiting Finance Closure', 'Completed', 'Confirmed', 'Closed', 'Auto-Closed', 'Cancelled'].includes(t.status)
     );
 
     // Apply status filter
@@ -212,11 +213,11 @@ export function ITAdminDashboard() {
       return new Date(b.assignment?.assignedAt || b.createdAt).getTime() -
              new Date(a.assignment?.assignedAt || a.createdAt).getTime();
     });
-  }, [itTickets, user, assignedSearchQuery, assignedStatusFilter, assignedTypeFilter]);
+  }, [financeTickets, user, assignedSearchQuery, assignedStatusFilter, assignedTypeFilter]);
 
   // All closed tickets (for reference)
   const closedTickets = useMemo(() => {
-    return itTickets.filter(t =>
+    return financeTickets.filter(t =>
       ['Completed', 'Confirmed', 'Closed', 'Auto-Closed', 'Cancelled'].includes(t.status)
     ).sort((a, b) => {
       // Sort by updated date (most recent first)
@@ -224,27 +225,35 @@ export function ITAdminDashboard() {
       const bDate = new Date(b.updatedAt || b.createdAt);
       return bDate.getTime() - aDate.getTime();
     });
-  }, [itTickets]);
+  }, [financeTickets]);
 
   const handleAssignTicket = useCallback(async (ticketId: string, specialistId: string, notes?: string) => {
     if (!user?.id || !user?.name) return;
 
     setIsAssigning(true);
     try {
-      // Get specialist details
-      const specialists = await helpdeskService.getITSpecialists();
-      const specialist = specialists.find((s) => (s as { id: string; employeeId?: string }).id === specialistId);
+      // Fetch Finance employees
+      const response = await apiClient.get<{ success: boolean; data: any[] }>('/employees');
+      let employees = response.data.data || response.data;
+      
+      // Filter to Finance department only
+      employees = employees.filter((emp: any) => 
+        (emp.department === 'Finance' || emp.businessUnit === 'Finance') &&
+        emp.status === 'active'
+      );
+      
+      const specialist = employees.find((s: any) => (s._id || s.id) === specialistId);
       
       if (!specialist) {
-        throw new Error('Specialist not found');
+        throw new Error('Finance specialist not found');
       }
 
-      // Use employeeId for assignment, not MongoDB _id
-      const assignToId = (specialist as { employeeId?: string }).employeeId || specialistId;
+      // Use employeeId for assignment
+      const assignToId = specialist.employeeId || specialistId;
       
       await helpdeskService.assignToITEmployee(
         ticketId,
-        assignToId,  // Use employeeId instead of _id
+        assignToId,
         specialist.name,
         user.id,
         user.name,
@@ -288,7 +297,7 @@ export function ITAdminDashboard() {
         return 'badge-status-on-hold';
       case 'Work Completed':
         return 'badge-status-work-completed';
-      case 'Completed - Awaiting IT Closure':
+      case 'Completed - Awaiting Finance Closure':
         return 'badge-status-awaiting-closure';
       case 'Completed':
       case 'Confirmed':
@@ -321,11 +330,11 @@ export function ITAdminDashboard() {
     );
   }
 
-  if (!isITAdmin) {
+  if (!isFinanceAdmin) {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center py-12">
-          <Shield className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <Wallet className="h-16 w-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h2>
           <p className="text-muted-foreground">You do not have permission to access this page.</p>
         </div>
@@ -339,16 +348,16 @@ export function ITAdminDashboard() {
       <div className="page-header">
         <div className="page-header-content">
           <h1 className="page-title">
-            <Shield className="h-7 w-7 text-primary" />
-            IT Admin Dashboard
+            <Wallet className="h-7 w-7 text-primary" />
+            Finance Admin Dashboard
           </h1>
           <p className="page-description">
-            Manage IT ticket assignments and monitor queue status
+            Manage Finance ticket assignments and monitor queue status
           </p>
         </div>
         <Button
           variant="outline"
-          onClick={() => navigate('/itadmin/tickets')}
+          onClick={() => navigate('/financeadmin/tickets')}
           className="flex items-center gap-2"
         >
           <Activity className="h-4 w-4" />
@@ -362,12 +371,12 @@ export function ITAdminDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" />
-              Total IT Tickets
+              Total Finance Tickets
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="kpi-value">{stats.total}</div>
-            <p className="text-xs text-muted-foreground mt-1">All IT helpdesk requests</p>
+            <p className="text-xs text-muted-foreground mt-1">All Finance helpdesk requests</p>
           </CardContent>
         </Card>
 
@@ -393,7 +402,7 @@ export function ITAdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="kpi-value text-blue-600">{stats.assigned}</div>
-            <p className="text-xs text-muted-foreground mt-1">Assigned to IT staff</p>
+            <p className="text-xs text-muted-foreground mt-1">Assigned to Finance staff</p>
           </CardContent>
         </Card>
 
@@ -447,7 +456,7 @@ export function ITAdminDashboard() {
                 Unassigned Tickets Queue
               </CardTitle>
               <CardDescription className="text-brand-slate dark:text-gray-400 mt-1">
-                Priority tickets awaiting IT employee assignment
+                Priority tickets awaiting Finance employee assignment
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -564,7 +573,7 @@ export function ITAdminDashboard() {
                 Assigned Tickets History
               </CardTitle>
               <CardDescription className="text-brand-slate dark:text-gray-400">
-                All tickets you've assigned to IT employees (including closed)
+                All tickets you've assigned to Finance employees (including closed)
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -689,7 +698,7 @@ export function ITAdminDashboard() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/itadmin/analytics')}
+              onClick={() => navigate('/financeadmin/analytics')}
             >
               <TrendingUp className="h-4 w-4 mr-2" />
               Full Analytics
@@ -772,7 +781,7 @@ export function ITAdminDashboard() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => navigate(`/itadmin/tickets`)}
+                              onClick={() => navigate(`/financeadmin/tickets`)}
                               className="h-8"
                             >
                               <Activity className="h-4 w-4 mr-1" />
@@ -798,7 +807,7 @@ export function ITAdminDashboard() {
             All Closed Tickets
           </CardTitle>
           <CardDescription className="text-brand-slate dark:text-gray-400">
-            Complete history of all closed IT tickets for reference
+            Complete history of all closed Finance tickets for reference
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -852,7 +861,7 @@ export function ITAdminDashboard() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => navigate(`/itadmin/tickets`)}
+                          onClick={() => navigate(`/financeadmin/tickets`)}
                           className="h-8"
                         >
                           <Activity className="h-4 w-4 mr-1" />
@@ -875,6 +884,7 @@ export function ITAdminDashboard() {
         onOpenChange={setIsAssignDrawerOpen}
         onAssign={handleAssignTicket}
         isAssigning={isAssigning}
+        department="Finance"
       />
 
       {/* View Ticket Details Drawer */}

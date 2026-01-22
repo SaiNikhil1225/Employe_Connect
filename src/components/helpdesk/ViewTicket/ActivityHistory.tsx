@@ -18,7 +18,8 @@ import {
   FileCheck,
   User,
   Headphones,
-  Settings
+  Settings,
+  Copy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { HelpdeskTicket } from '@/types/helpdeskNew';
@@ -704,8 +705,8 @@ export function ActivityHistory({
           </div>
         )}
 
-        {/* Cancelled Ticket Notice */}
-        {isTicketCancelled && (
+        {/* Cancelled Ticket Notice - Only visible to the requester */}
+        {isTicketCancelled && isRequesterViewing && (
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="bg-gradient-to-b from-amber-50 to-white dark:from-amber-900/20 dark:to-gray-900/10 rounded-lg p-6 text-center border border-amber-200 dark:border-amber-800">
               <div className="flex flex-col items-center gap-2">
@@ -716,16 +717,16 @@ export function ActivityHistory({
                   This ticket has been Cancelled
                 </p>
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-                  No further messages can be sent. Thank you for using our support services.
+                  This request was cancelled. You can raise a similar request with pre-filled details if needed.
                 </p>
-                {isRequesterViewing && onReopenTicket && (
+                {onReopenTicket && (
                   <Button
                     onClick={() => onReopenTicket(ticket)}
                     variant="outline"
                     className="border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                   >
-                    <Play className="h-4 w-4 mr-2" />
-                    Need further help? Reopen ticket
+                    <Copy className="h-4 w-4 mr-2" />
+                    Raise Similar Request
                   </Button>
                 )}
               </div>
@@ -733,7 +734,8 @@ export function ActivityHistory({
           </div>
         )}
 
-        {isTicketClosed && (
+        {/* Closed Ticket Notice - Only visible to the requester */}
+        {isTicketClosed && isRequesterViewing && (
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="bg-gradient-to-b from-gray-50 to-white dark:from-gray-900/30 dark:to-gray-900/10 rounded-lg p-6 text-center border border-gray-200 dark:border-gray-700">
               <div className="flex flex-col items-center gap-2">

@@ -61,7 +61,7 @@ const subCategoryMapping = {
       "specialistQueue": "Building Maintenance",
       "order": 2
     },
-    "Cleaning / Janitorial": {
+    "Cleaning": {
       "requiresApproval": false,
       "processingQueue": "Facilities",
       "specialistQueue": "Housekeeping",
@@ -73,7 +73,7 @@ const subCategoryMapping = {
       "specialistQueue": "Electrical Team",
       "order": 4
     },
-    "HVAC / Temperature Issue": {
+    "AC Temperature Issue": {
       "requiresApproval": false,
       "processingQueue": "Facilities",
       "specialistQueue": "HVAC Team",
@@ -85,23 +85,11 @@ const subCategoryMapping = {
       "specialistQueue": "Plumbing Team",
       "order": 6
     },
-    "Furniture / Fixture Request": {
+    "Furniture": {
       "requiresApproval": false,
       "processingQueue": "Facilities",
       "specialistQueue": "Furniture & Layout",
       "order": 7
-    },
-    "Safety / Hazard Concern": {
-      "requiresApproval": false,
-      "processingQueue": "Facilities",
-      "specialistQueue": "Safety Team",
-      "order": 8
-    },
-    "AC": {
-      "requiresApproval": false,
-      "processingQueue": "Facilities",
-      "specialistQueue": "HVAC Team",
-      "order": 9
     }
   },
   "Finance": {

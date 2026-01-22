@@ -63,7 +63,7 @@ export function ApproverTicketList({
   };
 
   const isHistorical = (ticket: HelpdeskTicket): boolean => {
-    const historicalStatuses = ['Approved', 'Rejected', 'Completed', 'Closed', 'Auto-Closed', 'Routed'];
+    const historicalStatuses = ['Approved', 'Rejected', 'Completed', 'Closed', 'Auto-Closed', 'Routed', 'Cancelled'];
     return historicalStatuses.includes(ticket.status);
   };
 

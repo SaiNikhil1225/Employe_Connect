@@ -336,14 +336,14 @@ router.post(
 
 /**
  * POST /helpdesk/:id/assign
- * Assign ticket to IT specialist
- * Auth: Required (IT_ADMIN only)
+ * Assign ticket to specialist
+ * Auth: Required (IT_ADMIN, FINANCE_ADMIN, FACILITIES_ADMIN, or ADMIN)
  * Rate Limit: General (100/15min)
  */
 router.post(
   '/:id/assign',
   authenticateToken,
-  authorizeRoles('IT_ADMIN', 'ADMIN'),
+  authorizeRoles('IT_ADMIN', 'FINANCE_ADMIN', 'FACILITIES_ADMIN', 'ADMIN'),
   helpdeskValidation.assignTicket,
   asyncHandler(async (req: Request, res: Response) => {
     const updatedTicket = await helpdeskService.assignTicket(req.params.id, {

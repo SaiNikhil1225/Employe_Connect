@@ -1,38 +1,24 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   FileText,
   Clock,
   CheckCircle2,
   TrendingUp,
-  Headphones,
+  Building2,
   User,
   Info,
-  Settings,
-  FileType,
-  MessageSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { SpecialistQueuePage } from '@/components/helpdesk/SpecialistQueuePage';
 import { helpdeskService } from '@/services/helpdeskService';
-import type { HelpdeskTicket, SpecialistQueue } from '@/types/helpdeskNew';
-// import AutoCloseManagement from '@/components/helpdesk/AutoCloseManagement'; // Temporarily disabled - encoding issue
-// import { TicketTemplates } from '@/components/helpdesk/TicketTemplates'; // Temporarily disabled - encoding issue
-// import { CannedResponses } from '@/components/helpdesk/CannedResponses'; // Temporarily disabled - encoding issue
+import type { HelpdeskTicket } from '@/types/helpdeskNew';
 
-export function ITTicketManagement() {
+export function FacilitiesTicketManagement() {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('hardware');
+  const [activeTab, setActiveTab] = useState('maintenance-request');
   const [tickets, setTickets] = useState<HelpdeskTicket[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState({
@@ -43,45 +29,40 @@ export function ITTicketManagement() {
     myAssigned: 0,
   });
 
-  // IT_ADMIN users should use the main admin dashboard for assignment
-  const isITAdmin = user?.role === 'IT_ADMIN';
-
-  // Dialog states for management features
-  const [isAutoCloseOpen, setIsAutoCloseOpen] = useState(false);
-  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
-  const [isResponsesOpen, setIsResponsesOpen] = useState(false);
+  // FACILITIES_ADMIN users should use the main admin dashboard for assignment
+  const isFacilitiesAdmin = user?.role === 'FACILITIES_ADMIN';
 
   const calculateStats = useCallback((ticketData: HelpdeskTicket[]) => {
-    // Filter only IT tickets with approval gating (same as ITAdminDashboard)
-    const itTickets = ticketData.filter((t) => {
-      // Must be IT category
-      if (t.highLevelCategory !== 'IT') return false;
+    // Filter only Facilities tickets with approval gating (same as FacilitiesAdminDashboard)
+    const facilitiesTickets = ticketData.filter((t) => {
+      // Must be Facilities category
+      if (t.highLevelCategory !== 'Facilities') return false;
       
       // Apply approval gating: block if requires approval but not completed
       if (t.requiresApproval && !t.approvalCompleted) return false;
       
-      // Apply routing filter: must be routed to IT
-      if (!t.routedTo || t.routedTo !== 'IT') return false;
+      // Apply routing filter: must be routed to Facilities
+      if (!t.routedTo || t.routedTo !== 'Facilities') return false;
       
       return true;
     });
     
     // User-specific filtering - match what the specialist actually sees
-    const myTickets = itTickets.filter((t) => 
+    const myTickets = facilitiesTickets.filter((t) => 
       t.assignment?.assignedToId === user?.employeeId || 
       t.assignment?.assignedToId === user?.id
     );
     
     // Available tickets (unassigned, not cancelled/closed)
-    const terminalStatuses = ['Cancelled', 'Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Work Completed', 'Completed - Awaiting IT Closure', 'Rejected'];
-    const availableTickets = itTickets.filter((t) => 
+    const terminalStatuses = ['Cancelled', 'Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Work Completed', 'Rejected'];
+    const availableTickets = facilitiesTickets.filter((t) => 
       !t.assignment?.assignedToId && 
       t.status === 'In Queue' &&
       !terminalStatuses.includes(t.status)
     );
     
     const newStats = {
-      total: itTickets.length, // Keep global count for reference
+      total: facilitiesTickets.length, // Keep global count for reference
       inQueue: availableTickets.length, // Available to pick up
       assigned: myTickets.filter(
         (t) => t.status === 'Assigned' || t.status === 'In Progress' || t.status === 'Paused'
@@ -89,7 +70,6 @@ export function ITTicketManagement() {
       completed: myTickets.filter(
         (t) =>
           t.status === 'Work Completed' ||
-          t.status === 'Completed - Awaiting IT Closure' ||
           t.status === 'Completed' ||
           t.status === 'Confirmed' ||
           t.status === 'Closed' ||
@@ -107,13 +87,26 @@ export function ITTicketManagement() {
 
     setIsLoading(true);
     try {
-      // Load all tickets and filter for IT category only
+      // Load all tickets and filter for Facilities category only
       const data = await helpdeskService.getAll();
-      const itTickets = (data as unknown as HelpdeskTicket[]).filter(
-        (ticket) => ticket.highLevelCategory === 'IT'
+      const facilitiesTickets = (data as unknown as HelpdeskTicket[]).filter(
+        (ticket) => {
+          // Must be Facilities category
+          if (ticket.highLevelCategory !== 'Facilities') return false;
+          
+          // Apply approval gating: block if requires approval but not completed
+          if (ticket.requiresApproval && !ticket.approvalCompleted) return false;
+          
+          // Apply routing filter: must be routed to Facilities (or no routing required)
+          if (ticket.requiresApproval && (!ticket.routedTo || ticket.routedTo !== 'Facilities')) {
+            return false;
+          }
+          
+          return true;
+        }
       );
-      setTickets(itTickets);
-      calculateStats(itTickets);
+      setTickets(facilitiesTickets);
+      calculateStats(facilitiesTickets);
     } catch (error) {
       console.error('Failed to load tickets:', error);
       toast.error('Failed to load tickets. Please try again.');
@@ -126,15 +119,15 @@ export function ITTicketManagement() {
     loadTickets();
   }, [loadTickets]);
 
-  // Define all possible IT request types (subcategories)
+  // Define all possible Facilities request types (subcategories) - MUST MATCH seedSubCategoryConfig.ts
   const allRequestTypes = useMemo(() => [
-    { id: 'hardware', name: 'Hardware' },
-    { id: 'software', name: 'Software' },
-    { id: 'network-connectivity', name: 'Network / Connectivity' },
-    { id: 'account-login', name: 'Account / Login Problem' },
-    { id: 'access-request', name: 'Access Request' },
-    { id: 'new-equipment', name: 'New Equipment Request' },
-    { id: 'other', name: 'Other' },
+    { id: 'maintenance-request', name: 'Maintenance Request' },
+    { id: 'repair-request', name: 'Repair Request' },
+    { id: 'cleaning', name: 'Cleaning' },
+    { id: 'electrical-issue', name: 'Electrical Issue' },
+    { id: 'ac-temperature-issue', name: 'AC Temperature Issue' },
+    { id: 'plumbing', name: 'Plumbing' },
+    { id: 'furniture', name: 'Furniture' },
   ], []);
 
   // Helper function to get request type-specific ticket count
@@ -143,10 +136,7 @@ export function ITTicketManagement() {
       // Match by subCategory
       const matchesRequestType = t.subCategory === requestTypeName;
 
-      // Include legacy tickets without subCategory in "Hardware Issue"
-      const isLegacyTicket = !t.subCategory && t.highLevelCategory === 'IT' && requestTypeName === 'Hardware Issue';
-
-      if (!matchesRequestType && !isLegacyTicket) return false;
+      if (!matchesRequestType) return false;
 
       // Also filter by valid statuses
       const validStatuses = ['In Queue', 'Assigned', 'In Progress', 'Work Completed'];
@@ -175,52 +165,6 @@ export function ITTicketManagement() {
     } catch (error) {
       console.error('Failed to send message:', error);
       toast.error('Failed to send message. Please try again.');
-      throw error;
-    }
-  };
-
-  const handleAssignToSelf = async (ticketId: string) => {
-    if (!user?.id || !user?.name) return;
-
-    try {
-      // Get queue from current active tab
-      const queueMap: Record<string, SpecialistQueue> = {
-        'hardware-team': 'Hardware Team',
-        'software-team': 'Software Team',
-        'network-team': 'Network Team',
-        'identity-team': 'Identity Team',
-        'security-team': 'Security Team',
-      };
-      const queue = queueMap[activeTab];
-      
-      await helpdeskService.assign(ticketId, user.id, user.name, queue);
-      toast.success('Ticket assigned to you');
-      await loadTickets();
-    } catch (error) {
-      console.error('Failed to assign ticket:', error);
-      toast.error('Failed to assign ticket. Please try again.');
-      throw error;
-    }
-  };
-
-  const handleAssignToSpecialist = async (ticketId: string, specialistId: string, specialistName: string) => {
-    try {
-      // Get queue from current active tab
-      const queueMap: Record<string, SpecialistQueue> = {
-        'hardware-team': 'Hardware Team',
-        'software-team': 'Software Team',
-        'network-team': 'Network Team',
-        'identity-team': 'Identity Team',
-        'security-team': 'Security Team',
-      };
-      const queue = queueMap[activeTab];
-      
-      await helpdeskService.assign(ticketId, specialistId, specialistName, queue);
-      toast.success(`Ticket assigned to ${specialistName}`);
-      await loadTickets();
-    } catch (error) {
-      console.error('Failed to assign ticket:', error);
-      toast.error('Failed to assign ticket. Please try again.');
       throw error;
     }
   };
@@ -307,24 +251,24 @@ export function ITTicketManagement() {
       <div className="page-header">
         <div className="page-header-content">
           <h1 className="page-title">
-            <Headphones className="h-7 w-7 text-primary" />
-            {isITAdmin ? 'IT Tickets - View Only' : 'IT Ticket Management'}
+            <Building2 className="h-7 w-7 text-primary" />
+            {isFacilitiesAdmin ? 'Facilities Tickets - View Only' : 'Facilities Ticket Management'}
           </h1>
           <p className="page-description">
-            {isITAdmin 
-              ? 'View all IT helpdesk tickets. Use IT Admin Dashboard to assign tickets.'
-              : 'Manage and resolve IT helpdesk tickets across all teams'
+            {isFacilitiesAdmin 
+              ? 'View all Facilities helpdesk tickets. Use Facilities Admin Dashboard to assign tickets.'
+              : 'Manage and resolve Facilities helpdesk tickets across all teams'
             }
           </p>
         </div>
       </div>
 
-      {/* IT Admin Notice */}
-      {isITAdmin && (
+      {/* Facilities Admin Notice */}
+      {isFacilitiesAdmin && (
         <div className="notice-info">
           <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-blue-800 dark:text-blue-300">
-            As an IT Admin, please use the <strong>IT Admin Dashboard</strong> to assign tickets to specialists.
+            As a Facilities Admin, please use the <strong>Facilities Admin Dashboard</strong> to assign tickets to specialists.
             This page is for viewing ticket details only.
           </p>
         </div>
@@ -336,7 +280,7 @@ export function ITTicketManagement() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="kpi-label mb-1">All IT Tickets</p>
+                <p className="kpi-label mb-1">All Facilities Tickets</p>
                 <p className="kpi-value">
                   {stats.total}
                 </p>
@@ -424,13 +368,13 @@ export function ITTicketManagement() {
               tickets={tickets}
               currentSpecialistId={user?.employeeId || user?.id || ''}
               currentSpecialistName={user?.name || ''}
-              onAssignToSelf={async () => {}} // Disabled - only IT Admin can assign
-              onAssignToSpecialist={async () => {}} // Disabled - only IT Admin can assign
-              onUpdateProgress={isITAdmin ? async () => {} : handleUpdateProgress}
-              onCompleteWork={isITAdmin ? async () => {} : handleCompleteWork}
+              onAssignToSelf={async () => {}} // Disabled - only Facilities Admin can assign
+              onAssignToSpecialist={async () => {}} // Disabled - only Facilities Admin can assign
+              onUpdateProgress={isFacilitiesAdmin ? async () => {} : handleUpdateProgress}
+              onCompleteWork={isFacilitiesAdmin ? async () => {} : handleCompleteWork}
               onSendMessage={handleSendMessage}
-              onPauseTicket={isITAdmin ? undefined : handlePauseTicket}
-              onResumeTicket={isITAdmin ? undefined : handleResumeTicket}
+              onPauseTicket={isFacilitiesAdmin ? undefined : handlePauseTicket}
+              onResumeTicket={isFacilitiesAdmin ? undefined : handleResumeTicket}
               onCloseTicket={handleCloseTicket}
               isLoading={isLoading}
             />

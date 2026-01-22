@@ -13,6 +13,7 @@ import { ApprovalStatusSection } from './ApprovalStatusSection';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { CheckSquare } from 'lucide-react';
 import { HorizontalStepperTimeline } from './ViewTicket/HorizontalStepperTimeline';
+import { SLAInfo } from './ViewTicket/SLAInfo';
 
 interface ViewTicketProps {
   ticket: HelpdeskTicket;
@@ -157,6 +158,11 @@ export function ViewTicket({
             <div className="w-[40%] space-y-4">
               {/* Request Details */}
               <TicketDetails ticket={ticket} />
+
+              {/* SLA Information */}
+              {ticket.sla && (
+                <SLAInfo ticket={ticket} />
+              )}
 
               {/* Approval Status Section */}
               {ticket.approval?.required && !ticket.approval.bypassed && (

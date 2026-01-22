@@ -221,19 +221,23 @@ export function SpecialistQueuePage({
   // Further separate into active and completed
   const myActiveTickets = useMemo(() => {
     return myAssignedTickets.filter(t =>
-      !['Closed', 'Auto-Closed', 'Confirmed', 'Completed'].includes(t.status)
+      !['Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Cancelled'].includes(t.status)
     );
   }, [myAssignedTickets]);
 
-  // All completed tickets in this queue (for reference, not just assigned to current user)
-  const allCompletedTickets = useMemo(() => {
-    return queueTickets.filter(t =>
+  // Completed tickets assigned to the current specialist only (not all completed tickets)
+  const myCompletedTickets = useMemo(() => {
+    return myAssignedTickets.filter(t =>
       ['Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Work Completed', 'Completed - Awaiting IT Closure', 'Cancelled'].includes(t.status)
     );
-  }, [queueTickets]);
+  }, [myAssignedTickets]);
 
   const unassignedTickets = useMemo(() => {
     return queueTickets.filter((ticket) => {
+      // Exclude cancelled, closed, and completed tickets from available queue
+      const terminalStatuses = ['Cancelled', 'Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Work Completed', 'Completed - Awaiting IT Closure', 'Rejected'];
+      if (terminalStatuses.includes(ticket.status)) return false;
+
       // A ticket is "available" if:
       // 1. It has status 'In Queue' (not yet assigned to anyone)
       // 2. OR it's not assigned to anyone (no assignedToId)
@@ -989,71 +993,20 @@ export function SpecialistQueuePage({
               </SelectContent>
             </Select>
           </div>
-
-          {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-            <div className="p-4 bg-brand-green-light dark:bg-brand-green/10 border border-brand-green/20 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-brand-slate dark:text-gray-400">My Tickets</p>
-                  <p className="text-2xl font-bold text-brand-navy dark:text-gray-100">
-                    {myActiveTickets.length}
-                  </p>
-                </div>
-                <User className="h-8 w-8 text-brand-green opacity-50" />
-              </div>
-            </div>
-
-            <div className="p-4 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800/20 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-brand-slate dark:text-gray-400">In Queue</p>
-                  <p className="text-2xl font-bold text-brand-navy dark:text-gray-100">
-                    {unassignedTickets.length}
-                  </p>
-                </div>
-                <Clock className="h-8 w-8 text-purple-500 opacity-50" />
-              </div>
-            </div>
-
-            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/20 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-brand-slate dark:text-gray-400">In Progress</p>
-                  <p className="text-2xl font-bold text-brand-navy dark:text-gray-100">
-                    {myActiveTickets.filter((t) => t.status === 'In Progress').length}
-                  </p>
-                </div>
-                <Play className="h-8 w-8 text-yellow-500 opacity-50" />
-              </div>
-            </div>
-
-            <div className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/20 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-brand-slate dark:text-gray-400">Critical/High</p>
-                  <p className="text-2xl font-bold text-brand-navy dark:text-gray-100">
-                    {queueTickets.filter((t) => t.urgency === 'Critical' || t.urgency === 'High').length}
-                  </p>
-                </div>
-                <AlertCircle className="h-8 w-8 text-red-500 opacity-50" />
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
       {/* My Tickets Section with Tabs */}
-      {(myAssignedTickets.length > 0 || allCompletedTickets.length > 0) && (
+      {(myAssignedTickets.length > 0 || myCompletedTickets.length > 0) && (
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'completed')} className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-brand-navy dark:text-gray-100 flex items-center gap-2">
               <User className="h-5 w-5 text-brand-green" />
-              Tickets Overview
+              My Tickets
             </h3>
             <TabsList>
-              <TabsTrigger value="active">My Active ({myActiveTickets.length})</TabsTrigger>
-              <TabsTrigger value="completed">All Completed ({allCompletedTickets.length})</TabsTrigger>
+              <TabsTrigger value="active">Active ({myActiveTickets.length})</TabsTrigger>
+              <TabsTrigger value="completed">Completed ({myCompletedTickets.length})</TabsTrigger>
             </TabsList>
           </div>
 
@@ -1071,7 +1024,7 @@ export function SpecialistQueuePage({
                 <CardContent className="py-8">
                   <div className="text-center text-gray-500">
                     <CheckCircle2 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>No active tickets</p>
+                    <p>No active tickets assigned to you</p>
                   </div>
                 </CardContent>
               </Card>
@@ -1079,8 +1032,8 @@ export function SpecialistQueuePage({
           </TabsContent>
 
           <TabsContent value="completed" className="mt-0">
-            {allCompletedTickets.length > 0 ? (
-              renderTicketsTable(sortTickets(allCompletedTickets), true)
+            {myCompletedTickets.length > 0 ? (
+              renderTicketsTable(sortTickets(myCompletedTickets), true)
             ) : (
               <Card>
                 <CardContent className="py-8">

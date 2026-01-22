@@ -23,6 +23,50 @@
 - **Department:** Human Resources
 - **Employee ID:** HR001
 
+### Finance Admin Account
+- **Email:** finance@acuvate.com
+- **Password:** Finance@123
+- **Role:** FINANCE_ADMIN
+- **Department:** Finance
+- **Employee ID:** FIN001
+
+### Facilities Admin Account
+- **Email:** facilities@acuvate.com
+- **Password:** Facilities@123
+- **Role:** FACILITIES_ADMIN
+- **Department:** Facilities
+- **Employee ID:** FAC001
+
+### Finance Specialists
+**1. Rajesh Kumar**
+- **Email:** finance.specialist1@acuvate.com
+- **Password:** Finance@123
+- **Role:** EMPLOYEE
+- **Department:** Finance
+- **Employee ID:** FINS001
+
+**2. Priya Sharma**
+- **Email:** finance.specialist2@acuvate.com
+- **Password:** Finance@123
+- **Role:** EMPLOYEE
+- **Department:** Finance
+- **Employee ID:** FINS002
+
+### Facilities Specialists
+**1. Arun Reddy**
+- **Email:** facilities.specialist1@acuvate.com
+- **Password:** Facilities@123
+- **Role:** EMPLOYEE
+- **Department:** Facilities
+- **Employee ID:** FACS001
+
+**2. Meena Patel**
+- **Email:** facilities.specialist2@acuvate.com
+- **Password:** Facilities@123
+- **Role:** EMPLOYEE
+- **Department:** Facilities
+- **Employee ID:** FACS002
+
 ---
 
 ## Login Validation

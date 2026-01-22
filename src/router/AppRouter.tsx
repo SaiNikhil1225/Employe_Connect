@@ -25,6 +25,14 @@ import { ITAdminDashboard } from '@/pages/itadmin/ITAdminDashboard';
 import { ITTicketManagement } from '@/pages/itadmin/ITTicketManagement';
 import { ITAnalytics } from '@/pages/itadmin/ITAnalytics';
 
+// Finance Admin Pages
+import { FinanceAdminDashboard } from '@/pages/financeadmin/FinanceAdminDashboard';
+import { FinanceTicketManagement } from '@/pages/financeadmin/FinanceTicketManagement';
+
+// Facilities Admin Pages
+import { FacilitiesAdminDashboard } from '@/pages/facilitiesadmin/FacilitiesAdminDashboard';
+import { FacilitiesTicketManagement } from '@/pages/facilitiesadmin/FacilitiesTicketManagement';
+
 // Approver Pages
 import ApproverPage from '@/pages/approver/ApproverPage';
 
@@ -220,6 +228,42 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/itadmin/analytics">
                 <ITAnalytics />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Finance Admin Routes */}
+          <Route
+            path="/financeadmin/dashboard"
+            element={
+              <ProtectedRoute requiredPath="/financeadmin/dashboard">
+                <FinanceAdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/financeadmin/tickets"
+            element={
+              <ProtectedRoute requiredPath="/financeadmin/tickets">
+                <FinanceTicketManagement />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Facilities Admin Routes */}
+          <Route
+            path="/facilitiesadmin/dashboard"
+            element={
+              <ProtectedRoute requiredPath="/facilitiesadmin/dashboard">
+                <FacilitiesAdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/facilitiesadmin/tickets"
+            element={
+              <ProtectedRoute requiredPath="/facilitiesadmin/tickets">
+                <FacilitiesTicketManagement />
               </ProtectedRoute>
             }
           />

@@ -351,6 +351,14 @@ helpdeskTicketSchema.index({ userId: 1, createdAt: -1 }); // User's tickets sort
 helpdeskTicketSchema.index({ requiresApproval: 1, currentApprovalLevel: 1, status: 1 }); // Approval queue
 helpdeskTicketSchema.index({ createdAt: -1 }); // Recent tickets
 
+// Department-specific indexes for optimal filtering performance
+helpdeskTicketSchema.index({ module: 1, status: 1 }); // Filter by department (IT/Finance/Facilities) and status
+helpdeskTicketSchema.index({ highLevelCategory: 1, status: 1 }); // Alternative department field with status
+helpdeskTicketSchema.index({ module: 1, requiresApproval: 1, approvalCompleted: 1 }); // Approval gating by department
+helpdeskTicketSchema.index({ highLevelCategory: 1, routedTo: 1 }); // Department routing
+helpdeskTicketSchema.index({ 'assignment.assignedToId': 1, status: 1 }); // Specialist's assigned tickets
+helpdeskTicketSchema.index({ status: 1, urgency: 1, createdAt: -1 }); // Priority sorting within status
+
 // Pre-save middleware to ensure data consistency
 helpdeskTicketSchema.pre('save', function(next) {
   // Sync approvalLevel with currentApprovalLevel

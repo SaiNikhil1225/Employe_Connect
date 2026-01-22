@@ -10,6 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { User, Users, TrendingUp } from 'lucide-react';
 import { helpdeskService } from '@/services/helpdeskService';
+import apiClient from '@/services/api';
 import { toast } from 'sonner';
 
 interface ITEmployee {
@@ -23,6 +24,8 @@ interface ITEmployee {
   activeTicketCount: number;
   maxCapacity: number;
   designation: string;
+  department?: string;
+  businessUnit?: string;
 }
 
 interface ITEmployeeSelectProps {
@@ -30,6 +33,7 @@ interface ITEmployeeSelectProps {
   onValueChange: (value: string) => void;
   specialization?: string;
   disabled?: boolean;
+  department?: 'IT' | 'Finance' | 'Facilities';
 }
 
 export function ITEmployeeSelect({
@@ -37,6 +41,7 @@ export function ITEmployeeSelect({
   onValueChange,
   specialization,
   disabled = false,
+  department = 'IT',
 }: ITEmployeeSelectProps) {
   const [employees, setEmployees] = useState<ITEmployee[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,31 +49,67 @@ export function ITEmployeeSelect({
   const loadEmployees = useCallback(async () => {
     setIsLoading(true);
     try {
-      let allEmployees = await helpdeskService.getITSpecialists();
-      
-      // Filter by specialization if provided
-      if (specialization) {
-        allEmployees = allEmployees.filter((emp: ITEmployee) =>
-          emp.specializations.includes(specialization)
+      // For IT department, use the IT specialists endpoint
+      if (department === 'IT') {
+        let allEmployees = await helpdeskService.getITSpecialists();
+        
+        // Filter by specialization if provided
+        if (specialization) {
+          allEmployees = allEmployees.filter((emp: ITEmployee) =>
+            emp.specializations.includes(specialization)
+          );
+        }
+
+        // Sort by workload (ascending) - show less busy employees first
+        allEmployees.sort((a: ITEmployee, b: ITEmployee) => {
+          const aUtilization = a.activeTicketCount / a.maxCapacity;
+          const bUtilization = b.activeTicketCount / b.maxCapacity;
+          return aUtilization - bUtilization;
+        });
+
+        setEmployees(allEmployees);
+      } else {
+        // For Finance and Facilities, fetch from regular employees endpoint
+        const response = await apiClient.get<{ success: boolean; data: any[] }>('/employees');
+        
+        console.log(`${department} employees response:`, response.data);
+        let employees = response.data.data || response.data;
+        
+        // Filter by department
+        employees = employees.filter((emp: any) => 
+          (emp.department === department || emp.businessUnit === department) &&
+          emp.status === 'active' &&
+          emp.isActive !== false
         );
+        
+        console.log(`Filtered ${department} employees:`, employees);
+        
+        // Transform to match ITEmployee interface
+        const transformedEmployees = employees.map((emp: any) => ({
+          id: emp._id || emp.id,
+          employeeId: emp.employeeId,
+          name: emp.name,
+          email: emp.email,
+          specializations: [],
+          team: emp.department || emp.businessUnit || '',
+          status: 'active',
+          activeTicketCount: 0,
+          maxCapacity: 10,
+          designation: emp.designation || 'Specialist',
+          department: emp.department,
+          businessUnit: emp.businessUnit,
+        }));
+        
+        setEmployees(transformedEmployees);
       }
-
-      // Sort by workload (ascending) - show less busy employees first
-      allEmployees.sort((a: ITEmployee, b: ITEmployee) => {
-        const aUtilization = a.activeTicketCount / a.maxCapacity;
-        const bUtilization = b.activeTicketCount / b.maxCapacity;
-        return aUtilization - bUtilization;
-      });
-
-      setEmployees(allEmployees);
     } catch (error) {
-      console.error('Failed to load IT employees:', error);
-      toast.error('Failed to load IT employees. Please try again.');
+      console.error(`Failed to load ${department} employees:`, error);
+      toast.error(`Failed to load ${department.toLowerCase()} employees. Please try again.`);
       setEmployees([]);
     } finally {
       setIsLoading(false);
     }
-  }, [specialization]);
+  }, [specialization, department]);
 
   useEffect(() => {
     loadEmployees();
@@ -90,17 +131,17 @@ export function ITEmployeeSelect({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="it-employee" className="text-sm font-medium">
-        Assign to IT Employee
+      <Label htmlFor="employee-select" className="text-sm font-medium">
+        Assign to {department} Employee
       </Label>
       <Select value={value} onValueChange={onValueChange} disabled={disabled || isLoading}>
-        <SelectTrigger id="it-employee" className="w-full">
-          <SelectValue placeholder={isLoading ? 'Loading employees...' : 'Select IT employee'} />
+        <SelectTrigger id="employee-select" className="w-full">
+          <SelectValue placeholder={isLoading ? 'Loading employees...' : `Select ${department.toLowerCase()} employee`} />
         </SelectTrigger>
         <SelectContent>
           {employees.length === 0 && !isLoading && (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              No available IT employees found
+              No available {department.toLowerCase()} employees found
             </div>
           )}
           {employees.map((employee) => (
