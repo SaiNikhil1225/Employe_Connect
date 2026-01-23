@@ -41,8 +41,8 @@ export function FacilitiesTicketManagement() {
       // Apply approval gating: block if requires approval but not completed
       if (t.requiresApproval && !t.approvalCompleted) return false;
       
-      // Apply routing filter: must be routed to Facilities
-      if (!t.routedTo || t.routedTo !== 'Facilities') return false;
+      // For tickets that require approval, they must be routed to Facilities
+      if (t.requiresApproval && t.routedTo !== 'Facilities') return false;
       
       return true;
     });
@@ -97,8 +97,9 @@ export function FacilitiesTicketManagement() {
           // Apply approval gating: block if requires approval but not completed
           if (ticket.requiresApproval && !ticket.approvalCompleted) return false;
           
-          // Apply routing filter: must be routed to Facilities (or no routing required)
-          if (ticket.requiresApproval && (!ticket.routedTo || ticket.routedTo !== 'Facilities')) {
+          // For tickets that require approval, they must be routed to Facilities
+          // For tickets that don't require approval, we accept them even without explicit routing
+          if (ticket.requiresApproval && ticket.routedTo !== 'Facilities') {
             return false;
           }
           

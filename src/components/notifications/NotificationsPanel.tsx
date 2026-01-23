@@ -49,9 +49,10 @@ export function NotificationsPanel({ open, onOpenChange }: NotificationsPanelPro
   // Fetch notifications on mount and when panel opens
   useEffect(() => {
     if (open && user) {
-      fetchNotifications(user.employeeId, user.role);
+      fetchNotifications(user.id, user.role);
     }
   }, [open, user, fetchNotifications]);
+
 
   // Group notifications by time
   const groupedNotifications = useMemo<NotificationGroup[]>(() => {
@@ -181,12 +182,12 @@ export function NotificationsPanel({ open, onOpenChange }: NotificationsPanelPro
 
   const handleMarkAllAsRead = async () => {
     if (!user) return;
-    await markAllAsRead(user.employeeId, user.role);
+    await markAllAsRead(user.id, user.role);
   };
 
   const handleClearAll = async () => {
     if (!user) return;
-    await clearAll(user.employeeId, user.role);
+    await clearAll(user.id, user.role);
   };
 
   return (

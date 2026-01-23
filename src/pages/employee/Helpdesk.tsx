@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,7 @@ export default function Helpdesk() {
     if (user?.role === 'IT_ADMIN') return 'it-queue';
     return 'my-requests';
   });
+  const [kpiFilter, setKpiFilter] = useState<'All' | 'IT' | 'Finance' | 'Facilities'>('All');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [reopenData, setReopenData] = useState<ReopenTicketData | null>(null);
   
@@ -55,7 +56,13 @@ export default function Helpdesk() {
   // Determine user role and access
   const isEmployee = user?.role === 'EMPLOYEE' || user?.role === 'MANAGER';
   const isManager = user?.role === 'MANAGER';
-  const isSpecialist = user?.role === 'IT_ADMIN'; // In real app, check specialist role/queue assignment
+  const isSpecialist = user?.role === 'IT_ADMIN' || user?.role === 'FINANCE_ADMIN' || user?.role === 'FACILITIES_ADMIN';
+  
+  // Department-based tab visibility
+  const userDepartment = user?.department;
+  const showITQueue = isSpecialist || userDepartment === 'IT';
+  const showFacilitiesQueue = isSpecialist || userDepartment === 'Facilities';
+  const showFinanceQueue = isSpecialist || userDepartment === 'Finance';
 
   const calculateStats = useCallback((ticketData: HelpdeskTicket[], currentTab?: string) => {
     // Define status groups based on Employee KPI requirements
@@ -76,26 +83,32 @@ export default function Helpdesk() {
       'Completed',
     ];
 
+    // Filter tickets based on KPI filter selection (independent of tab filter)
+    let filteredTickets = ticketData;
+    if (kpiFilter !== 'All') {
+      filteredTickets = ticketData.filter(t => t.highLevelCategory === kpiFilter);
+    }
+
     let stats;
 
     if (isSpecialist) {
-      // For specialists: Show queue-specific metrics
+      // For specialists: Show queue-specific metrics for the filtered department
       stats = {
-        total: ticketData.length,
-        resolved: ticketData.filter((t) => 
+        total: filteredTickets.length,
+        resolved: filteredTickets.filter((t) => 
           t.status === 'Closed' || t.status === 'Auto-Closed' || t.status === 'Confirmed'
         ).length,
-        inProgress: ticketData.filter(
+        inProgress: filteredTickets.filter(
           (t) => t.status === 'Assigned' || t.status === 'In Progress' || t.status === 'In Queue'
         ).length,
         rejected: 0, // Not relevant for specialists
-        cancelled: ticketData.filter((t) => t.status === 'Cancelled').length,
+        cancelled: filteredTickets.filter((t) => t.status === 'Cancelled').length,
       };
     } else if (isManager) {
       // For managers: Show different metrics based on tab
       if (currentTab === 'my-team-requests') {
         // My Team Requests: Show team ticket metrics
-        const teamTickets = ticketData.filter(t => t.userId !== user?.id);
+        const teamTickets = filteredTickets.filter(t => t.userId !== user?.id);
         stats = {
           total: teamTickets.length,
           resolved: teamTickets.filter((t) => RESOLVED_STATUSES.includes(t.status)).length,
@@ -106,26 +119,26 @@ export default function Helpdesk() {
       } else {
         // My Requests: Show manager's own tickets
         stats = {
-          total: ticketData.length,
-          resolved: ticketData.filter((t) => RESOLVED_STATUSES.includes(t.status)).length,
-          inProgress: ticketData.filter((t) => IN_PROGRESS_STATUSES.includes(t.status)).length,
-          rejected: ticketData.filter((t) => t.status === 'Rejected').length,
-          cancelled: ticketData.filter((t) => t.status === 'Cancelled').length,
+          total: filteredTickets.length,
+          resolved: filteredTickets.filter((t) => RESOLVED_STATUSES.includes(t.status)).length,
+          inProgress: filteredTickets.filter((t) => IN_PROGRESS_STATUSES.includes(t.status)).length,
+          rejected: filteredTickets.filter((t) => t.status === 'Rejected').length,
+          cancelled: filteredTickets.filter((t) => t.status === 'Cancelled').length,
         };
       }
     } else {
       // For employees: Use the exact KPI definitions from Employee_KPI's_Flow.md
       stats = {
-        total: ticketData.length,
-        resolved: ticketData.filter((t) => RESOLVED_STATUSES.includes(t.status)).length,
-        inProgress: ticketData.filter((t) => IN_PROGRESS_STATUSES.includes(t.status)).length,
-        rejected: ticketData.filter((t) => t.status === 'Rejected').length,
-        cancelled: ticketData.filter((t) => t.status === 'Cancelled').length,
+        total: filteredTickets.length,
+        resolved: filteredTickets.filter((t) => RESOLVED_STATUSES.includes(t.status)).length,
+        inProgress: filteredTickets.filter((t) => IN_PROGRESS_STATUSES.includes(t.status)).length,
+        rejected: filteredTickets.filter((t) => t.status === 'Rejected').length,
+        cancelled: filteredTickets.filter((t) => t.status === 'Cancelled').length,
       };
     }
 
     setStats(stats);
-  }, [isSpecialist, isManager, user?.id]);
+  }, [isSpecialist, isManager, user?.id, kpiFilter]);
 
   const loadTickets = useCallback(async () => {
     if (!user?.id) return;
@@ -144,6 +157,14 @@ export default function Helpdesk() {
     }
   }, [user?.id, activeTab, calculateStats]);
 
+  // Filter tickets based on KPI filter selection
+  const filteredTicketsByDepartment = useMemo(() => {
+    if (kpiFilter === 'All') {
+      return tickets;
+    }
+    return tickets.filter(t => t.highLevelCategory === kpiFilter);
+  }, [tickets, kpiFilter]);
+
   // Load tickets based on user role
   useEffect(() => {
     loadTickets();
@@ -155,6 +176,13 @@ export default function Helpdesk() {
       calculateStats(tickets, activeTab);
     }
   }, [activeTab, tickets, calculateStats]);
+
+  // Recalculate stats when KPI filter changes
+  useEffect(() => {
+    if (tickets.length > 0) {
+      calculateStats(tickets, activeTab);
+    }
+  }, [kpiFilter, tickets, activeTab, calculateStats]);
 
   const handleSubmitRequest = async (formData: HelpdeskFormData) => {
     if (!user?.id || !user?.name || !user?.email) {
@@ -339,37 +367,84 @@ export default function Helpdesk() {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <HelpdeskKpiBar
-        title="Requests"
-        total={stats.total}
-        items={[
-          { 
-            label: 'In Progress', 
-            value: stats.inProgress, 
-            color: '#3b82f6',
-            icon: <Clock className="h-5 w-5" />
-          },
-          { 
-            label: 'Resolved', 
-            value: stats.resolved, 
-            color: '#22c55e',
-            icon: <CheckCircle2 className="h-5 w-5" />
-          },
-          { 
-            label: 'Rejected', 
-            value: stats.rejected, 
-            color: '#ef4444',
-            icon: <XCircle className="h-5 w-5" />
-          },
-          { 
-            label: 'Cancelled', 
-            value: stats.cancelled, 
-            color: '#f97316',
-            icon: <XCircle className="h-5 w-5" />
-          },
-        ]}
-      />
+      {/* Statistics Cards with Department Filter Tabs */}
+      <div className="space-y-3">
+        {/* KPI Filter Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setKpiFilter('All')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              kpiFilter === 'All'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setKpiFilter('IT')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              kpiFilter === 'IT'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            IT
+          </button>
+          <button
+            onClick={() => setKpiFilter('Finance')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              kpiFilter === 'Finance'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            Finance
+          </button>
+          <button
+            onClick={() => setKpiFilter('Facilities')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              kpiFilter === 'Facilities'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            Facilities
+          </button>
+        </div>
+
+        {/* KPI Bar */}
+        <HelpdeskKpiBar
+          title="Requests"
+          total={stats.total}
+          items={[
+            { 
+              label: 'In Progress', 
+              value: stats.inProgress, 
+              color: '#3b82f6',
+              icon: <Clock className="h-5 w-5" />
+            },
+            { 
+              label: 'Resolved', 
+              value: stats.resolved, 
+              color: '#22c55e',
+              icon: <CheckCircle2 className="h-5 w-5" />
+            },
+            { 
+              label: 'Rejected', 
+              value: stats.rejected, 
+              color: '#ef4444',
+              icon: <XCircle className="h-5 w-5" />
+            },
+            { 
+              label: 'Cancelled', 
+              value: stats.cancelled, 
+              color: '#f97316',
+              icon: <XCircle className="h-5 w-5" />
+            },
+          ]}
+        />
+      </div>
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -398,18 +473,22 @@ export default function Helpdesk() {
             </TabsTrigger>
           )}
 
-          {isSpecialist && (
-            <>
-              <TabsTrigger value="it-queue" className="data-[state=active]:bg-brand-green data-[state=active]:text-white">
-                IT Queue
-              </TabsTrigger>
-              <TabsTrigger value="facilities-queue" className="data-[state=active]:bg-brand-green data-[state=active]:text-white">
-                Facilities Queue
-              </TabsTrigger>
-              <TabsTrigger value="finance-queue" className="data-[state=active]:bg-brand-green data-[state=active]:text-white">
-                Finance Queue
-              </TabsTrigger>
-            </>
+          {showITQueue && (
+            <TabsTrigger value="it-queue" className="data-[state=active]:bg-brand-green data-[state=active]:text-white">
+              IT Queue
+            </TabsTrigger>
+          )}
+          
+          {showFacilitiesQueue && (
+            <TabsTrigger value="facilities-queue" className="data-[state=active]:bg-brand-green data-[state=active]:text-white">
+              Facilities Queue
+            </TabsTrigger>
+          )}
+          
+          {showFinanceQueue && (
+            <TabsTrigger value="finance-queue" className="data-[state=active]:bg-brand-green data-[state=active]:text-white">
+              Finance Queue
+            </TabsTrigger>
           )}
         </TabsList>
 
@@ -417,7 +496,7 @@ export default function Helpdesk() {
         {isEmployee && (
           <TabsContent value="my-requests" className="mt-4">
             <MyRequests
-              tickets={tickets}
+              tickets={filteredTicketsByDepartment}
               currentUserId={user?.id || ''}
               currentUserName={user?.name || ''}
               onSendMessage={handleSendMessage}
@@ -432,7 +511,7 @@ export default function Helpdesk() {
         {isManager && (
           <TabsContent value="my-team-requests" className="mt-4">
             <MyTeamRequests
-              tickets={tickets}
+              tickets={filteredTicketsByDepartment}
               currentManagerId={user?.id || ''}
               currentManagerName={user?.name || ''}
               currentManagerLevel={1}
@@ -445,50 +524,52 @@ export default function Helpdesk() {
         )}
 
         {/* Specialist Queue Tabs */}
-        {isSpecialist && (
-          <>
-            <TabsContent value="it-queue" className="mt-4">
-              <SpecialistQueuePage
-                queueType="Hardware Team"
-                tickets={tickets}
-                currentSpecialistId={user?.id || ''}
-                currentSpecialistName={user?.name || ''}
-                onAssignToSelf={handleAssignToSelf}
-                onUpdateProgress={handleUpdateProgress}
-                onCompleteWork={handleCompleteWork}
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading}
-              />
-            </TabsContent>
+        {showITQueue && (
+          <TabsContent value="it-queue" className="mt-4">
+            <SpecialistQueuePage
+              queueType="Hardware Team"
+              tickets={tickets.filter(t => t.highLevelCategory === 'IT')}
+              currentSpecialistId={user?.id || ''}
+              currentSpecialistName={user?.name || ''}
+              onAssignToSelf={handleAssignToSelf}
+              onUpdateProgress={handleUpdateProgress}
+              onCompleteWork={handleCompleteWork}
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+            />
+          </TabsContent>
+        )}
 
-            <TabsContent value="facilities-queue" className="mt-4">
-              <SpecialistQueuePage
-                queueType="Building Maintenance"
-                tickets={tickets}
-                currentSpecialistId={user?.id || ''}
-                currentSpecialistName={user?.name || ''}
-                onAssignToSelf={handleAssignToSelf}
-                onUpdateProgress={handleUpdateProgress}
-                onCompleteWork={handleCompleteWork}
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading}
-              />
-            </TabsContent>
+        {showFacilitiesQueue && (
+          <TabsContent value="facilities-queue" className="mt-4">
+            <SpecialistQueuePage
+              queueType="Building Maintenance"
+              tickets={tickets.filter(t => t.highLevelCategory === 'Facilities')}
+              currentSpecialistId={user?.id || ''}
+              currentSpecialistName={user?.name || ''}
+              onAssignToSelf={handleAssignToSelf}
+              onUpdateProgress={handleUpdateProgress}
+              onCompleteWork={handleCompleteWork}
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+            />
+          </TabsContent>
+        )}
 
-            <TabsContent value="finance-queue" className="mt-4">
-              <SpecialistQueuePage
-                queueType="Expense Claims"
-                tickets={tickets}
-                currentSpecialistId={user?.id || ''}
-                currentSpecialistName={user?.name || ''}
-                onAssignToSelf={handleAssignToSelf}
-                onUpdateProgress={handleUpdateProgress}
-                onCompleteWork={handleCompleteWork}
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading}
-              />
-            </TabsContent>
-          </>
+        {showFinanceQueue && (
+          <TabsContent value="finance-queue" className="mt-4">
+            <SpecialistQueuePage
+              queueType="Expense Claims"
+              tickets={tickets.filter(t => t.highLevelCategory === 'Finance')}
+              currentSpecialistId={user?.id || ''}
+              currentSpecialistName={user?.name || ''}
+              onAssignToSelf={handleAssignToSelf}
+              onUpdateProgress={handleUpdateProgress}
+              onCompleteWork={handleCompleteWork}
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+            />
+          </TabsContent>
         )}
       </Tabs>
 

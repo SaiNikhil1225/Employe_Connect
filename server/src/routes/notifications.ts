@@ -3,6 +3,8 @@ import Notification from '../models/Notification';
 
 const router = express.Router();
 
+console.log('[Notifications] Route file loaded');
+
 // Get unread notification count
 router.get('/unread/count', async (req: Request, res: Response) => {
   try {
@@ -190,6 +192,16 @@ router.delete('/clear-all', async (req: Request, res: Response) => {
   try {
     const { userId, role } = req.query;
 
+    console.log('[Clear All] Request received:', { userId, role });
+
+    if (!userId && !role) {
+      console.log('[Clear All] No userId or role provided');
+      return res.status(400).json({ 
+        success: false, 
+        message: 'userId or role is required' 
+      });
+    }
+
     const query: Record<string, unknown> = {};
     
     // Build $or conditions for matching notifications
@@ -212,11 +224,26 @@ router.delete('/clear-all', async (req: Request, res: Response) => {
       query.$or = orConditions;
     }
 
-    await Notification.deleteMany(query);
+    console.log('[Clear All] Delete query:', JSON.stringify(query, null, 2));
 
-    res.json({ success: true, message: 'All notifications cleared' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to clear notifications' });
+    const result = await Notification.deleteMany(query);
+    
+    console.log('[Clear All] Deleted count:', result.deletedCount);
+
+    res.json({ 
+      success: true, 
+      message: 'All notifications cleared',
+      deletedCount: result.deletedCount 
+    });
+  } catch (error: any) {
+    console.error('[Clear All] Error:', error);
+    console.error('[Clear All] Error stack:', error.stack);
+    console.error('[Clear All] Error message:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to clear notifications', 
+      error: error.message || String(error) 
+    });
   }
 });
 

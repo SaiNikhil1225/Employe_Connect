@@ -97,8 +97,9 @@ export function FinanceTicketManagement() {
           // Apply approval gating: block if requires approval but not completed
           if (ticket.requiresApproval && !ticket.approvalCompleted) return false;
           
-          // Apply routing filter: must be routed to Finance (or no routing required)
-          if (ticket.requiresApproval && (!ticket.routedTo || ticket.routedTo !== 'Finance')) {
+          // For tickets that require approval, they must be routed to Finance
+          // For tickets that don't require approval, we accept them even without explicit routing
+          if (ticket.requiresApproval && ticket.routedTo !== 'Finance') {
             return false;
           }
           

@@ -101,6 +101,18 @@ export function MyTeamRequests({
     });
   }, [teamTickets, currentManagerLevel]);
 
+  // Get unique statuses from team tickets
+  const uniqueStatuses = useMemo(() => {
+    const statuses = teamTickets.map(t => t.status);
+    return Array.from(new Set(statuses)).sort();
+  }, [teamTickets]);
+
+  // Get unique categories from team tickets
+  const uniqueCategories = useMemo(() => {
+    const categories = teamTickets.map(t => t.highLevelCategory);
+    return Array.from(new Set(categories)).sort();
+  }, [teamTickets]);
+
   // Filter tickets
   const filteredTickets = useMemo(() => {
     return teamTickets.filter((ticket) => {
@@ -320,19 +332,16 @@ export function MyTeamRequests({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Statuses</SelectItem>
-                <SelectItem value="Pending Approval L1">
-                  Pending Approval L1 {pendingApprovals.length > 0 && `(${pendingApprovals.length})`}
-                </SelectItem>
-                <SelectItem value="Submitted">Submitted</SelectItem>
-                <SelectItem value="Pending Approval">Pending Approval</SelectItem>
-                <SelectItem value="Approved">Approved</SelectItem>
-                <SelectItem value="Rejected">Rejected</SelectItem>
-                <SelectItem value="In Queue">In Queue</SelectItem>
-                <SelectItem value="Assigned">Assigned</SelectItem>
-                <SelectItem value="In Progress">In Progress</SelectItem>
-                <SelectItem value="Work Completed">Work Completed</SelectItem>
-                <SelectItem value="Confirmed">Confirmed</SelectItem>
-                <SelectItem value="Closed">Closed</SelectItem>
+                {pendingApprovals.length > 0 && (
+                  <SelectItem value="Pending Approval L1">
+                    Pending Approval L1 ({pendingApprovals.length})
+                  </SelectItem>
+                )}
+                {uniqueStatuses.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -343,9 +352,11 @@ export function MyTeamRequests({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Categories</SelectItem>
-                <SelectItem value="IT">IT Helpdesk</SelectItem>
-                <SelectItem value="Facilities">Facilities Helpdesk</SelectItem>
-                <SelectItem value="Finance">Finance Helpdesk</SelectItem>
+                {uniqueCategories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category} Helpdesk
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

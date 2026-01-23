@@ -106,10 +106,12 @@ export const useNotificationStore = create<NotificationStore>((set) => ({
 
   clearAll: async (userId, role) => {
     try {
+      console.log('[NotificationStore] Clearing all notifications:', { userId, role });
       await notificationService.clearAll(userId, role);
       set({ notifications: [], unreadCount: 0 });
       toast.success('All notifications cleared');
-    } catch {
+    } catch (error) {
+      console.error('[NotificationStore] Failed to clear notifications:', error);
       toast.error('Failed to clear notifications');
     }
   },

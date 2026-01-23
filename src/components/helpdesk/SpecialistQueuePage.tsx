@@ -147,13 +147,29 @@ export function SpecialistQueuePage({
   const queueTickets = useMemo(() => {
     // Determine if we're filtering by specialist queue or by request type (subCategory)
     const isRequestTypeFilter = [
+      // IT Request Types
       'Hardware',
       'Software',
       'Network / Connectivity',
       'Account / Login Problem',
       'Access Request',
       'New Equipment Request',
-      'Other'
+      'Other',
+      // Facilities Request Types
+      'Maintenance Request',
+      'Repair Request',
+      'Cleaning',
+      'Electrical Issue',
+      'AC Temperature Issue',
+      'Plumbing',
+      'Furniture',
+      // Finance Request Types
+      'Payroll Question',
+      'Expense Reimbursement Issue',
+      'Invoice / Payment Issue',
+      'Purchase Order Request',
+      'Vendor Setup or Update',
+      'Budget or Account Inquiry'
     ].includes(queueType);
 
     return tickets.filter((ticket) => {

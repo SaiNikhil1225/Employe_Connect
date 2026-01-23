@@ -75,7 +75,6 @@ export function MyRequests({
 }: MyRequestsProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'All'>('All');
-  const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [selectedTicket, setSelectedTicket] = useState<HelpdeskTicket | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'table'>('list');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -122,6 +121,12 @@ export function MyRequests({
     };
   }, [openMenuId]);
 
+  // Get unique statuses from tickets
+  const uniqueStatuses = useMemo(() => {
+    const statuses = tickets.map(t => t.status);
+    return Array.from(new Set(statuses)).sort();
+  }, [tickets]);
+
   // Filter tickets
   const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {
@@ -131,11 +136,10 @@ export function MyRequests({
         ticket.description.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesStatus = statusFilter === 'All' || ticket.status === statusFilter;
-      const matchesCategory = categoryFilter === 'All' || ticket.highLevelCategory === categoryFilter;
 
-      return matchesSearch && matchesStatus && matchesCategory;
+      return matchesSearch && matchesStatus;
     });
-  }, [tickets, searchQuery, statusFilter, categoryFilter]);
+  }, [tickets, searchQuery, statusFilter]);
 
   // Sort by created date (newest first)
   const sortedTickets = useMemo(() => {
@@ -468,30 +472,11 @@ export function MyRequests({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Statuses</SelectItem>
-                <SelectItem value="Submitted">Submitted</SelectItem>
-                <SelectItem value="Pending Approval">Pending Approval</SelectItem>
-                <SelectItem value="Approved">Approved</SelectItem>
-                <SelectItem value="Rejected">Rejected</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-                <SelectItem value="In Queue">In Queue</SelectItem>
-                <SelectItem value="Assigned">Assigned</SelectItem>
-                <SelectItem value="In Progress">In Progress</SelectItem>
-                <SelectItem value="Work Completed">Work Completed</SelectItem>
-                <SelectItem value="Confirmed">Confirmed</SelectItem>
-                <SelectItem value="Closed">Closed</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Category Filter */}
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Categories</SelectItem>
-                <SelectItem value="IT">IT Helpdesk</SelectItem>
-                <SelectItem value="Facilities">Facilities Helpdesk</SelectItem>
-                <SelectItem value="Finance">Finance Helpdesk</SelectItem>
+                {uniqueStatuses.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -514,23 +499,22 @@ export function MyRequests({
             <div className="max-w-md mx-auto">
               <FileText className="h-16 w-16 text-brand-slate/30 dark:text-gray-600 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-brand-navy dark:text-gray-200 mb-2">
-                {searchQuery || statusFilter !== 'All' || categoryFilter !== 'All'
+                {searchQuery || statusFilter !== 'All'
                   ? 'No Requests Match Your Filters'
                   : 'No Requests Yet'}
               </h3>
               <p className="text-sm text-brand-slate dark:text-gray-400 mb-4">
-                {searchQuery || statusFilter !== 'All' || categoryFilter !== 'All'
+                {searchQuery || statusFilter !== 'All'
                   ? 'Try adjusting your search terms or filters to see more results. You can clear filters to view all your requests.'
                   : 'You haven\'t submitted any helpdesk requests yet. When you create a request, it will appear here for tracking and follow-up.'}
               </p>
-              {(searchQuery || statusFilter !== 'All' || categoryFilter !== 'All') && (
+              {(searchQuery || statusFilter !== 'All') && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
                     setSearchQuery('');
                     setStatusFilter('All');
-                    setCategoryFilter('All');
                   }}
                   className="mt-2"
                 >

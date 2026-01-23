@@ -44,6 +44,9 @@ const notificationSchema = new mongoose.Schema({
       'L2_APPROVER',
       'L3_APPROVER',
       'RMG',
+      'FINANCE_ADMIN',
+      'FACILITIES_ADMIN',
+      'SUPER_ADMIN',
       'all'
     ],
     index: true
