@@ -33,6 +33,14 @@ interface AssignmentData {
   notes?: string;
 }
 
+interface ReassignmentData {
+  newEmployeeId: string;
+  newEmployeeName: string;
+  reassignedById: string;
+  reassignedByName: string;
+  reason: string; // Mandatory field
+}
+
 interface ConversationMessageData {
   sender: 'employee' | 'manager' | 'specialist' | 'itadmin' | 'system';
   senderName: string;
@@ -377,6 +385,97 @@ export class HelpdeskService {
     // Update specialist's active ticket count
     await ITSpecialist.findOneAndUpdate(
       { employeeId: assignmentData.employeeId },
+      { $inc: { activeTicketCount: 1 } },
+      { runValidators: true }
+    );
+
+    return ticket;
+  }
+
+  /**
+   * Reassign ticket to a different specialist
+   */
+  async reassignTicket(ticketId: string, reassignmentData: ReassignmentData): Promise<any> {
+    const ticket = await this.getTicketById(ticketId);
+
+    // Validate ticket is currently assigned
+    const currentAssignment = ticket.get('assignment');
+    if (!currentAssignment || !currentAssignment.assignedToId) {
+      throw new ApiError(400, 'Ticket must be assigned before it can be reassigned');
+    }
+
+    // Validate reason is provided
+    if (!reassignmentData.reason || reassignmentData.reason.trim() === '') {
+      throw new ApiError(400, 'Reassignment reason is required');
+    }
+
+    const previousAssigneeId = currentAssignment.assignedToId;
+    const previousAssigneeName = currentAssignment.assignedToName;
+
+    // Update assignment
+    ticket.set('assignment', {
+      assignedToId: reassignmentData.newEmployeeId,
+      assignedToName: reassignmentData.newEmployeeName,
+      assignedTo: reassignmentData.newEmployeeName, // Legacy field
+      assignedBy: reassignmentData.reassignedById,
+      assignedByName: reassignmentData.reassignedByName,
+      assignedByRole: 'IT_ADMIN',
+      assignedAt: new Date().toISOString(),
+      assignmentNotes: reassignmentData.reason,
+      previousAssigneeId,
+      previousAssigneeName
+    });
+
+    ticket.set('updatedAt', new Date().toISOString());
+
+    // Add history entry
+    const history = ticket.get('history') || [];
+    history.push({
+      action: 'reassigned',
+      timestamp: new Date().toISOString(),
+      by: reassignmentData.reassignedByName,
+      details: `Reassigned from ${previousAssigneeName} to ${reassignmentData.newEmployeeName}. Reason: ${reassignmentData.reason}`
+    });
+    ticket.set('history', history);
+
+    await ticket.save();
+
+    // Notify previous assignee about reassignment
+    await notificationService.notifyTicketReassigned({
+      ticketNumber: ticket.get('ticketNumber'),
+      userId: ticket.get('userId'),
+      userName: ticket.get('userName'),
+      subject: ticket.get('subject'),
+      highLevelCategory: ticket.get('highLevelCategory')
+    }, {
+      id: previousAssigneeId,
+      name: previousAssigneeName
+    }, {
+      id: reassignmentData.newEmployeeId,
+      name: reassignmentData.newEmployeeName
+    }, reassignmentData.reason, reassignmentData.reassignedByName);
+
+    // Notify new assignee about assignment
+    await notificationService.notifyTicketAssigned({
+      ticketNumber: ticket.get('ticketNumber'),
+      userId: ticket.get('userId'),
+      userName: ticket.get('userName'),
+      subject: ticket.get('subject'),
+      highLevelCategory: ticket.get('highLevelCategory')
+    }, {
+      id: reassignmentData.newEmployeeId,
+      name: reassignmentData.newEmployeeName
+    }, reassignmentData.reassignedByName);
+
+    // Update specialist ticket counts
+    await ITSpecialist.findOneAndUpdate(
+      { employeeId: previousAssigneeId },
+      { $inc: { activeTicketCount: -1 } },
+      { runValidators: true }
+    );
+
+    await ITSpecialist.findOneAndUpdate(
+      { employeeId: reassignmentData.newEmployeeId },
       { $inc: { activeTicketCount: 1 } },
       { runValidators: true }
     );

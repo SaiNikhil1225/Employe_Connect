@@ -367,6 +367,38 @@ router.post(
 );
 
 /**
+ * PUT /helpdesk/:id/reassign
+ * Reassign ticket to a different specialist
+ */
+router.put(
+  '/:id/reassign',
+  authenticateToken,
+  authorizeRoles('IT_ADMIN', 'FINANCE_ADMIN', 'FACILITIES_ADMIN', 'ADMIN'),
+  // helpdeskValidation.reassignTicket, // TODO: Add validation
+  asyncHandler(async (req: Request, res: Response) => {
+    const updatedTicket = await helpdeskService.reassignTicket(req.params.id, {
+      newEmployeeId: req.body.newEmployeeId,
+      newEmployeeName: req.body.newEmployeeName,
+      reassignedById: req.body.reassignedById,
+      reassignedByName: req.body.reassignedByName,
+      reason: req.body.reason
+    });
+
+    const responseTicket = updatedTicket.toObject();
+    delete responseTicket._id;
+    delete responseTicket.__v;
+
+    res.json({
+      success: true,
+      data: {
+        ...responseTicket,
+        id: updatedTicket._id.toString()
+      }
+    });
+  })
+);
+
+/**
  * PATCH /helpdesk/:id/progress
  * Update ticket progress
  * Auth: Required (assigned specialist or admin)
@@ -649,7 +681,7 @@ router.delete(
 
 /**
  * POST /helpdesk/:id/reopen
- * Reopen a closed ticket (ticket owner only, within 7 days)
+ * Reopen a closed ticket (ticket owner only, unlimited)
  * Auth: Required (ticket owner)
  * Rate Limit: General (100/15min)
  */
@@ -699,16 +731,7 @@ router.post(
       });
     }
 
-    // Check if within 7-day window
-    const closedDate = new Date(ticketObj.closedAt || ticketObj.updatedAt);
-    const daysSinceClosed = Math.floor((Date.now() - closedDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysSinceClosed > 7) {
-      return res.status(400).json({
-        success: false,
-        message: 'Tickets can only be reopened within 7 days of closure'
-      });
-    }
+    // Unlimited reopening allowed - no time window restrictions
 
     // Add reopen message to conversation
     const reopenMessage = {

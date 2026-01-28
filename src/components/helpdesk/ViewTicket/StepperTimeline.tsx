@@ -103,7 +103,7 @@ export function StepperTimeline({ ticket }: StepperTimelineProps) {
 
     // Step 6: Assigned
     if (ticket.assignment?.assignedTo ||
-        ['Assigned', 'In Progress', 'Work Completed', 'Completed', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
+        ['Assigned', 'In Progress', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
       steps.push({
         id: 'assigned',
         label: 'Assigned',
@@ -117,7 +117,7 @@ export function StepperTimeline({ ticket }: StepperTimelineProps) {
     }
 
     // Step 7: In Progress
-    if (['In Progress', 'Work Completed', 'Completed', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
+    if (['In Progress', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
       steps.push({
         id: 'in-progress',
         label: 'In Progress',
@@ -127,19 +127,7 @@ export function StepperTimeline({ ticket }: StepperTimelineProps) {
       });
     }
 
-    // Step 8: Completed
-    if (['Work Completed', 'Completed', 'Awaiting User Confirmation', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
-      steps.push({
-        id: 'completed',
-        label: 'Completed',
-        status: ticket.status === 'In Progress' ? 'pending' :
-                ticket.status === 'Work Completed' || ticket.status === 'Completed' ? 'active' : 'completed',
-        timestamp: ticket.completedAt,
-        description: ticket.completionNotes || 'Work completed'
-      });
-    }
-
-    // Step 9: Closed
+    // Step 8: Closed
     if (['Closed', 'Auto-Closed'].includes(ticket.status)) {
       steps.push({
         id: 'closed',

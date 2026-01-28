@@ -34,6 +34,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format, differenceInHours } from 'date-fns';
+import type { HelpdeskTicket } from '@/types/helpdeskNew';
 
 interface SLATicket {
   id: string;
@@ -64,6 +65,7 @@ interface SLAMetrics {
 
 interface SLAComplianceDashboardProps {
   className?: string;
+  tickets?: HelpdeskTicket[]; // Real tickets from parent component
 }
 
 // Mock SLA data
@@ -170,8 +172,77 @@ const SLA_STATUS_CONFIG = {
   },
 };
 
-export const SLAComplianceDashboard = React.memo<SLAComplianceDashboardProps>(({ className = '' }) => {
-  const [tickets] = useState<SLATicket[]>(MOCK_TICKETS);
+// Convert HelpdeskTicket to SLATicket format
+const convertToSLATicket = (ticket: HelpdeskTicket): SLATicket => {
+  const now = Date.now();
+  const createdTime = new Date(ticket.createdAt).getTime();
+  const approvalDeadline = ticket.sla?.approvalDeadline ? new Date(ticket.sla.approvalDeadline).getTime() : now + 1000 * 60 * 60 * 24;
+  const processingDeadline = ticket.sla?.processingDeadline ? new Date(ticket.sla.processingDeadline).getTime() : now + 1000 * 60 * 60 * 48;
+  
+  // Determine which deadline to use based on ticket state
+  const isApprovalPending = ticket.requiresApproval && !ticket.approvalCompleted;
+  const relevantDeadline = isApprovalPending ? approvalDeadline : processingDeadline;
+  
+  // Calculate SLA status
+  let slaStatus: 'on_track' | 'at_risk' | 'breached' = 'on_track';
+  let breachType: 'response' | 'resolution' | 'both' | undefined;
+  
+  // Check if breached
+  if (ticket.sla?.isOverdue || now > relevantDeadline) {
+    slaStatus = 'breached';
+    breachType = isApprovalPending ? 'response' : 'resolution';
+  } else {
+    // Check if at risk (within 25% of deadline)
+    const timeElapsed = now - createdTime;
+    const totalTime = relevantDeadline - createdTime;
+    if (totalTime > 0 && (timeElapsed / totalTime) > 0.75) {
+      slaStatus = 'at_risk';
+    }
+  }
+  
+  // Map urgency levels
+  const urgencyMap: Record<string, 'low' | 'medium' | 'high' | 'urgent'> = {
+    'Low': 'low',
+    'Medium': 'medium',
+    'High': 'high',
+    'Critical': 'urgent'
+  };
+  
+  // Get first response time (from conversation or assignment)
+  const firstResponseAt = ticket.conversation && ticket.conversation.length > 0
+    ? ticket.conversation.find(c => c.sender !== 'employee')?.timestamp
+    : ticket.assignment?.assignedAt;
+  
+  return {
+    id: ticket.id,
+    ticketNumber: ticket.ticketNumber,
+    subject: ticket.subject,
+    priority: urgencyMap[ticket.urgency] || 'medium',
+    status: ticket.status.toLowerCase().replace(/ /g, '_') as any,
+    category: ticket.subCategory,
+    assignedTo: ticket.assignment?.assignedToName || ticket.assignment?.assignedTo || 'Unassigned',
+    createdAt: ticket.createdAt,
+    responseDeadline: ticket.sla?.approvalDeadline || new Date(now + 1000 * 60 * 60 * 2).toISOString(),
+    resolutionDeadline: ticket.sla?.processingDeadline || new Date(now + 1000 * 60 * 60 * 24).toISOString(),
+    firstResponseAt,
+    resolvedAt: ticket.closedAt || ticket.completedAt,
+    slaStatus,
+    breachType
+  };
+};
+
+export const SLAComplianceDashboard = React.memo<SLAComplianceDashboardProps>(({ className = '', tickets: realTickets = [] }) => {
+  // Convert real tickets to SLA format, fallback to mock if no tickets provided
+  const slaTickets = useMemo(() => {
+    if (realTickets.length > 0) {
+      return realTickets
+        .filter(t => t.status !== 'Draft' && t.status !== 'Cancelled')
+        .map(convertToSLATicket);
+    }
+    return MOCK_TICKETS;
+  }, [realTickets]);
+  
+  const [tickets] = useState<SLATicket[]>(slaTickets);
   const [statusFilter] = useState<'all' | SLATicket['slaStatus']>('all');
   const [priorityFilter, setPriorityFilter] = useState<'all' | SLATicket['priority']>('all');
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | '90d'>('7d');

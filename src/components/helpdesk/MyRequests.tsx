@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { MultiSelect, type MultiSelectOption } from '@/components/ui/multi-select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,7 @@ import type { HelpdeskTicket, TicketStatus } from '@/types/helpdeskNew';
 import { ViewTicket } from './ViewTicket';
 import { MyTeamRequests } from './MyTeamRequests';
 import { TicketReopen } from './TicketReopen';
+import { TicketAge } from './TicketAge';
 import { useEmployeeStore } from '@/store/employeeStore';
 import { useHelpdeskStore } from '@/store/helpdeskStore';
 import { toast } from 'sonner';
@@ -74,7 +76,10 @@ export function MyRequests({
   teamTickets = [],
 }: MyRequestsProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'All'>('All');
+  const [statusFilter, setStatusFilter] = useState<string[]>(() => {
+    const saved = sessionStorage.getItem('my-requests-status-filter');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [selectedTicket, setSelectedTicket] = useState<HelpdeskTicket | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'table'>('list');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -83,6 +88,11 @@ export function MyRequests({
   const { employees } = useEmployeeStore();
   const menuRef = useRef<HTMLDivElement>(null);
   const { updateStatus } = useHelpdeskStore();
+
+  // Persist status filter to session storage
+  useEffect(() => {
+    sessionStorage.setItem('my-requests-status-filter', JSON.stringify(statusFilter));
+  }, [statusFilter]);
 
   // Get current user's employee profile for avatar
   const currentUserEmployee = employees.find(emp => emp.name === currentUserName || emp.email === currentUserName);
@@ -135,7 +145,7 @@ export function MyRequests({
         ticket.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ticket.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesStatus = statusFilter === 'All' || ticket.status === statusFilter;
+      const matchesStatus = statusFilter.length === 0 || statusFilter.includes(ticket.status);
 
       return matchesSearch && matchesStatus;
     });
@@ -466,19 +476,13 @@ export function MyRequests({
             </div>
 
             {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TicketStatus | 'All')}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Statuses</SelectItem>
-                {uniqueStatuses.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={uniqueStatuses.map(status => ({ label: status, value: status }))}
+              selected={statusFilter}
+              onChange={setStatusFilter}
+              placeholder="Filter by status"
+              className="w-full"
+            />
           </div>
         </CardContent>
       </Card>
@@ -499,22 +503,22 @@ export function MyRequests({
             <div className="max-w-md mx-auto">
               <FileText className="h-16 w-16 text-brand-slate/30 dark:text-gray-600 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-brand-navy dark:text-gray-200 mb-2">
-                {searchQuery || statusFilter !== 'All'
+                {searchQuery || statusFilter.length > 0
                   ? 'No Requests Match Your Filters'
                   : 'No Requests Yet'}
               </h3>
               <p className="text-sm text-brand-slate dark:text-gray-400 mb-4">
-                {searchQuery || statusFilter !== 'All'
+                {searchQuery || statusFilter.length > 0
                   ? 'Try adjusting your search terms or filters to see more results. You can clear filters to view all your requests.'
                   : 'You haven\'t submitted any helpdesk requests yet. When you create a request, it will appear here for tracking and follow-up.'}
               </p>
-              {(searchQuery || statusFilter !== 'All') && (
+              {(searchQuery || statusFilter.length > 0) && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
                     setSearchQuery('');
-                    setStatusFilter('All');
+                    setStatusFilter([]);
                   }}
                   className="mt-2"
                 >
@@ -691,7 +695,7 @@ export function MyRequests({
                         </Tooltip>
                       </TooltipProvider>
 
-                      {/* Reopen Ticket Button (for Closed/Completed tickets within 7-day window) */}
+                      {/* Reopen Ticket Button (for Closed/Completed tickets - unlimited reopening) */}
                       {(ticket.status === 'Closed' || ticket.status === 'Completed') && (
                         <TicketReopen 
                           ticket={ticket} 
@@ -759,6 +763,9 @@ export function MyRequests({
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-brand-navy dark:text-gray-200 uppercase tracking-wider">
                       Progress
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-brand-navy dark:text-gray-200 uppercase tracking-wider">
+                      Age
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-brand-navy dark:text-gray-200 uppercase tracking-wider">
                       Created Date
@@ -870,6 +877,11 @@ export function MyRequests({
                           </div>
                         </td>
 
+                        {/* Age */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <TicketAge createdAt={ticket.createdAt} variant="badge" />
+                        </td>
+
                         {/* Created Date */}
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-1.5 text-xs text-brand-slate dark:text-gray-400">
@@ -926,7 +938,7 @@ export function MyRequests({
                               </Tooltip>
                             </TooltipProvider>
 
-                            {/* Reopen Ticket Button (for Closed/Completed tickets within 7-day window) */}
+                            {/* Reopen Ticket Button (for Closed/Completed tickets - unlimited reopening) */}
                             {(ticket.status === 'Closed' || ticket.status === 'Completed') && (
                               <TicketReopen 
                                 ticket={ticket} 

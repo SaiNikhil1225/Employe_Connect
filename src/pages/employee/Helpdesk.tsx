@@ -79,7 +79,6 @@ export default function Helpdesk() {
       'Submitted',
       'Approved',
       'In Queue',
-      'Work Completed',
       'Completed',
     ];
 

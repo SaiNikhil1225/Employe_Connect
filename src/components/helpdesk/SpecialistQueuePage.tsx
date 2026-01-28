@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { MultiSelect, type MultiSelectOption } from '@/components/ui/multi-select';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { HelpdeskTicket, TicketStatus } from '@/types/helpdeskNew';
 import { ViewTicket } from './ViewTicket';
+import { TicketAge } from './TicketAge';
 import { helpdeskService } from '@/services/helpdeskService';
 import { toast } from 'sonner';
 
@@ -91,9 +93,19 @@ export function SpecialistQueuePage({
   onCloseTicket,
   isLoading = false,
 }: SpecialistQueuePageProps) {
+  // Session storage keys
+  const STORAGE_KEY_PREFIX = `specialist-queue-${queueType}`;
+  
+  // Initialize filters from session storage
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'All' | 'In Queue' | 'Assigned' | 'In Progress' | 'Paused' | 'Work Completed' | 'Completed - Awaiting IT Closure' | 'Closed' | 'Confirmed' | 'Cancelled'>('All');
-  const [urgencyFilter, setUrgencyFilter] = useState<string>('All');
+  const [statusFilter, setStatusFilter] = useState<string[]>(() => {
+    const saved = sessionStorage.getItem(`${STORAGE_KEY_PREFIX}-status`);
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [urgencyFilter, setUrgencyFilter] = useState<string[]>(() => {
+    const saved = sessionStorage.getItem(`${STORAGE_KEY_PREFIX}-urgency`);
+    return saved ? JSON.parse(saved) : [];
+  });
   const [selectedTicket, setSelectedTicket] = useState<HelpdeskTicket | null>(null);
   const [assignmentDialog, setAssignmentDialog] = useState<AssignmentDialogData | null>(null);
   const [progressDialog, setProgressDialog] = useState<ProgressDialogData | null>(null);
@@ -103,7 +115,16 @@ export function SpecialistQueuePage({
   const [viewMode, setViewMode] = useState<'list' | 'table'>('list');
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const [availableSpecialists, setAvailableSpecialists] = useState<ITSpecialist[]>([]);
-  const [selectedSpecialistId, setSelectedSpecialistId] = useState<string>('self');
+  const [selectedSpecialistId, setSelectedSpecialistId] = useState<'self'>('self');
+
+  // Persist filters to session storage
+  useEffect(() => {
+    sessionStorage.setItem(`${STORAGE_KEY_PREFIX}-status`, JSON.stringify(statusFilter));
+  }, [statusFilter, STORAGE_KEY_PREFIX]);
+
+  useEffect(() => {
+    sessionStorage.setItem(`${STORAGE_KEY_PREFIX}-urgency`, JSON.stringify(urgencyFilter));
+  }, [urgencyFilter, STORAGE_KEY_PREFIX]);
 
   // Load specialists when assignment dialog opens
   useEffect(() => {
@@ -220,8 +241,8 @@ export function SpecialistQueuePage({
         ticket.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ticket.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesStatus = statusFilter === 'All' || ticket.status === statusFilter;
-      const matchesUrgency = urgencyFilter === 'All' || ticket.urgency === urgencyFilter;
+      const matchesStatus = statusFilter.length === 0 || statusFilter.includes(ticket.status);
+      const matchesUrgency = urgencyFilter.length === 0 || urgencyFilter.includes(ticket.urgency);
 
       return matchesSearch && matchesStatus && matchesUrgency;
     });
@@ -722,6 +743,9 @@ export function SpecialistQueuePage({
                   Progress
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-brand-navy dark:text-gray-200 uppercase tracking-wider">
+                  Age
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-brand-navy dark:text-gray-200 uppercase tracking-wider">
                   Created Date
                 </th>
                 {showActions && (
@@ -830,6 +854,11 @@ export function SpecialistQueuePage({
                           {progress}%
                         </span>
                       </div>
+                    </td>
+
+                    {/* Age */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <TicketAge createdAt={ticket.createdAt} variant="badge" />
                     </td>
 
                     {/* Created Date */}
@@ -977,37 +1006,35 @@ export function SpecialistQueuePage({
             </div>
 
             {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'All' | 'In Queue' | 'Assigned' | 'In Progress' | 'Paused' | 'Work Completed' | 'Completed - Awaiting IT Closure' | 'Closed' | 'Confirmed' | 'Cancelled')}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Statuses</SelectItem>
-                <SelectItem value="In Queue">In Queue</SelectItem>
-                <SelectItem value="Assigned">Assigned</SelectItem>
-                <SelectItem value="In Progress">In Progress</SelectItem>
-                <SelectItem value="Paused">Paused</SelectItem>
-                <SelectItem value="Work Completed">Work Completed</SelectItem>
-                <SelectItem value="Completed - Awaiting IT Closure">Awaiting IT Closure</SelectItem>
-                <SelectItem value="Confirmed">Confirmed</SelectItem>
-                <SelectItem value="Closed">Closed</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={[
+                { label: 'In Queue', value: 'In Queue' },
+                { label: 'Assigned', value: 'Assigned' },
+                { label: 'In Progress', value: 'In Progress' },
+                { label: 'Paused', value: 'Paused' },
+                { label: 'Confirmed', value: 'Confirmed' },
+                { label: 'Closed', value: 'Closed' },
+                { label: 'Cancelled', value: 'Cancelled' },
+              ]}
+              selected={statusFilter}
+              onChange={setStatusFilter}
+              placeholder="Filter by status"
+              className="w-[220px]"
+            />
 
             {/* Urgency Filter */}
-            <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by urgency" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Urgencies</SelectItem>
-                <SelectItem value="Critical">Critical</SelectItem>
-                <SelectItem value="High">High</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="Low">Low</SelectItem>
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={[
+                { label: 'Critical', value: 'Critical' },
+                { label: 'High', value: 'High' },
+                { label: 'Medium', value: 'Medium' },
+                { label: 'Low', value: 'Low' },
+              ]}
+              selected={urgencyFilter}
+              onChange={setUrgencyFilter}
+              placeholder="Filter by urgency"
+              className="w-[200px]"
+            />
           </div>
         </CardContent>
       </Card>

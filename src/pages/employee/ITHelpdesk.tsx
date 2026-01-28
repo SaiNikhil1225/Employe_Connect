@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { MultiSelect, type MultiSelectOption } from '@/components/ui/multi-select';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -156,9 +157,17 @@ export default function ITHelpdesk() {
   const [selectedTicket, setSelectedTicket] = useState<HelpdeskTicket | null>(null);
   const [showTicketDrawer, setShowTicketDrawer] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | HelpdeskTicket['status']>('all');
+  const [statusFilter, setStatusFilter] = useState<string[]>(() => {
+    const saved = sessionStorage.getItem('it-helpdesk-status-filter');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [ticketToDelete, setTicketToDelete] = useState<string | null>(null);
+
+  // Persist status filter to session storage
+  useEffect(() => {
+    sessionStorage.setItem('it-helpdesk-status-filter', JSON.stringify(statusFilter));
+  }, [statusFilter]);
 
   useEffect(() => {
     if (user?.id) {
@@ -182,8 +191,8 @@ export default function ITHelpdesk() {
     let result = tickets;
 
     // Apply status filter
-    if (statusFilter !== 'all') {
-      result = result.filter(t => t.status === statusFilter);
+    if (statusFilter.length > 0) {
+      result = result.filter(t => statusFilter.includes(t.status));
     }
 
     // Apply search
@@ -593,19 +602,18 @@ export default function ITHelpdesk() {
                 />
               </div>
               {/* Status Filter */}
-              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'all' | HelpdeskTicket['status'])}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Open">Open</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="Resolved">Resolved</SelectItem>
-                  <SelectItem value="Closed">Closed</SelectItem>
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                options={[
+                  { label: 'Open', value: 'Open' },
+                  { label: 'In Progress', value: 'In Progress' },
+                  { label: 'Resolved', value: 'Resolved' },
+                  { label: 'Closed', value: 'Closed' },
+                ]}
+                selected={statusFilter}
+                onChange={setStatusFilter}
+                placeholder="Filter by status"
+                className="w-full sm:w-[220px]"
+              />
             </div>
           </div>
         </CardHeader>
@@ -616,7 +624,7 @@ export default function ITHelpdesk() {
             </div>
           ) : filteredTickets.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {searchQuery || statusFilter !== 'all'
+              {searchQuery || statusFilter.length > 0
                 ? 'No tickets found matching your filters.'
                 : 'No tickets found. Submit a request to get started.'}
             </div>

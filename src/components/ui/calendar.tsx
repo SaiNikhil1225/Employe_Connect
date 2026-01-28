@@ -16,9 +16,21 @@ export interface CalendarProps {
   disabled?: (date: Date) => boolean
   className?: string
   initialFocus?: boolean
+  // Range selection props
+  rangeStart?: Date
+  rangeEnd?: Date
+  isSelectingRange?: boolean
 }
 
-export function Calendar({ selected, onSelect, disabled, className }: CalendarProps) {
+export function Calendar({ 
+  selected, 
+  onSelect, 
+  disabled, 
+  className,
+  rangeStart,
+  rangeEnd,
+  isSelectingRange = false
+}: CalendarProps) {
   const [currentMonth, setCurrentMonth] = React.useState(
     selected ? new Date(selected.getFullYear(), selected.getMonth(), 1) : new Date()
   )
@@ -78,6 +90,23 @@ export function Calendar({ selected, onSelect, disabled, className }: CalendarPr
     const isDisabled = disabled ? disabled(date) : false
     const isWeekend = date.getDay() === 0 || date.getDay() === 6
 
+    // Range selection logic
+    const isRangeStart = rangeStart &&
+      date.getDate() === rangeStart.getDate() &&
+      date.getMonth() === rangeStart.getMonth() &&
+      date.getFullYear() === rangeStart.getFullYear()
+
+    const isRangeEnd = rangeEnd &&
+      date.getDate() === rangeEnd.getDate() &&
+      date.getMonth() === rangeEnd.getMonth() &&
+      date.getFullYear() === rangeEnd.getFullYear()
+
+    const isInRange = isSelectingRange && rangeStart && !rangeEnd &&
+      date > rangeStart && date < new Date()
+
+    const isInSelectedRange = rangeStart && rangeEnd &&
+      date >= rangeStart && date <= rangeEnd
+
     days.push(
       <button
         key={day}
@@ -85,13 +114,21 @@ export function Calendar({ selected, onSelect, disabled, className }: CalendarPr
         onClick={() => !isDisabled && onSelect?.(date)}
         disabled={isDisabled}
         className={cn(
-          "p-2 text-sm rounded-md transition-colors",
+          "p-2 text-sm rounded-md transition-colors relative",
           isDisabled ? "text-muted-foreground/40 cursor-not-allowed" : "hover:bg-muted",
-          isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
-          isWeekend && !isDisabled && !isSelected && "text-orange-600 dark:text-orange-400 font-medium"
+          isSelected && !isRangeStart && !isRangeEnd && "bg-primary text-primary-foreground hover:bg-primary/90",
+          isRangeStart && "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold",
+          isRangeEnd && "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold",
+          (isInRange || (isInSelectedRange && !isRangeStart && !isRangeEnd)) && "bg-primary/20 text-primary",
+          isWeekend && !isDisabled && !isSelected && !isRangeStart && !isRangeEnd && !isInRange && !isInSelectedRange && "text-orange-600 dark:text-orange-400 font-medium"
         )}
       >
         {day}
+        {isRangeStart && isSelectingRange && (
+          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-primary">
+            Start
+          </span>
+        )}
       </button>
     )
   }
@@ -175,6 +212,12 @@ export function Calendar({ selected, onSelect, disabled, className }: CalendarPr
           <div className="w-3 h-3 rounded bg-primary"></div>
           <span>Selected</span>
         </div>
+        {isSelectingRange && (
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-primary/20"></div>
+            <span>In Range</span>
+          </div>
+        )}
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded bg-orange-100 dark:bg-orange-900"></div>
           <span>Weekend</span>

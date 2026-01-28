@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useHelpdeskStore } from '@/store/helpdeskStore';
 import type { HelpdeskTicket as NewHelpdeskTicket } from '@/types/helpdeskNew';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +38,8 @@ import {
   Users,
   RotateCcw,
   Eye,
+  RefreshCw,
+  X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useFacilitiesAdminGuard } from '@/hooks/useFacilitiesAdminGuard';
@@ -47,6 +51,8 @@ import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { SLAComplianceDashboard } from '@/components/helpdesk/SLAComplianceDashboard';
 import AgentWorkloadIndicators from '@/components/helpdesk/AgentWorkloadIndicators';
+import { WeeklyAnalytics } from '@/components/analytics/WeeklyAnalytics';
+import { MonthlyStatistics } from '@/components/analytics/MonthlyStatistics';
 
 export function FacilitiesAdminDashboard() {
   const navigate = useNavigate();
@@ -67,6 +73,26 @@ export function FacilitiesAdminDashboard() {
       fetchTickets();
     }
   }, [fetchTickets, isFacilitiesAdmin]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + R: Refresh
+      if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
+        e.preventDefault();
+        fetchTickets();
+        toast.info('Refreshing tickets...');
+      }
+      // Cmd/Ctrl + K: Focus search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>('input[type="text"]')?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, [fetchTickets]);
 
   // Filter Facilities tickets only - CRITICAL: Module-driven approval gating (NEW ARCHITECTURE)
   const facilitiesTickets = useMemo(() => {
@@ -321,11 +347,45 @@ export function FacilitiesAdminDashboard() {
 
   if (isLoading && tickets.length === 0) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
+      <div className="page-container">
+        {/* Header Skeleton */}
+        <div className="page-header">
+          <div className="page-header-content">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96 mt-2" />
+          </div>
+          <Skeleton className="h-10 w-40" />
         </div>
+
+        {/* KPI Cards Skeleton */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="card-compact">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-10 w-16 mb-2" />
+                <Skeleton className="h-3 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Table Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-64 mt-2" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -355,18 +415,30 @@ export function FacilitiesAdminDashboard() {
             Manage Facilities ticket assignments and monitor queue status
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => navigate('/facilitiesadmin/tickets')}
-          className="flex items-center gap-2"
-        >
-          <Activity className="h-4 w-4" />
-          View All Tickets
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchTickets()}
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/facilitiesadmin/tickets')}
+            className="flex items-center gap-2"
+          >
+            <Activity className="h-4 w-4" />
+            View All Tickets
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="kpi-grid-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="card-compact">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -716,6 +788,10 @@ export function FacilitiesAdminDashboard() {
                 <Users className="h-4 w-4 mr-2" />
                 Team Workload
               </TabsTrigger>
+              <TabsTrigger value="analytics">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Analytics
+              </TabsTrigger>
               <TabsTrigger value="closed">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Closed Tickets
@@ -723,11 +799,28 @@ export function FacilitiesAdminDashboard() {
             </TabsList>
 
             <TabsContent value="sla" className="space-y-4">
-              <SLAComplianceDashboard />
+              <SLAComplianceDashboard tickets={facilitiesTickets} />
             </TabsContent>
 
             <TabsContent value="workload" className="space-y-4">
               <AgentWorkloadIndicators />
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-4">
+              <Tabs defaultValue="weekly" className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="weekly">Weekly Pattern</TabsTrigger>
+                  <TabsTrigger value="monthly">Monthly Statistics</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="weekly">
+                  <WeeklyAnalytics />
+                </TabsContent>
+
+                <TabsContent value="monthly">
+                  <MonthlyStatistics />
+                </TabsContent>
+              </Tabs>
             </TabsContent>
 
             <TabsContent value="closed" className="space-y-4">

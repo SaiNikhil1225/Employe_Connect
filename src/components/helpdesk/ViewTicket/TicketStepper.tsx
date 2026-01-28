@@ -203,7 +203,7 @@ function resolveSteps(ticket: HelpdeskTicket): Step[] {
 
   // Step 7: Work In Progress (first cycle)
   if (wasInProgress ||
-      ['In Progress', 'Work Completed', 'Completed', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
+      ['In Progress', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
     const inProgressHistory = findHistoryEntry('in progress') || findHistoryEntry('working');
     
     // For reopened tickets, this is the first cycle (completed)
@@ -235,37 +235,7 @@ function resolveSteps(ticket: HelpdeskTicket): Step[] {
     });
   }
 
-  // Step 8: Completed (first cycle)
-  if (wasCompleted ||
-      ['Work Completed', 'Completed', 'Awaiting User Confirmation', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
-    const completedHistory = findHistoryEntry('completed') || findHistoryEntry('work completed');
-    
-    let status: 'completed' | 'active' | 'pending' = 'completed';
-    let description = ticket.completionNotes || 'Work completed';
-    
-    if (!wasReopened && !isCurrentlyReopened) {
-      // Normal flow
-      if (ticket.status === 'In Progress') {
-        status = 'pending';
-        description = 'Awaiting completion';
-      } else if (ticket.status === 'Work Completed' || ticket.status === 'Completed') {
-        status = 'active';
-      }
-    } else {
-      // Reopened flow - first cycle is always completed
-      description = 'Was completed';
-    }
-    
-    steps.push({
-      id: 'completed',
-      label: wasReopened ? 'Completed (1st)' : 'Completed',
-      status,
-      timestamp: ticket.completedAt || completedHistory?.timestamp,
-      description
-    });
-  }
-
-  // Step 9: User Confirmation (first cycle)
+  // Step 8: User Confirmation (first cycle)
   if (wasCompleted ||
       ['Awaiting User Confirmation', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
     const confirmedHistory = findHistoryEntry('confirmed');
@@ -275,7 +245,7 @@ function resolveSteps(ticket: HelpdeskTicket): Step[] {
     
     if (!wasReopened && !isCurrentlyReopened) {
       // Normal flow
-      if (ticket.status === 'Completed' || ticket.status === 'Work Completed') {
+      if (ticket.status === 'In Progress') {
         status = 'pending';
         description = 'Awaiting user confirmation';
       } else if (ticket.status === 'Awaiting User Confirmation') {
@@ -296,7 +266,7 @@ function resolveSteps(ticket: HelpdeskTicket): Step[] {
     });
   }
 
-  // Step 10: Closed (first cycle - only show if was closed, not currently closed unless not reopened)
+  // Step 9: Closed (first cycle - only show if was closed, not currently closed unless not reopened)
   if (wasClosed || (!wasReopened && ['Closed', 'Auto-Closed'].includes(ticket.status))) {
     const closedHistory = findHistoryEntry('closed');
     
@@ -310,7 +280,7 @@ function resolveSteps(ticket: HelpdeskTicket): Step[] {
     });
   }
 
-  // Step 11: Reopened (show if ticket was ever reopened)
+  // Step 10: Reopened (show if ticket was ever reopened)
   if (wasReopened || isCurrentlyReopened) {
     const reopenHistory = findHistoryEntry('reopened');
     
@@ -330,7 +300,7 @@ function resolveSteps(ticket: HelpdeskTicket): Step[] {
     });
   }
 
-  // Step 12: Reassigned (show for reopened tickets that have been reassigned)
+  // Step 11: Reassigned (show for reopened tickets that have been reassigned)
   if (wasReopened && !isCurrentlyReopened && ticket.assignment?.assignedToId) {
     const reassignmentHistory = ticket.history?.filter(h => 
       h.action.toLowerCase().includes('assigned') && 
@@ -346,8 +316,8 @@ function resolveSteps(ticket: HelpdeskTicket): Step[] {
     });
   }
 
-  // Step 13: Work In Progress (After Reopen) - show for reopened tickets
-  if (wasReopened && !isCurrentlyReopened && ['In Progress', 'Work Completed', 'Completed', 'Confirmed', 'Closed'].includes(ticket.status)) {
+  // Step 12: Work In Progress (After Reopen) - show for reopened tickets
+  if (wasReopened && !isCurrentlyReopened && ['In Progress', 'Confirmed', 'Closed'].includes(ticket.status)) {
     steps.push({
       id: 'in-progress-reopen',
       label: 'Work In Progress',
@@ -357,18 +327,7 @@ function resolveSteps(ticket: HelpdeskTicket): Step[] {
     });
   }
 
-  // Step 14: Completed (After Reopen) - show for reopened tickets that are completed again
-  if (wasReopened && !isCurrentlyReopened && ['Work Completed', 'Completed', 'Confirmed', 'Closed'].includes(ticket.status)) {
-    steps.push({
-      id: 'completed-reopen',
-      label: 'Completed',
-      status: ticket.status === 'Work Completed' || ticket.status === 'Completed' ? 'active' : 'completed',
-      timestamp: ticket.completedAt || ticket.updatedAt,
-      description: ticket.completionNotes || 'Work completed on reopened ticket'
-    });
-  }
-
-  // Step 15: Closed (After Reopen) - show for reopened tickets that are closed again
+  // Step 13: Closed (After Reopen) - show for reopened tickets that are closed again
   if (wasReopened && !isCurrentlyReopened && ['Closed', 'Auto-Closed'].includes(ticket.status)) {
     steps.push({
       id: 'closed-reopen',

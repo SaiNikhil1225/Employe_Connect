@@ -443,6 +443,28 @@ export const helpdeskService = {
     return response.data.data;
   },
 
+  // Reassign ticket to a different IT employee (IT Admin only)
+  reassignTicket: async (
+    ticketId: string,
+    newEmployeeId: string,
+    newEmployeeName: string,
+    reassignedById: string,
+    reassignedByName: string,
+    reason: string
+  ) => {
+    const response = await apiClient.put<{ success: boolean; data: NewHelpdeskTicket }>(
+      `/helpdesk/${ticketId}/reassign`,
+      {
+        newEmployeeId,
+        newEmployeeName,
+        reassignedById,
+        reassignedByName,
+        reason,
+      }
+    );
+    return response.data.data;
+  },
+
   // Reopen a closed ticket
   reopen: async (ticketId: string, reason: string) => {
     const response = await apiClient.post<{ success: boolean; data: NewHelpdeskTicket; message: string }>(

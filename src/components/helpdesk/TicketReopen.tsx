@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   RotateCcw,
-  Clock,
   AlertCircle,
   FileText,
   User,
@@ -27,7 +26,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { format, differenceInDays, isAfter, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import type { HelpdeskTicket, ConversationMessage } from '@/types/helpdeskNew';
 import { useHelpdeskStore } from '@/store/helpdeskStore';
 import { helpdeskService } from '@/services/helpdeskService';
@@ -45,9 +44,6 @@ interface ReopenDialogProps {
   onConfirm: (reason: string) => Promise<void>;
 }
 
-// Configuration for reopen window (in days)
-const REOPEN_WINDOW_DAYS = 7;
-
 export const TicketReopen = React.memo<TicketReopenProps>(({ 
   ticket, 
   onReopen, 
@@ -58,42 +54,18 @@ export const TicketReopen = React.memo<TicketReopenProps>(({
   
   const { fetchTickets } = useHelpdeskStore();
 
-  // Check if ticket was already reopened before (limit to 1 reopen)
-  const wasAlreadyReopened = useMemo(() => {
-    return ticket.history?.some(h => 
+  // Count how many times this ticket has been reopened (for tracking only)
+  const reopenCount = useMemo(() => {
+    return ticket.history?.filter(h => 
       h.action.toLowerCase().includes('reopened')
-    ) || false;
+    ).length || 0;
   }, [ticket.history]);
 
-  // Check if ticket can be reopened
+  // Check if ticket can be reopened (unlimited reopening allowed)
   const canReopen = useMemo(() => {
     // Only closed or completed tickets can be reopened
-    const isClosedOrCompleted = ticket.status === 'Closed' || ticket.status === 'Completed';
-    
-    if (!isClosedOrCompleted) return false;
-
-    // Check if within reopen window
-    const dateStr = ticket.closedAt || ticket.updatedAt || ticket.createdAt;
-    if (!dateStr) return false;
-    
-    const lastUpdated = new Date(dateStr);
-    const cutoffDate = subDays(new Date(), REOPEN_WINDOW_DAYS);
-    
-    return isAfter(lastUpdated, cutoffDate);
-  }, [ticket.status, ticket.closedAt, ticket.updatedAt, ticket.createdAt]);
-
-  // Calculate days remaining for reopen
-  const daysRemaining = useMemo(() => {
-    if (!canReopen) return 0;
-    
-    const dateStr = ticket.closedAt || ticket.updatedAt || ticket.createdAt;
-    if (!dateStr) return 0;
-    
-    const lastUpdated = new Date(dateStr);
-    const remaining = REOPEN_WINDOW_DAYS - differenceInDays(new Date(), lastUpdated);
-    
-    return Math.max(0, remaining);
-  }, [canReopen, ticket.closedAt, ticket.updatedAt, ticket.createdAt]);
+    return ticket.status === 'Closed' || ticket.status === 'Completed';
+  }, [ticket.status]);
 
   // Handle reopen confirmation
   const handleReopen = useCallback(async (reason: string) => {
@@ -124,32 +96,6 @@ export const TicketReopen = React.memo<TicketReopenProps>(({
     return null;
   }
 
-  // If already reopened once, show disabled button
-  if (wasAlreadyReopened) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 w-9 p-0 text-gray-400 cursor-not-allowed"
-              disabled={true}
-            >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Cannot Reopen</p>
-            <p className="text-xs text-muted-foreground">
-              This ticket was already reopened once. Tickets can only be reopened one time.
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <TooltipProvider>
@@ -168,10 +114,6 @@ export const TicketReopen = React.memo<TicketReopenProps>(({
           </TooltipTrigger>
           <TooltipContent>
             <p>Reopen Ticket</p>
-            <p className="text-xs text-muted-foreground">
-              Can reopen for {daysRemaining} more day{daysRemaining !== 1 ? 's' : ''}
-              {daysRemaining <= 2 ? ' (Expires soon)' : ''}
-            </p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -289,7 +231,7 @@ const ReopenDialog: React.FC<ReopenDialogProps> = ({
           <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
           <div className="space-y-1">
             <h5 className="text-sm font-medium text-blue-900 dark:text-blue-300">
-              Ticket Reopen Policy
+              Unlimited Ticket Reopening
             </h5>
             <p className="text-xs text-blue-700 dark:text-blue-400">
               Reopened tickets will restart the approval workflow. The ticket will be submitted for review again and may require fresh approvals based on your department's policies.
@@ -333,17 +275,8 @@ export const useTicketReopen = () => {
   const { fetchTickets } = useHelpdeskStore();
 
   const canTicketBeReopened = useCallback((ticket: HelpdeskTicket) => {
-    const isClosedOrCompleted = ticket.status === 'Closed' || ticket.status === 'Completed';
-    
-    if (!isClosedOrCompleted) return false;
-
-    const dateStr = ticket.closedAt || ticket.updatedAt || ticket.createdAt;
-    if (!dateStr) return false;
-    
-    const lastUpdated = new Date(dateStr);
-    const cutoffDate = subDays(new Date(), REOPEN_WINDOW_DAYS);
-    
-    return isAfter(lastUpdated, cutoffDate);
+    // Unlimited reopening - only check if ticket is closed or completed
+    return ticket.status === 'Closed' || ticket.status === 'Completed';
   }, []);
 
   const reopenTicket = useCallback(async (

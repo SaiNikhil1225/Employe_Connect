@@ -249,9 +249,7 @@ const helpdeskTicketSchema = new mongoose.Schema({
       'In Progress',
       'Paused',
       'On Hold',
-      'Work Completed',
       'Completed',
-      'Completed - Awaiting IT Closure',
       'Confirmed',
       'Closed',
       'Auto-Closed'

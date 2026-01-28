@@ -355,7 +355,7 @@ export function HorizontalStepperTimeline({ ticket }: HorizontalStepperTimelineP
 
     // Step 7: In Progress (first cycle)
     if (wasInProgress ||
-        ['In Progress', 'Work Completed', 'Completed', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
+        ['In Progress', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
       const inProgressHistory = findHistoryEntry('in progress') || findHistoryEntry('working');
       
       let status: 'completed' | 'active' | 'pending' = 'completed';
@@ -380,33 +380,7 @@ export function HorizontalStepperTimeline({ ticket }: HorizontalStepperTimelineP
       });
     }
 
-    // Step 8: Completed (first cycle)
-    if (wasCompleted ||
-        ['Work Completed', 'Completed', 'Awaiting User Confirmation', 'Confirmed', 'Closed', 'Auto-Closed'].includes(ticket.status)) {
-      const completedHistory = findHistoryEntry('completed') || findHistoryEntry('work completed');
-      
-      let status: 'completed' | 'active' | 'pending' = 'completed';
-      let description = 'Done';
-      
-      if (!wasReopened && !isCurrentlyReopened) {
-        if (ticket.status === 'In Progress') {
-          status = 'pending';
-          description = 'Awaiting';
-        } else if (ticket.status === 'Work Completed' || ticket.status === 'Completed') {
-          status = 'active';
-        }
-      }
-      
-      steps.push({
-        id: 'completed',
-        label: wasReopened ? 'Done¹' : 'Completed',
-        status,
-        timestamp: ticket.completedAt || completedHistory?.timestamp,
-        description
-      });
-    }
-
-    // Step 9: Closed (first cycle)
+    // Step 8: Closed (first cycle)
     if (wasClosed || (!wasReopened && ['Closed', 'Auto-Closed'].includes(ticket.status))) {
       const closedHistory = findHistoryEntry('closed');
       steps.push({
@@ -418,7 +392,7 @@ export function HorizontalStepperTimeline({ ticket }: HorizontalStepperTimelineP
       });
     }
 
-    // Step 10: Reopened (show if ticket was ever reopened)
+    // Step 9: Reopened (show if ticket was ever reopened)
     if (wasReopened || isCurrentlyReopened) {
       const reopenHistory = findHistoryEntry('reopened');
       
@@ -436,7 +410,7 @@ export function HorizontalStepperTimeline({ ticket }: HorizontalStepperTimelineP
       });
     }
 
-    // Step 11: Reassigned (show for reopened tickets that have been reassigned)
+    // Step 10: Reassigned (show for reopened tickets that have been reassigned)
     if (wasReopened && !isCurrentlyReopened && ticket.assignment?.assignedToId) {
       const reassignmentHistory = ticket.history?.filter(h => 
         h.action.toLowerCase().includes('assigned') && 
@@ -452,8 +426,8 @@ export function HorizontalStepperTimeline({ ticket }: HorizontalStepperTimelineP
       });
     }
 
-    // Step 12: Work In Progress (After Reopen)
-    if (wasReopened && !isCurrentlyReopened && ['In Progress', 'Work Completed', 'Completed', 'Confirmed', 'Closed'].includes(ticket.status)) {
+    // Step 11: Work In Progress (After Reopen)
+    if (wasReopened && !isCurrentlyReopened && ['In Progress', 'Confirmed', 'Closed'].includes(ticket.status)) {
       steps.push({
         id: 'in-progress-reopen',
         label: 'In Progress',
@@ -463,18 +437,7 @@ export function HorizontalStepperTimeline({ ticket }: HorizontalStepperTimelineP
       });
     }
 
-    // Step 13: Completed (After Reopen)
-    if (wasReopened && !isCurrentlyReopened && ['Work Completed', 'Completed', 'Confirmed', 'Closed'].includes(ticket.status)) {
-      steps.push({
-        id: 'completed-reopen',
-        label: 'Completed',
-        status: ticket.status === 'Work Completed' || ticket.status === 'Completed' ? 'active' : 'completed',
-        timestamp: ticket.completedAt || ticket.updatedAt,
-        description: 'Work done'
-      });
-    }
-
-    // Step 14: Closed (After Reopen)
+    // Step 12: Closed (After Reopen)
     if (wasReopened && !isCurrentlyReopened && ['Closed', 'Auto-Closed'].includes(ticket.status)) {
       steps.push({
         id: 'closed-reopen',

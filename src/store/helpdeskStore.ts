@@ -635,7 +635,7 @@ export const useHelpdeskStore = create<HelpdeskStore>((set, get) => ({
       if (ticket) {
         try {
           await useNotificationStore.getState().createNotification({
-            title: 'Work Completed',
+            title: 'Ticket Completed',
             description: `Your request "${ticket.subject}" has been completed. Please confirm.`,
             type: 'ticket',
             userId: ticket.userId,
@@ -651,7 +651,7 @@ export const useHelpdeskStore = create<HelpdeskStore>((set, get) => ({
       }
 
       await get().fetchTickets();
-      toast.success('Work completed successfully');
+      toast.success('Ticket completed successfully');
       set({ isLoading: false });
     } catch (error) {
       set({ error: 'Failed to complete work', isLoading: false });

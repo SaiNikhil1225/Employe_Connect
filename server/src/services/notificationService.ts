@@ -280,6 +280,56 @@ export class NotificationService {
   }
 
   /**
+   * Notify when ticket is reassigned
+   */
+  async notifyTicketReassigned(ticket: {
+    ticketNumber: string;
+    userId: string;
+    userName: string;
+    subject: string;
+    highLevelCategory: string;
+  }, previousAssignee: {
+    id: string;
+    name: string;
+  }, newAssignee: {
+    id: string;
+    name: string;
+  }, reason: string, reassignedBy: string): Promise<void> {
+    // Notify previous assignee about reassignment
+    await this.createNotification({
+      title: `Ticket Reassigned: ${ticket.ticketNumber}`,
+      description: `Ticket "${ticket.subject}" has been reassigned to ${newAssignee.name}. Reason: ${reason}`,
+      type: 'ticket',
+      userId: previousAssignee.id,
+      role: 'IT_EMPLOYEE',
+      link: '/itadmin/tickets',
+      meta: {
+        ticketNumber: ticket.ticketNumber,
+        reassignedTo: newAssignee.name,
+        reason,
+        reassignedBy
+      }
+    });
+
+    // Notify new assignee about assignment
+    await this.createNotification({
+      title: `Ticket Assigned: ${ticket.ticketNumber}`,
+      description: `You have been assigned ${ticket.highLevelCategory} request "${ticket.subject}" (reassigned from ${previousAssignee.name}).`,
+      type: 'ticket',
+      userId: newAssignee.id,
+      role: 'IT_EMPLOYEE',
+      link: '/itadmin/tickets',
+      meta: {
+        ticketNumber: ticket.ticketNumber,
+        category: ticket.highLevelCategory,
+        requesterName: ticket.userName,
+        previousAssignee: previousAssignee.name,
+        reassignedBy
+      }
+    });
+  }
+
+  /**
    * Notify when ticket work is completed
    */
   async notifyWorkCompleted(ticket: {
