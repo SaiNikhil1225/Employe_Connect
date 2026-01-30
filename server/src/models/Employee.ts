@@ -86,6 +86,19 @@ const employeeSchema = new mongoose.Schema({
     type: Number,
     default: 10
   },
+  // Cost/Salary information for RMG Analytics
+  monthlySalary: {
+    type: Number,
+    default: 0 // Monthly salary/cost per employee
+  },
+  hourlyRate: {
+    type: Number,
+    default: 0 // Calculated from monthly salary or set explicitly
+  },
+  currency: {
+    type: String,
+    default: 'INR'
+  }
 }, { timestamps: true, strict: true }); // Changed from false to true for data integrity
 
 // Indexes for faster lookups

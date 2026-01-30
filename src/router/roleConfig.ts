@@ -114,6 +114,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/allocations',
     '/utilization',
     '/forecasting',
+    '/rmg/analytics',
     '/new-announcement',
     '/admin-announcements',
   ],
@@ -136,6 +137,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/allocations',
     '/utilization',
     '/forecasting',
+    '/rmg/analytics',
     '/reports',
     '/employees-directory',
   ],
@@ -383,6 +385,12 @@ export const navigationConfig: RoutePermission[] = [
     path: '/forecasting',
     label: 'Demand Forecasting',
     icon: 'LineChart',
+    roles: ['RMG'],
+  },
+  {
+    path: '/rmg/analytics',
+    label: 'Analytics Dashboard',
+    icon: 'TrendingUp',
     roles: ['RMG'],
   },
   // Common Routes

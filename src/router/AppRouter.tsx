@@ -51,6 +51,7 @@ import { ResourcePool } from '@/pages/rmg/ResourcePool';
 import { Allocations } from '@/pages/rmg/Allocations';
 import { Utilization } from '@/pages/rmg/Utilization';
 import { Forecasting } from '@/pages/rmg/Forecasting';
+import { RMGAnalytics } from '@/pages/rmg/RMGAnalytics';
 
 // Super Admin Pages
 import { SuperAdminDashboard } from '@/pages/superadmin/SuperAdminDashboard';
@@ -374,6 +375,14 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/forecasting">
                 <Forecasting />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rmg/analytics"
+            element={
+              <ProtectedRoute requiredPath="/rmg/analytics">
+                <RMGAnalytics />
               </ProtectedRoute>
             }
           />
