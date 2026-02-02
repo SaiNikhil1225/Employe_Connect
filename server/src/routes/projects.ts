@@ -6,13 +6,24 @@ const router = express.Router();
 // Get all projects (with optional filters)
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { status, client } = req.query;
+    const { status, region, billingType, customerId, search } = req.query;
     const query: Record<string, unknown> = {};
 
     if (status) query.status = status;
-    if (client) query.client = client;
+    if (region) query.region = region;
+    if (billingType) query.billingType = billingType;
+    if (customerId) query.customerId = customerId;
+    if (search) {
+      query.$or = [
+        { projectName: { $regex: search, $options: 'i' } },
+        { projectId: { $regex: search, $options: 'i' } },
+        { accountName: { $regex: search, $options: 'i' } }
+      ];
+    }
 
-    const projects = await Project.find(query).sort({ createdAt: -1 });
+    const projects = await Project.find(query)
+      .populate('customerId', 'customerName customerNo')
+      .sort({ createdAt: -1 });
     res.json({ success: true, data: projects });
   } catch (error) {
     console.error('Failed to fetch projects:', error);

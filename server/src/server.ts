@@ -28,6 +28,9 @@ import payrollRoutes from './routes/payroll';
 import projectsRoutes from './routes/projects';
 import allocationsRoutes from './routes/allocations';
 import superAdminRoutes from './routes/superAdmin';
+import customerRoutes from './routes/customers';
+import customerPORoutes from './routes/customerPOs';
+import financialLineRoutes from './routes/financialLines';
 
 dotenv.config();
 
@@ -115,6 +118,9 @@ app.use('/api/payroll', payrollRoutes);
 app.use('/api/projects', projectsRoutes);
 app.use('/api/allocations', allocationsRoutes);
 app.use('/api/superadmin', superAdminRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/financial-lines', financialLineRoutes);
+app.use('/api/customer-pos', customerPORoutes);
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {

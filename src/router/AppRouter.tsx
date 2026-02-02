@@ -52,6 +52,10 @@ import { Allocations } from '@/pages/rmg/Allocations';
 import { Utilization } from '@/pages/rmg/Utilization';
 import { Forecasting } from '@/pages/rmg/Forecasting';
 import { RMGAnalytics } from '@/pages/rmg/RMGAnalytics';
+import { CustomerListPage } from '@/pages/rmg/customers/CustomerListPage';
+import { ProjectListPage } from '@/pages/rmg/projects/ProjectListPage';
+import { CustomerPOListPage } from '@/pages/rmg/customer-pos/CustomerPOListPage';
+import { FinancialLineListPage } from '@/pages/rmg/financial-lines/FinancialLineListPage';
 
 // Super Admin Pages
 import { SuperAdminDashboard } from '@/pages/superadmin/SuperAdminDashboard';
@@ -383,6 +387,28 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/rmg/analytics">
                 <RMGAnalytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rmg/customers"
+            element={
+              <ProtectedRoute requiredPath="/rmg/customers">
+                <CustomerListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route            path="/rmg/financial-lines"
+            element={
+              <ProtectedRoute requiredPath="/rmg/financial-lines">
+                <FinancialLineListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route            path="/rmg/projects"
+            element={
+              <ProtectedRoute requiredPath="/rmg/projects">
+                <ProjectListPage />
               </ProtectedRoute>
             }
           />
