@@ -41,21 +41,27 @@ export interface Project {
 }
 
 export interface ProjectFormData {
+  projectId?: string;
   projectName: string;
-  customerId: string;
+  projectDescription?: string;
+  customerId?: string;
   accountName: string;
   legalEntity: string;
   hubspotDealId?: string;
   billingType: BillingType;
   practiceUnit: PracticeUnit;
   region: ProjectRegion;
-  projectManager?: ProjectManager;
-  deliveryManager?: ProjectManager;
-  industry?: string;
-  clientType?: string;
-  revenueType?: string;
-  projectStartDate: Date | string;
-  projectEndDate: Date | string;
+  projectManager: string;
+  deliveryManager: string;
+  dealOwner: string;
+  industry: string;
+  regionHead: string;
+  leadSource: string;
+  clientType: string;
+  revenueType: string;
+  projectWonThroughRFP?: boolean;
+  projectStartDate: string;
+  projectEndDate: string;
   projectCurrency: ProjectCurrency;
   estimatedValue?: number;
   status?: ProjectStatus;
@@ -63,10 +69,17 @@ export interface ProjectFormData {
 
 export interface ProjectFilters {
   status?: ProjectStatus;
+  statuses?: string[];
   region?: ProjectRegion;
+  regions?: string[];
   billingType?: BillingType;
   customerId?: string;
   search?: string;
+  searchScope?: 'all' | 'name' | 'id' | 'manager';
+  owners?: string[];
+  health?: string[];
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface ProjectStats {

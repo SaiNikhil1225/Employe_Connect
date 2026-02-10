@@ -1,7 +1,11 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useState, useEffect } from 'react';
 import type { ProjectFormData } from '@/types/project';
+import type { Customer } from '@/types/customer';
+import { useCustomerStore } from '@/store/customerStore';
+import axios from 'axios';
 import {
   Form,
   FormControl,
@@ -21,9 +25,70 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
+import { DatePicker } from '@/components/ui/date-picker';
+import { SinglePersonPicker } from '@/components/ui/single-person-picker';
+import { RotateCcw, Save } from 'lucide-react';
+
+// Dropdown options
+const LEGAL_ENTITIES = [
+  'Acuvate Software Pvt Ltd - India',
+  'Acuvate Software Ltd - UK',
+  'Acuvate Software Inc - USA',
+  'Acuvate Software ME - Dubai',
+] as const;
+
+const INDUSTRIES = [
+  'Technology',
+  'Healthcare',
+  'Financial Services',
+  'Retail & E-commerce',
+  'Manufacturing',
+  'Energy & Utilities',
+  'Media & Entertainment',
+  'Telecommunications',
+  'Government',
+  'Education',
+  'Other',
+] as const;
+
+const REGION_HEADS = [
+  'Anil Kumar',
+  'James Wilson',
+  'Sarah Mitchell',
+  'Mohammed Al-Rashid',
+] as const;
+
+const LEAD_SOURCES = [
+  'Direct',
+  'Partner Referral',
+  'Website',
+  'Event',
+  'Cold Outreach',
+  'Existing Customer',
+  'Marketing Campaign',
+  'Other',
+] as const;
+
+const REVENUE_TYPES = [
+  'New Business',
+  'Expansion',
+  'Renewal',
+  'Upsell',
+  'Cross-sell',
+] as const;
+
+const CLIENT_TYPES = [
+  'Enterprise',
+  'Mid-Market',
+  'SMB',
+  'Startup',
+  'Government',
+] as const;
 
 const projectSchema = z.object({
   projectId: z.string().optional(),
+  customerId: z.string({ message: 'Customer is required. Please select a customer from Account Name.' }).min(1, 'Customer is required'),
   projectName: z.string({ message: 'Project name is required' }).min(1, 'Project name is required').max(100, 'Max 100 characters'),
   projectDescription: z.string().optional().or(z.literal('')),
   accountName: z.string({ message: 'Account name is required' }).min(1, 'Account name is required'),
@@ -51,6 +116,7 @@ interface ProjectFormProps {
   defaultValues?: Partial<ProjectFormData>;
   isLoading?: boolean;
   submitLabel?: string;
+  isEditMode?: boolean; // Add flag to indicate edit mode
 }
 
 export function ProjectForm({
@@ -58,11 +124,18 @@ export function ProjectForm({
   defaultValues,
   isLoading,
   submitLabel = 'Create Project',
+  isEditMode = false,
 }: ProjectFormProps) {
+  const { customers, fetchCustomers } = useCustomerStore();
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isCustomerSelected, setIsCustomerSelected] = useState(false);
+  const [nextProjectId, setNextProjectId] = useState<string>(defaultValues?.projectId || '');
+
   const form = useForm({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       projectId: '',
+      customerId: '',
       projectName: '',
       projectDescription: '',
       accountName: '',
@@ -71,9 +144,9 @@ export function ProjectForm({
       projectManager: '',
       deliveryManager: '',
       dealOwner: '',
-      billingType: 'T&M' as const,
-      practiceUnit: 'Other' as const,
-      region: 'Other' as const,
+      billingType: undefined,
+      practiceUnit: undefined,
+      region: undefined,
       industry: '',
       regionHead: '',
       leadSource: '',
@@ -87,23 +160,82 @@ export function ProjectForm({
     },
   });
 
-  const handleSubmit = async (data: any) => {
+  // Fetch customers on mount
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
+
+  // Fetch next project ID for create mode
+  useEffect(() => {
+    if (!isEditMode && !defaultValues?.projectId) {
+      const fetchNextId = async () => {
+        try {
+          const response = await axios.get('/api/projects/next-id');
+          const nextId = response.data.data;
+          setNextProjectId(nextId);
+          form.setValue('projectId', nextId);
+        } catch (error) {
+          console.error('Failed to fetch next project ID:', error);
+        }
+      };
+      fetchNextId();
+    }
+  }, [isEditMode, defaultValues?.projectId, form]);
+
+  // Auto-populate fields when customer is selected
+  useEffect(() => {
+    if (selectedCustomer) {
+      form.setValue('industry', selectedCustomer.industry || '');
+      
+      // Set region with proper type assertion
+      const customerRegion = selectedCustomer.region;
+      if (customerRegion && ['UK', 'India', 'USA', 'ME', 'Other'].includes(customerRegion)) {
+        form.setValue('region', customerRegion as 'UK' | 'India' | 'USA' | 'ME' | 'Other');
+      }
+      
+      form.setValue('regionHead', selectedCustomer.regionHead || '');
+      
+      // Also set hubspotRecordId if available
+      if (selectedCustomer.hubspotRecordId) {
+        form.setValue('hubspotDealId', selectedCustomer.hubspotRecordId);
+      }
+    }
+  }, [selectedCustomer, form]);
+
+  // Handle customer selection
+  const handleCustomerChange = (customerName: string) => {
+    form.setValue('accountName', customerName);
+    const customer = customers.find(c => c.customerName === customerName);
+    setSelectedCustomer(customer || null);
+    setIsCustomerSelected(!!customer);
+    
+    // Set customerId from the selected customer
+    if (customer && customer._id) {
+      form.setValue('customerId', customer._id);
+    }
+  };
+
+  const handleSubmit = async (data: ProjectFormData) => {
     await onSubmit(data);
     form.reset();
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="basic">Basic Details</TabsTrigger>
-            <TabsTrigger value="schedule">Schedule & Status</TabsTrigger>
-          </TabsList>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full">
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto pr-2">
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="basic">Basic Details</TabsTrigger>
+              <TabsTrigger value="schedule">Schedule & Status</TabsTrigger>
+            </TabsList>
 
-          {/* Tab 1: Basic Details */}
-          <TabsContent value="basic" className="space-y-4 mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Tab 1: Basic Details */}
+            <TabsContent value="basic" className="mt-6">
+              <Card className="border-0 shadow-none">
+                <CardContent className="p-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {/* Project ID */}
               <FormField
                 control={form.control}
@@ -112,9 +244,17 @@ export function ProjectForm({
                   <FormItem>
                     <FormLabel>Project ID</FormLabel>
                     <FormControl>
-                      <Input placeholder="Auto-generated" {...field} disabled />
+                      <Input 
+                        placeholder="Auto-generated" 
+                        {...field} 
+                        value={field.value || nextProjectId || 'Generating...'} 
+                        disabled 
+                        className="bg-gray-50 dark:bg-gray-800"
+                      />
                     </FormControl>
-                    <FormDescription className="text-xs">Auto-generated upon creation</FormDescription>
+                    <FormDescription className="text-xs">
+                      Auto-generated ID (e.g., P001)
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -128,7 +268,7 @@ export function ProjectForm({
                   <FormItem>
                     <FormLabel>Project Name *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter project name" {...field} />
+                      <Input placeholder="Enter project name" {...field} disabled={isEditMode} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -144,7 +284,7 @@ export function ProjectForm({
                     <FormItem>
                       <FormLabel>Project Description</FormLabel>
                       <FormControl>
-                        <Input placeholder="Brief description of the project" {...field} />
+                        <Input placeholder="Brief description of the project" {...field} disabled={isEditMode} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -159,9 +299,22 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Account Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter account name" {...field} />
-                    </FormControl>
+                    <Select onValueChange={handleCustomerChange} value={field.value} disabled={isEditMode}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select customer" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {customers
+                          .filter(c => c.status === 'Active')
+                          .map((customer) => (
+                            <SelectItem key={customer._id || customer.id} value={customer.customerName}>
+                              {customer.customerName} ({customer.customerNo})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -175,7 +328,7 @@ export function ProjectForm({
                   <FormItem>
                     <FormLabel>HubSpot Deal ID</FormLabel>
                     <FormControl>
-                      <Input placeholder="DEAL-12345" {...field} />
+                      <Input placeholder="DEAL-12345" {...field} disabled={isEditMode} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -189,9 +342,20 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Legal Entity *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter legal entity" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select legal entity" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {LEGAL_ENTITIES.map((entity) => (
+                          <SelectItem key={entity} value={entity}>
+                            {entity}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -205,7 +369,12 @@ export function ProjectForm({
                   <FormItem>
                     <FormLabel>Project Manager *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter project manager name" {...field} />
+                      <SinglePersonPicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Select project manager"
+                        disabled={isEditMode}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -220,7 +389,12 @@ export function ProjectForm({
                   <FormItem>
                     <FormLabel>Delivery Manager *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter delivery manager name" {...field} />
+                      <SinglePersonPicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Select delivery manager"
+                        disabled={isEditMode}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -235,7 +409,12 @@ export function ProjectForm({
                   <FormItem>
                     <FormLabel>Deal Owner *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter deal owner name" {...field} />
+                      <SinglePersonPicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Select deal owner"
+                        disabled={isEditMode}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -249,7 +428,7 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Billing Type *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select billing type" />
@@ -274,7 +453,7 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Practice Unit *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select practice unit" />
@@ -326,9 +505,20 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Industry *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter industry" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || isCustomerSelected}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select industry" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {INDUSTRIES.map((industry) => (
+                          <SelectItem key={industry} value={industry}>
+                            {industry}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -341,9 +531,20 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Region Head *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter region head name" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || isCustomerSelected}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select region head" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {REGION_HEADS.map((head) => (
+                          <SelectItem key={head} value={head}>
+                            {head}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -356,9 +557,20 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lead Source *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter lead source" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select lead source" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {LEAD_SOURCES.map((source) => (
+                          <SelectItem key={source} value={source}>
+                            {source}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -371,9 +583,20 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Revenue Type *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter revenue type" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select revenue type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {REVENUE_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -386,9 +609,20 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Client Type *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter client type" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select client type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {CLIENT_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -412,88 +646,112 @@ export function ProjectForm({
                         checked={field.value}
                         onChange={field.onChange}
                         className="h-4 w-4 cursor-pointer"
+                        disabled={isEditMode}
                       />
                     </FormControl>
                   </FormItem>
                 )}
               />
-            </div>
-          </TabsContent>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          {/* Tab 2: Schedule & Status */}
-          <TabsContent value="schedule" className="space-y-4 mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Start Date */}
-              <FormField
-                control={form.control}
-                name="projectStartDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project Start Date *</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* Tab 2: Schedule & Status */}
+            <TabsContent value="schedule" className="mt-6">
+              <Card className="border-0 shadow-none">
+                <CardContent className="p-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {/* Start Date */}
+                    <FormField
+                      control={form.control}
+                      name="projectStartDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Project Start Date *</FormLabel>
+                          <FormControl>
+                            <DatePicker
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Select start date"
+                              disabled={isEditMode}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-              {/* End Date */}
-              <FormField
-                control={form.control}
-                name="projectEndDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project End Date *</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    {/* End Date */}
+                    <FormField
+                      control={form.control}
+                      name="projectEndDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Project End Date *</FormLabel>
+                          <FormControl>
+                            <DatePicker
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Select end date"
+                              disabled={isEditMode}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-              {/* Currency */}
-              <FormField
-                control={form.control}
-                name="projectCurrency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project Currency *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select currency" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="USD">USD - US Dollar</SelectItem>
-                        <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                        <SelectItem value="INR">INR - Indian Rupee</SelectItem>
-                        <SelectItem value="EUR">EUR - Euro</SelectItem>
-                        <SelectItem value="AED">AED - UAE Dirham</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
+                    {/* Currency */}
+                    <FormField
+                      control={form.control}
+                      name="projectCurrency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Project Currency *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select currency" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="USD">USD - US Dollar</SelectItem>
+                              <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                              <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                              <SelectItem value="EUR">EUR - Euro</SelectItem>
+                              <SelectItem value="AED">AED - UAE Dirham</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => form.reset()}
-            disabled={isLoading}
-          >
-            Reset
-          </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Saving...' : submitLabel}
-          </Button>
+        {/* Fixed Bottom Action Buttons */}
+        <div className="sticky bottom-0 left-0 right-0 bg-background border-t pt-4 mt-6">
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => form.reset()}
+              disabled={isLoading}
+              className="gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </Button>
+            <Button type="submit" disabled={isLoading} className="gap-2">
+              <Save className="h-4 w-4" />
+              {isLoading ? 'Saving...' : submitLabel}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>

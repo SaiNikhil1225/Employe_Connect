@@ -52,8 +52,6 @@ const userSchema = new mongoose.Schema({
   },
 }, { timestamps: true, strict: false });
 
-// Index for faster lookups
-userSchema.index({ email: 1 });
-userSchema.index({ employeeId: 1 });
+// Note: email and employeeId already have indexes from 'unique: true' in schema
 
 export default mongoose.model('User', userSchema);

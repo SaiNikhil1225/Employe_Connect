@@ -65,17 +65,28 @@ export const getCustomerById = async (req: Request, res: Response) => {
 // Create new customer
 export const createCustomer = async (req: Request, res: Response) => {
   try {
-    const { customerNo, customerName, hubspotRecordId, industry, region, regionHead, status } = req.body;
+    const { customerName, hubspotRecordId, industry, region, regionHead, status } = req.body;
 
     // Validate required fields
-    if (!customerNo || !customerName || !industry || !region) {
+    if (!customerName || !industry || !region) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: customerNo, customerName, industry, region'
+        message: 'Missing required fields: customerName, industry, region'
       });
     }
 
-    // Check if customer number already exists
+    // Auto-generate customer number
+    const lastCustomer = await Customer.findOne().sort({ createdAt: -1 });
+    let nextNumber = 1;
+    if (lastCustomer && lastCustomer.customerNo) {
+      const match = lastCustomer.customerNo.match(/CUST-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    const customerNo = `CUST-${String(nextNumber).padStart(4, '0')}`;
+
+    // Check if customer number already exists (safety check)
     const existingCustomer = await Customer.findOne({ customerNo });
     if (existingCustomer) {
       return res.status(400).json({

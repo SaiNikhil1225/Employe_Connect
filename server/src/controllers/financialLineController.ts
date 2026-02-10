@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express';
 import FinancialLine from '../models/FinancialLine';
 import Project from '../models/Project';
-import CustomerPO from '../models/CustomerPO';
 
 // Generate FL number
 const generateFLNumber = async (): Promise<string> => {
@@ -31,14 +30,21 @@ export const getFinancialLines = async (req: Request, res: Response) => {
       ];
     }
 
+    console.log('getFinancialLines - Query:', query);
+
     const fls = await FinancialLine.find(query)
       .populate('projectId', 'projectName projectId')
-      .populate('customerPOId', 'poNo contractNo poAmount')
       .sort({ createdAt: -1 });
+
+    console.log('getFinancialLines - Found FLs:', fls.length);
 
     res.json({ success: true, data: fls });
   } catch (error: unknown) {
     console.error('Failed to fetch financial lines:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     const message = error instanceof Error ? error.message : 'Failed to fetch financial lines';
     res.status(500).json({ success: false, message });
   }
@@ -64,8 +70,7 @@ export const getActiveFinancialLines = async (req: Request, res: Response) => {
 export const getFinancialLineById = async (req: Request, res: Response) => {
   try {
     const fl = await FinancialLine.findById(req.params.id)
-      .populate('projectId', 'projectName projectId startDate endDate billingType currency')
-      .populate('customerPOId', 'poNo contractNo poAmount poCurrency');
+      .populate('projectId', 'projectName projectId projectStartDate projectEndDate billingType projectCurrency');
     
     if (!fl) {
       return res.status(404).json({ success: false, message: 'Financial line not found' });
@@ -82,6 +87,8 @@ export const getFinancialLineById = async (req: Request, res: Response) => {
 // Create new financial line
 export const createFinancialLine = async (req: Request, res: Response) => {
   try {
+    console.log('Creating financial line with data:', JSON.stringify(req.body, null, 2));
+    
     // Generate FL number if not provided
     if (!req.body.flNo) {
       req.body.flNo = await generateFLNumber();
@@ -91,15 +98,16 @@ export const createFinancialLine = async (req: Request, res: Response) => {
     if (req.body.projectId) {
       const project = await Project.findById(req.body.projectId);
       if (!project) {
+        console.error('Project not found:', req.body.projectId);
         return res.status(400).json({ success: false, message: 'Project not found' });
       }
 
       // Validate schedule dates within project dates
-      if (req.body.scheduleStart && req.body.scheduleEnd) {
+      if (req.body.scheduleStart && req.body.scheduleFinish) {
         const scheduleStart = new Date(req.body.scheduleStart);
-        const scheduleEnd = new Date(req.body.scheduleEnd);
-        const projectStart = new Date(project.startDate);
-        const projectEnd = new Date(project.endDate);
+        const scheduleFinish = new Date(req.body.scheduleFinish);
+        const projectStart = new Date(project.projectStartDate);
+        const projectEnd = new Date(project.projectEndDate);
 
         if (scheduleStart < projectStart || scheduleStart > projectEnd) {
           return res.status(400).json({
@@ -108,10 +116,10 @@ export const createFinancialLine = async (req: Request, res: Response) => {
           });
         }
 
-        if (scheduleEnd < projectStart || scheduleEnd > projectEnd) {
+        if (scheduleFinish < projectStart || scheduleFinish > projectEnd) {
           return res.status(400).json({
             success: false,
-            message: 'Schedule end date must be within project dates'
+            message: 'Schedule finish date must be within project dates'
           });
         }
       }
@@ -123,75 +131,67 @@ export const createFinancialLine = async (req: Request, res: Response) => {
 
       // Inherit currency from project if not provided
       if (!req.body.currency) {
-        req.body.currency = project.currency;
+        req.body.currency = project.projectCurrency;
       }
     }
 
-    // Validate customer PO exists
-    if (req.body.customerPOId) {
-      const po = await CustomerPO.findById(req.body.customerPOId);
-      if (!po) {
-        return res.status(400).json({ success: false, message: 'Customer PO not found' });
-      }
-
-      // Auto-fill PO details
-      req.body.poNo = po.poNo;
-      req.body.contractNo = po.contractNo;
-
-      // Calculate funding value
-      if (req.body.unitRate && req.body.fundingUnits) {
-        req.body.fundingValue = req.body.unitRate * req.body.fundingUnits;
-
-        // Validate funding value doesn't exceed PO amount
-        if (req.body.fundingValue > po.poAmount) {
-          return res.status(400).json({
-            success: false,
-            message: 'Funding value exceeds PO amount'
-          });
-        }
-      }
-    }
-
-    // Validate payment milestones sum equals funding value
+    // Validate payment milestones sum equals total funding (for non-T&M contracts)
     if (req.body.paymentMilestones && req.body.paymentMilestones.length > 0) {
       const totalMilestoneAmount = req.body.paymentMilestones.reduce(
-        (sum: number, m: { milestoneAmount: number }) => sum + m.milestoneAmount,
+        (sum: number, m: { amount: number }) => sum + m.amount,
         0
       );
       
-      if (Math.abs(totalMilestoneAmount - req.body.fundingValue) > 0.01) {
+      if (Math.abs(totalMilestoneAmount - req.body.totalFunding) > 0.01) {
         return res.status(400).json({
           success: false,
-          message: 'Sum of milestone amounts must equal funding value'
+          message: `Sum of milestone amounts ($${totalMilestoneAmount}) must equal total funding ($${req.body.totalFunding})`
         });
       }
     }
 
-    // Validate revenue planning sum doesn't exceed funding value
+    // Validate revenue planning sum doesn't exceed total funding
     if (req.body.revenuePlanning && req.body.revenuePlanning.length > 0) {
       const totalPlannedRevenue = req.body.revenuePlanning.reduce(
         (sum: number, r: { plannedRevenue: number }) => sum + r.plannedRevenue,
         0
       );
       
-      if (totalPlannedRevenue > req.body.fundingValue) {
+      if (totalPlannedRevenue > req.body.totalFunding) {
         return res.status(400).json({
           success: false,
-          message: 'Total planned revenue cannot exceed funding value'
+          message: 'Total planned revenue cannot exceed total funding'
         });
       }
     }
 
+    console.log('Creating FL with data:', {
+      flNo: req.body.flNo,
+      projectId: req.body.projectId,
+      flName: req.body.flName,
+      effort: req.body.effort,
+      totalFunding: req.body.totalFunding,
+      fundingCount: req.body.funding?.length,
+      milestonesCount: req.body.paymentMilestones?.length,
+    });
+
     const fl = new FinancialLine(req.body);
     await fl.save();
     
+    console.log('Financial line saved successfully to DB:', fl._id, fl.flNo);
+    
     const populatedFL = await FinancialLine.findById(fl._id)
-      .populate('projectId', 'projectName projectId')
-      .populate('customerPOId', 'poNo contractNo poAmount');
+      .populate('projectId', 'projectName projectId');
+    
+    console.log('Financial line populated and ready to return:', populatedFL?.flNo);
     
     res.status(201).json({ success: true, data: populatedFL });
   } catch (error: unknown) {
     console.error('Failed to create financial line:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     const message = error instanceof Error ? error.message : 'Failed to create financial line';
     res.status(500).json({ success: false, message });
   }
@@ -206,27 +206,6 @@ export const updateFinancialLine = async (req: Request, res: Response) => {
       if (!project) {
         return res.status(400).json({ success: false, message: 'Project not found' });
       }
-
-      if (req.body.scheduleStart && req.body.scheduleEnd) {
-        const scheduleStart = new Date(req.body.scheduleStart);
-        const scheduleEnd = new Date(req.body.scheduleEnd);
-        const projectStart = new Date(project.startDate);
-        const projectEnd = new Date(project.endDate);
-
-        if (scheduleStart < projectStart || scheduleStart > projectEnd) {
-          return res.status(400).json({
-            success: false,
-            message: 'Schedule start date must be within project dates'
-          });
-        }
-
-        if (scheduleEnd < projectStart || scheduleEnd > projectEnd) {
-          return res.status(400).json({
-            success: false,
-            message: 'Schedule end date must be within project dates'
-          });
-        }
-      }
     }
 
     // Recalculate funding value if rates changed
@@ -239,8 +218,7 @@ export const updateFinancialLine = async (req: Request, res: Response) => {
       req.body,
       { new: true, runValidators: true }
     )
-      .populate('projectId', 'projectName projectId')
-      .populate('customerPOId', 'poNo contractNo poAmount');
+      .populate('projectId', 'projectName projectId');
 
     if (!fl) {
       return res.status(404).json({ success: false, message: 'Financial line not found' });

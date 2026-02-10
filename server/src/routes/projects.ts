@@ -3,22 +3,63 @@ import Project from '../models/Project';
 
 const router = express.Router();
 
+// Get next project ID
+router.get('/next-id', async (req: Request, res: Response) => {
+  try {
+    const lastProject = await Project.findOne().sort({ createdAt: -1 });
+    let nextNumber = 1;
+    if (lastProject && lastProject.projectId) {
+      const match = lastProject.projectId.match(/P(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    const nextId = `P${String(nextNumber).padStart(3, '0')}`;
+    res.json({ success: true, data: nextId });
+  } catch (error) {
+    console.error('Failed to generate next project ID:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate next project ID' });
+  }
+});
+
 // Get all projects (with optional filters)
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { status, region, billingType, customerId, search } = req.query;
+    const { status, region, billingType, customerId, search, searchScope } = req.query;
     const query: Record<string, unknown> = {};
 
     if (status) query.status = status;
     if (region) query.region = region;
     if (billingType) query.billingType = billingType;
     if (customerId) query.customerId = customerId;
+    
+    // Enhanced search with scope
     if (search) {
-      query.$or = [
-        { projectName: { $regex: search, $options: 'i' } },
-        { projectId: { $regex: search, $options: 'i' } },
-        { accountName: { $regex: search, $options: 'i' } }
-      ];
+      const searchStr = search as string;
+      const scope = searchScope as string;
+      
+      switch (scope) {
+        case 'name':
+          query.projectName = { $regex: searchStr, $options: 'i' };
+          break;
+        case 'id':
+          query.projectId = { $regex: searchStr, $options: 'i' };
+          break;
+        case 'manager':
+          query.$or = [
+            { 'projectManager.name': { $regex: searchStr, $options: 'i' } },
+            { 'deliveryManager.name': { $regex: searchStr, $options: 'i' } }
+          ];
+          break;
+        default: // 'all' or undefined
+          query.$or = [
+            { projectName: { $regex: searchStr, $options: 'i' } },
+            { projectId: { $regex: searchStr, $options: 'i' } },
+            { accountName: { $regex: searchStr, $options: 'i' } },
+            { 'projectManager.name': { $regex: searchStr, $options: 'i' } },
+            { 'deliveryManager.name': { $regex: searchStr, $options: 'i' } }
+          ];
+      }
     }
 
     const projects = await Project.find(query)
@@ -73,12 +114,20 @@ router.get('/by-project-id/:projectId', async (req: Request, res: Response) => {
 // Create new project
 router.post('/', async (req: Request, res: Response) => {
   try {
+    console.log('Creating project with data:', JSON.stringify(req.body, null, 2));
     const project = new Project(req.body);
     await project.save();
+    console.log('Project created successfully:', project.projectId);
     res.status(201).json({ success: true, data: project });
   } catch (error) {
     console.error('Failed to create project:', error);
-    res.status(500).json({ success: false, message: 'Failed to create project' });
+    // Send more detailed error message
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create project';
+    res.status(500).json({ 
+      success: false, 
+      message: errorMessage,
+      details: error instanceof Error ? error.stack : undefined 
+    });
   }
 });
 

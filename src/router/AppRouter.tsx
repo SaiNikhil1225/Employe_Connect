@@ -54,6 +54,7 @@ import { Forecasting } from '@/pages/rmg/Forecasting';
 import { RMGAnalytics } from '@/pages/rmg/RMGAnalytics';
 import { CustomerListPage } from '@/pages/rmg/customers/CustomerListPage';
 import { ProjectListPage } from '@/pages/rmg/projects/ProjectListPage';
+import { ProjectDetailPage } from '@/pages/rmg/projects/ProjectDetailPage';
 import { CustomerPOListPage } from '@/pages/rmg/customer-pos/CustomerPOListPage';
 import { FinancialLineListPage } from '@/pages/rmg/financial-lines/FinancialLineListPage';
 
@@ -409,6 +410,13 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/rmg/projects">
                 <ProjectListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route            path="/rmg/projects/:id"
+            element={
+              <ProtectedRoute requiredPath="/rmg/projects">
+                <ProjectDetailPage />
               </ProtectedRoute>
             }
           />

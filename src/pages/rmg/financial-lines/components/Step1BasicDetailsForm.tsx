@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { FLBasicDetails } from '@/types/financialLine';
+import type { FLStep1Data } from '@/types/financialLine';
 import { useProjectStore } from '@/store/projectStore';
 
 const step1Schema = z.object({
@@ -38,8 +38,8 @@ const step1Schema = z.object({
 type Step1FormValues = z.infer<typeof step1Schema>;
 
 interface Step1FormProps {
-  defaultValues?: Partial<FLBasicDetails>;
-  onNext: (data: FLBasicDetails) => void;
+  defaultValues?: Partial<FLStep1Data>;
+  onNext: (data: FLStep1Data) => void;
   onCancel: () => void;
 }
 
@@ -74,184 +74,227 @@ export function Step1BasicDetailsForm({ defaultValues, onNext, onCancel }: Step1
       const project = projects?.find((p) => p._id === selectedProjectId);
       if (project) {
         form.setValue('contractType', project.billingType);
-        form.setValue('currency', project.currency);
+        // Currency is hardcoded for now as it's not in project schema
       }
     }
   }, [selectedProjectId, projects, form]);
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onNext)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="flName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>FL Name *</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter financial line name" {...field} maxLength={150} />
-              </FormControl>
-              <FormDescription>Maximum 150 characters</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <form onSubmit={form.handleSubmit(onNext)} className="space-y-6">
+        <div className="bg-gradient-to-br from-brand-green/5 to-transparent p-6 rounded-lg border border-brand-light-gray">
+          <h3 className="text-lg font-semibold text-brand-navy mb-4">Basic Information</h3>
+          
+          <div className="space-y-5">
+            <FormField
+              control={form.control}
+              name="flName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-brand-navy font-medium">FL Name *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Enter financial line name" 
+                      {...field} 
+                      maxLength={150}
+                      className="border-brand-light-gray focus:border-brand-green focus:ring-brand-green"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-brand-slate text-xs">Maximum 150 characters</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="projectId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Project *</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select project" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {activeProjects.map((project) => (
-                    <SelectItem key={project._id} value={project._id}>
-                      {project.projectName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="contractType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contract Type *</FormLabel>
-                <FormControl>
-                  <Input {...field} readOnly className="bg-muted" />
-                </FormControl>
-                <FormDescription>Inherited from project</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="currency"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Currency *</FormLabel>
-                <FormControl>
-                  <Input {...field} readOnly className="bg-muted" />
-                </FormControl>
-                <FormDescription>Inherited from project</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="projectId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-brand-navy font-medium">Project *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="border-brand-light-gray focus:border-brand-green focus:ring-brand-green">
+                        <SelectValue placeholder="Select project" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {activeProjects.map((project) => (
+                        <SelectItem key={project._id || project.id} value={project._id || project.id || ''}>
+                          {project.projectName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
-        <FormField
-          control={form.control}
-          name="locationType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Location Type *</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select location type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="Onsite">Onsite</SelectItem>
-                  <SelectItem value="Offshore">Offshore</SelectItem>
-                  <SelectItem value="Hybrid">Hybrid</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="bg-white p-6 rounded-lg border border-brand-light-gray shadow-sm">
+          <h3 className="text-lg font-semibold text-brand-navy mb-4">Contract Details</h3>
+          
+          <div className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="contractType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-brand-navy font-medium">Contract Type *</FormLabel>
+                    <FormControl>
+                      <Input {...field} readOnly className="bg-brand-green/5 border-brand-light-gray" />
+                    </FormControl>
+                    <FormDescription className="text-brand-slate text-xs">Inherited from project</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <FormField
-          control={form.control}
-          name="executionEntity"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Execution Entity *</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select execution entity" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="Eviden">Eviden</SelectItem>
-                  <SelectItem value="Habile">Habile</SelectItem>
-                  <SelectItem value="Akraya">Akraya</SelectItem>
-                  <SelectItem value="ECIS">ECIS</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-brand-navy font-medium">Currency *</FormLabel>
+                    <FormControl>
+                      <Input {...field} readOnly className="bg-brand-green/5 border-brand-light-gray" />
+                    </FormControl>
+                    <FormDescription className="text-brand-slate text-xs">Inherited from project</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        <FormField
-          control={form.control}
-          name="timesheetApprover"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Timesheet Approver *</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter approver name or email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="locationType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-brand-navy font-medium">Location Type *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="border-brand-light-gray focus:border-brand-green focus:ring-brand-green">
+                        <SelectValue placeholder="Select location type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Onsite">Onsite</SelectItem>
+                      <SelectItem value="Offshore">Offshore</SelectItem>
+                      <SelectItem value="Hybrid">Hybrid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="scheduleStart"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Schedule Start Date *</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormDescription>Must be within project dates</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="executionEntity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-brand-navy font-medium">Execution Entity *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="border-brand-light-gray focus:border-brand-green focus:ring-brand-green">
+                        <SelectValue placeholder="Select execution entity" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Eviden">Eviden</SelectItem>
+                      <SelectItem value="Habile">Habile</SelectItem>
+                      <SelectItem value="Akraya">Akraya</SelectItem>
+                      <SelectItem value="ECIS">ECIS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="scheduleEnd"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Schedule End Date *</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormDescription>Must be within project dates</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="timesheetApprover"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-brand-navy font-medium">Timesheet Approver *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Enter approver name or email" 
+                      {...field}
+                      className="border-brand-light-gray focus:border-brand-green focus:ring-brand-green"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="bg-white p-6 rounded-lg border border-brand-light-gray shadow-sm">
+          <h3 className="text-lg font-semibold text-brand-navy mb-4">Schedule</h3>
+          
+          <div className="grid gap-5 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="scheduleStart"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-brand-navy font-medium">Schedule Start Date *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="date" 
+                      {...field}
+                      className="border-brand-light-gray focus:border-brand-green focus:ring-brand-green"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-brand-slate text-xs">Must be within project dates</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="scheduleEnd"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-brand-navy font-medium">Schedule End Date *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="date" 
+                      {...field}
+                      className="border-brand-light-gray focus:border-brand-green focus:ring-brand-green"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-brand-slate text-xs">Must be within project dates</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4 border-t border-brand-light-gray">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel}
+            className="border-brand-light-gray text-brand-slate hover:bg-brand-green/5"
+          >
             Cancel
           </Button>
-          <Button type="submit">Next</Button>
+          <Button 
+            type="submit"
+            className="bg-brand-green hover:bg-brand-green-dark text-white"
+          >
+            Next Step →
+          </Button>
         </div>
       </form>
     </Form>

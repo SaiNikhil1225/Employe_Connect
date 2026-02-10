@@ -3,9 +3,10 @@ import { useCustomerStore } from '@/store/customerStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Users, UserCheck, UserX, TrendingUp, MapPin } from 'lucide-react';
 import { CustomerTable } from './components/CustomerTable';
 import { CreateCustomerDialog } from './components/CreateCustomerDialog';
+import { StatCard } from '@/components/common/StatCard';
 import type { CustomerFilters } from '@/types/customer';
 import {
   Select,
@@ -20,6 +21,30 @@ export function CustomerListPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [filters, setFilters] = useState<CustomerFilters>({});
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Calculate KPIs
+  const totalCustomers = customers.length;
+  const activeCustomers = customers.filter(c => c.status === 'Active').length;
+  const inactiveCustomers = customers.filter(c => c.status === 'Inactive').length;
+  const regions = Array.from(new Set(customers.map(c => c.region).filter(Boolean))).length;
+
+  // Mock trend data (in real app, compare with last month from API)
+  const trends = {
+    total: { value: 5, direction: 'up' as const },
+    active: { value: 8, direction: 'up' as const },
+    inactive: { value: 12, direction: 'down' as const, isPositive: true },
+    regions: { value: 0, direction: 'up' as const },
+  };
+
+  const handleStatClick = (status?: string) => {
+    if (status) {
+      handleFilterChange('status', status);
+    } else {
+      // Clear all filters
+      setFilters({});
+      setSearchQuery('');
+    }
+  };
 
   useEffect(() => {
     fetchCustomers(filters);
@@ -40,18 +65,64 @@ export function CustomerListPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
-          <p className="text-muted-foreground">
-            Manage your customer database
-          </p>
+      {/* Enhanced Header Section */}
+      <div className="bg-primary/5 rounded-xl p-6 border">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-semibold text-foreground">Customers</h1>
+                <p className="text-sm text-muted-foreground">Manage your customer database</p>
+              </div>
+            </div>
+          </div>
+          <Button onClick={() => setIsCreateDialogOpen(true)} size="lg" className="shadow-lg shadow-primary/25">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Customer
+          </Button>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Customer
-        </Button>
+        
+        {/* Quick Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+          <StatCard
+            label="Total"
+            value={totalCustomers}
+            icon={Users}
+            color="blue"
+            trend={trends.total}
+            tooltip="Total number of customers in the database. Click to clear filters."
+            onClick={() => handleStatClick()}
+          />
+          <StatCard
+            label="Active"
+            value={activeCustomers}
+            icon={UserCheck}
+            color="green"
+            trend={trends.active}
+            tooltip={`${activeCustomers} active customers (${totalCustomers > 0 ? Math.round((activeCustomers / totalCustomers) * 100) : 0}% of total). Click to filter active customers.`}
+            onClick={() => handleStatClick('Active')}
+          />
+          <StatCard
+            label="Inactive"
+            value={inactiveCustomers}
+            icon={UserX}
+            color="orange"
+            trend={trends.inactive}
+            tooltip={`${inactiveCustomers} inactive customers. Trend down is positive. Click to filter inactive customers.`}
+            onClick={() => handleStatClick('Inactive')}
+          />
+          <StatCard
+            label="Regions"
+            value={regions}
+            icon={MapPin}
+            color="purple"
+            trend={regions > 0 ? trends.regions : undefined}
+            tooltip={`Customers across ${regions} different regions: UK, India, USA, ME, Other.`}
+          />
+        </div>
       </div>
 
       {/* Filters Card */}

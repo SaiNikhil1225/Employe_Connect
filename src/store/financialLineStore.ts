@@ -41,9 +41,16 @@ export const useFinancialLineStore = create<FinancialLineStore>((set, get) => ({
       if (filters.contractType) params.append('contractType', filters.contractType);
       if (filters.projectId) params.append('projectId', filters.projectId);
 
+      console.log('fetchFLs - Fetching with filters:', filters);
+      console.log('fetchFLs - API URL:', `/api/financial-lines?${params.toString()}`);
+      
       const response = await axios.get(`/api/financial-lines?${params.toString()}`);
+      console.log('fetchFLs - Received FLs:', response.data.data.length);
+      console.log('fetchFLs - FL data:', response.data.data);
+      
       set({ fls: response.data.data, loading: false });
     } catch (error: unknown) {
+      console.error('fetchFLs - Error:', error);
       const message = error instanceof Error ? error.message : 'Failed to fetch financial lines';
       set({ error: message, loading: false });
     }
@@ -52,7 +59,11 @@ export const useFinancialLineStore = create<FinancialLineStore>((set, get) => ({
   createFL: async (data: FinancialLineFormData) => {
     set({ loading: true, error: null });
     try {
+      console.log('createFL - Sending data:', data);
       const response = await axios.post('/api/financial-lines', data);
+      console.log('createFL - Response:', response.data);
+      console.log('createFL - Created FL:', response.data.data);
+      
       set((state) => ({
         fls: [response.data.data, ...state.fls],
         loading: false

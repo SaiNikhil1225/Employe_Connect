@@ -1,5 +1,58 @@
 import mongoose from 'mongoose';
 
+const fundingAllocationSchema = new mongoose.Schema({
+  poNo: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  contractNo: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  projectCurrency: {
+    type: String,
+    required: true
+  },
+  poCurrency: {
+    type: String,
+    required: true
+  },
+  unitRate: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  fundingUnits: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  uom: {
+    type: String,
+    required: true,
+    enum: ['Hr', 'Day', 'Month']
+  },
+  fundingValueProject: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  fundingAmountPoCurrency: {
+    type: Number,
+    default: 0
+  },
+  availablePOLineInPO: {
+    type: Number,
+    default: 0
+  },
+  availablePOLineInProject: {
+    type: Number,
+    default: 0
+  }
+}, { _id: false });
+
 const revenuePlanningSchema = new mongoose.Schema({
   month: {
     type: String,
@@ -20,14 +73,20 @@ const revenuePlanningSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  actualRevenue: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   forecastedUnits: {
     type: Number,
     default: 0,
     min: 0
   },
-  variance: {
+  forecastedRevenue: {
     type: Number,
-    default: 0
+    default: 0,
+    min: 0
   }
 }, { _id: false });
 
@@ -37,7 +96,7 @@ const paymentMilestoneSchema = new mongoose.Schema({
     required: [true, 'Milestone name is required'],
     trim: true
   },
-  milestoneAmount: {
+  amount: {
     type: Number,
     required: [true, 'Milestone amount is required'],
     min: [0.01, 'Milestone amount must be greater than 0']
@@ -45,6 +104,10 @@ const paymentMilestoneSchema = new mongoose.Schema({
   dueDate: {
     type: Date,
     required: [true, 'Due date is required']
+  },
+  notes: {
+    type: String,
+    trim: true
   },
   status: {
     type: String,
@@ -74,7 +137,7 @@ const financialLineSchema = new mongoose.Schema({
   contractType: {
     type: String,
     required: [true, 'Contract type is required'],
-    trim: true
+    enum: ['T&M', 'Fixed Bid', 'Fixed Monthly', 'License']
   },
   locationType: {
     type: String,
@@ -95,57 +158,67 @@ const financialLineSchema = new mongoose.Schema({
     type: Date,
     required: [true, 'Schedule start date is required']
   },
-  scheduleEnd: {
+  scheduleFinish: {
     type: Date,
-    required: [true, 'Schedule end date is required']
+    required: [true, 'Schedule finish date is required']
   },
   currency: {
     type: String,
     required: [true, 'Currency is required'],
     default: 'USD'
   },
-  // Step 2: Funding Details
-  customerPOId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'CustomerPO',
-    required: [true, 'Customer PO is required']
-  },
-  poNo: {
-    type: String,
-    trim: true
-  },
-  contractNo: {
-    type: String,
-    trim: true
-  },
-  unitRate: {
+  // Revenue Details
+  billingRate: {
     type: Number,
-    required: [true, 'Unit rate is required'],
-    min: [0.01, 'Unit rate must be greater than 0']
+    required: [true, 'Billing rate is required'],
+    min: [0.01, 'Billing rate must be greater than 0']
   },
-  fundingUnits: {
-    type: Number,
-    required: [true, 'Funding units is required'],
-    min: [0.01, 'Funding units must be greater than 0']
-  },
-  unitUOM: {
+  rateUom: {
     type: String,
-    required: [true, 'Unit of measure is required'],
-    enum: ['Hour', 'Day', 'Month']
+    required: [true, 'Rate UOM is required'],
+    enum: ['Hr', 'Day', 'Month']
   },
-  fundingValue: {
+  effort: {
     type: Number,
-    required: [true, 'Funding value is required'],
+    required: false,
+    default: 0,
+    min: [0, 'Effort cannot be negative']
+  },
+  effortUom: {
+    type: String,
+    required: [true, 'Effort UOM is required'],
+    enum: ['Hr', 'Day', 'Month']
+  },
+  revenueAmount: {
+    type: Number,
+    required: true,
     min: 0
   },
-  // Step 3: Revenue Planning
+  expectedRevenue: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  // Funding
+  funding: [fundingAllocationSchema],
+  totalFunding: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  // Revenue Planning
   revenuePlanning: [revenuePlanningSchema],
-  // Step 4: Payment Milestones
+  totalPlannedRevenue: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  // Payment Milestones
   paymentMilestones: [paymentMilestoneSchema],
   // Status
   status: {
     type: String,
-    enum: ['Draft', 'Active', 'On Hold', 'Closed', 'Completed'],
+    enum: ['Draft', 'Active', 'Completed', 'Cancelled'],
     default: 'Draft'
   },
   notes: {
@@ -158,22 +231,16 @@ const financialLineSchema = new mongoose.Schema({
 
 // Indexes for performance
 financialLineSchema.index({ projectId: 1 });
-financialLineSchema.index({ customerPOId: 1 });
-financialLineSchema.index({ flNo: 1 });
+// Note: flNo already has an index from 'unique: true' in schema
 financialLineSchema.index({ status: 1 });
 
-// Pre-save validation: scheduleStart < scheduleEnd
+// Pre-save validation: scheduleStart < scheduleFinish
 financialLineSchema.pre('save', function(next) {
-  if (this.scheduleStart && this.scheduleEnd) {
-    if (this.scheduleStart >= this.scheduleEnd) {
-      next(new Error('Schedule start date must be before schedule end date'));
+  if (this.scheduleStart && this.scheduleFinish) {
+    if (this.scheduleStart >= this.scheduleFinish) {
+      next(new Error('Schedule start date must be before schedule finish date'));
       return;
     }
-  }
-  
-  // Calculate fundingValue if not set
-  if (this.unitRate && this.fundingUnits && !this.fundingValue) {
-    this.fundingValue = this.unitRate * this.fundingUnits;
   }
   
   next();

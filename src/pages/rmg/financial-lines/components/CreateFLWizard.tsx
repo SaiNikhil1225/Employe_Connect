@@ -25,6 +25,7 @@ interface CreateFLWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  defaultProjectId?: string;
 }
 
 const steps = [
@@ -34,11 +35,19 @@ const steps = [
   { id: 4, title: 'Milestones', description: 'Payment schedule' },
 ];
 
-export function CreateFLWizard({ open, onOpenChange, onSuccess }: CreateFLWizardProps) {
+export function CreateFLWizard({ open, onOpenChange, onSuccess, defaultProjectId }: CreateFLWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Partial<FinancialLineFormData>>({});
   const { createFL } = useFinancialLineStore();
   const { toast } = useToast();
+
+  // Set default project ID when dialog opens
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen && defaultProjectId) {
+      setFormData((prev) => ({ ...prev, projectId: defaultProjectId }));
+    }
+    onOpenChange(isOpen);
+  };
 
   const handleStep1Next = (data: FLBasicDetails) => {
     setFormData((prev) => ({ ...prev, ...data }));
@@ -87,20 +96,20 @@ export function CreateFLWizard({ open, onOpenChange, onSuccess }: CreateFLWizard
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Create Financial Line</SheetTitle>
-          <SheetDescription>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetContent className="overflow-y-auto sm:max-w-3xl w-full" side="right">
+        <SheetHeader className="pb-6 border-b border-brand-light-gray">
+          <SheetTitle className="text-2xl font-bold text-brand-navy">Create Financial Line</SheetTitle>
+          <SheetDescription className="text-brand-slate">
             Follow the steps to create a new financial line with revenue planning and milestones.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="py-4">
+        <div className="py-6">
           <Stepper steps={steps} currentStep={currentStep} />
         </div>
 
-        <div className="mt-6">
+        <div className="mt-4 pb-6">
           {currentStep === 1 && (
             <Step1BasicDetailsForm
               defaultValues={formData}

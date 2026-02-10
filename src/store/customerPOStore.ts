@@ -57,10 +57,28 @@ export const useCustomerPOStore = create<CustomerPOStore>((set, get) => ({
         pos: [response.data.data, ...state.pos],
         loading: false
       }));
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to create customer PO';
+    } catch (error: any) {
+      let message = 'Failed to create customer PO';
+      
+      if (error.response) {
+        // Server responded with error status
+        if (error.response.status === 404) {
+          message = 'API endpoint not found. Please ensure the backend server is running.';
+        } else if (error.response.data?.message) {
+          message = error.response.data.message;
+        } else {
+          message = `Server error: ${error.response.status}`;
+        }
+      } else if (error.request) {
+        // Request made but no response
+        message = 'No response from server. Please check if the backend server is running on port 5000.';
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+      
+      console.error('Create PO Error:', error);
       set({ error: message, loading: false });
-      throw error;
+      throw new Error(message);
     }
   },
 

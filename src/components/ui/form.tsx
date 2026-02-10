@@ -86,9 +86,15 @@ FormItem.displayName = "FormItem"
 
 const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
->(({ className, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> & { required?: boolean }
+>(({ className, children, required, ...props }, ref) => {
   const { error, formItemId } = useFormField()
+
+  // Check if children contains asterisk at the end
+  const childrenStr = typeof children === 'string' ? children : '';
+  const hasAsterisk = childrenStr.endsWith(' *') || childrenStr.endsWith('*');
+  const labelText = hasAsterisk ? childrenStr.replace(/\s*\*$/, '') : children;
+  const showRequired = hasAsterisk || required;
 
   return (
     <Label
@@ -96,7 +102,10 @@ const FormLabel = React.forwardRef<
       className={cn(error && "text-destructive", className)}
       htmlFor={formItemId}
       {...props}
-    />
+    >
+      {labelText}
+      {showRequired && <span className="text-red-500 ml-1">*</span>}
+    </Label>
   )
 })
 FormLabel.displayName = "FormLabel"

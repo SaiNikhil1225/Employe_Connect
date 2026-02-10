@@ -29,7 +29,6 @@ const customerPOSchema = new mongoose.Schema({
   bookingEntity: {
     type: String,
     required: [true, 'Booking entity is required'],
-    enum: ['Eviden', 'Habile', 'Akraya', 'ECIS'],
     trim: true
   },
   poCreationDate: {
@@ -79,7 +78,7 @@ const customerPOSchema = new mongoose.Schema({
 // Indexes for performance
 customerPOSchema.index({ customerId: 1 });
 customerPOSchema.index({ projectId: 1 });
-customerPOSchema.index({ contractNo: 1 });
+// Note: contractNo already has an index from 'unique: true' in schema
 customerPOSchema.index({ status: 1 });
 
 // Validation: poStartDate <= poValidityDate

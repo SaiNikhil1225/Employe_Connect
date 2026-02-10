@@ -89,14 +89,14 @@ export const createCustomerPO = async (req: Request, res: Response) => {
         return res.status(400).json({ success: false, message: 'Project not found' });
       }
 
-      // Validate poValidityDate >= project endDate
+      // Validate poValidityDate <= project endDate
       if (req.body.poValidityDate && project.endDate) {
         const poValidity = new Date(req.body.poValidityDate);
         const projectEnd = new Date(project.endDate);
-        if (poValidity < projectEnd) {
+        if (poValidity > projectEnd) {
           return res.status(400).json({ 
             success: false, 
-            message: 'PO validity date must be greater than or equal to project end date' 
+            message: 'PO validity date must be on or before the project end date' 
           });
         }
       }
