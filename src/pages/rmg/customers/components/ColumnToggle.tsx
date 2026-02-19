@@ -10,13 +10,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export interface ColumnVisibility {
-  projectName: boolean;
-  owner: boolean;
+  customerNumber: boolean;
+  customerName: boolean;
+  industry: boolean;
+  region: boolean;
+  regionHead: boolean;
   status: boolean;
-  progress: boolean;
-  budget: boolean;
-  team: boolean;
-  dueDate: boolean;
+  createdAt: boolean;
 }
 
 interface ColumnToggleProps {
@@ -26,13 +26,13 @@ interface ColumnToggleProps {
 
 export function ColumnToggle({ columns, onToggle }: ColumnToggleProps) {
   const columnLabels: Record<keyof ColumnVisibility, string> = {
-    projectName: 'Project Name',
-    owner: 'Owner',
+    customerNumber: 'Customer #',
+    customerName: 'Customer Name',
+    industry: 'Industry',
+    region: 'Region',
+    regionHead: 'Region Head',
     status: 'Status',
-    progress: 'Progress',
-    budget: 'Budget Used',
-    team: 'Team',
-    dueDate: 'Due Date',
+    createdAt: 'Created',
   };
 
   const toggleColumn = (key: keyof ColumnVisibility) => {
@@ -57,7 +57,7 @@ export function ColumnToggle({ columns, onToggle }: ColumnToggleProps) {
                 id={key}
                 checked={columns[key]}
                 onCheckedChange={() => toggleColumn(key)}
-                disabled={key === 'projectName'} // Always keep project name visible
+                disabled={key === 'customerName'} // Always keep customer name visible
               />
               <label
                 htmlFor={key}

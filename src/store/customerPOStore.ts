@@ -35,11 +35,11 @@ export const useCustomerPOStore = create<CustomerPOStore>((set, get) => ({
       const { filters } = get();
       const params = new URLSearchParams();
       
-      if (filters.search) params.append('search', filters.search);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.bookingEntity) params.append('bookingEntity', filters.bookingEntity);
-      if (filters.customerId) params.append('customerId', filters.customerId);
-      if (filters.projectId) params.append('projectId', filters.projectId);
+      if (filters.search && filters.search.trim()) params.append('search', filters.search);
+      if (filters.status && filters.status.trim()) params.append('status', filters.status);
+      if (filters.bookingEntity && filters.bookingEntity.trim()) params.append('bookingEntity', filters.bookingEntity);
+      if (filters.customerId && filters.customerId.trim()) params.append('customerId', filters.customerId);
+      if (filters.projectId && filters.projectId.trim()) params.append('projectId', filters.projectId);
 
       const response = await axios.get(`/api/customer-pos?${params.toString()}`);
       set({ pos: response.data.data, loading: false });
@@ -113,8 +113,10 @@ export const useCustomerPOStore = create<CustomerPOStore>((set, get) => ({
   },
 
   setFilter: (key: keyof CustomerPOFilters, value: string) => {
+    // Normalize space character to empty string (treats " " as "no filter")
+    const normalizedValue = value.trim() === '' ? '' : value;
     set((state) => ({
-      filters: { ...state.filters, [key]: value }
+      filters: { ...state.filters, [key]: normalizedValue }
     }));
   },
 

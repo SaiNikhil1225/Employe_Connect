@@ -1,3 +1,11 @@
+/**
+ * DEPRECATED: This allocations table/route is no longer used.
+ * Allocation tracking is now handled through FL Resources (flResources.ts)
+ * 
+ * This file is kept for backward compatibility and reference only.
+ * To remove: Delete this file and remove the route registration from server.ts
+ */
+
 import express, { Request, Response } from 'express';
 import Allocation from '../models/Allocation';
 import { allocationValidation } from '../middleware/validation';

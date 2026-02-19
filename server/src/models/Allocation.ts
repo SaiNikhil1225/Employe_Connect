@@ -1,3 +1,11 @@
+/**
+ * DEPRECATED: This Allocation model is no longer used.
+ * Allocation tracking is now handled through FLResource model (FLResource.ts)
+ * 
+ * This file is kept for backward compatibility and reference only.
+ * To remove: Delete this file and remove all references to it
+ */
+
 import mongoose from 'mongoose';
 
 const allocationSchema = new mongoose.Schema({

@@ -24,11 +24,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
 import { SinglePersonPicker } from '@/components/ui/single-person-picker';
-import { RotateCcw, Save } from 'lucide-react';
+import { RotateCcw, Save, ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Stepper } from '@/components/ui/stepper';
 
 // Dropdown options
 const LEGAL_ENTITIES = [
@@ -130,6 +131,8 @@ export function ProjectForm({
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSelected, setIsCustomerSelected] = useState(false);
   const [nextProjectId, setNextProjectId] = useState<string>(defaultValues?.projectId || '');
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 2;
 
   const form = useForm({
     resolver: zodResolver(projectSchema),
@@ -140,7 +143,7 @@ export function ProjectForm({
       projectDescription: '',
       accountName: '',
       hubspotDealId: '',
-      legalEntity: '',
+      legalEntity: 'Acuvate Software Pvt Ltd - India',
       projectManager: '',
       deliveryManager: '',
       dealOwner: '',
@@ -220,22 +223,37 @@ export function ProjectForm({
     form.reset();
   };
 
+  const steps = [
+    { id: 1, title: 'Basic Details', description: 'Project information' },
+    { id: 2, title: 'Schedule & Status', description: 'Timeline and status' },
+  ];
+
+  const handleNext = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full">
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto pr-2">
-          <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="basic">Basic Details</TabsTrigger>
-              <TabsTrigger value="schedule">Schedule & Status</TabsTrigger>
-            </TabsList>
+        {/* Step Indicator */}
+        <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+          <Stepper steps={steps} currentStep={currentStep} />
+        </div>
 
-            {/* Tab 1: Basic Details */}
-            <TabsContent value="basic" className="mt-6">
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto pr-2">{/* Step 1: Basic Details */}
+          {currentStep === 1 && (
               <Card className="border-0 shadow-none">
                 <CardContent className="p-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
               {/* Project ID */}
               <FormField
                 control={form.control}
@@ -276,7 +294,7 @@ export function ProjectForm({
               />
 
               {/* Project Description - Full Width */}
-              <div className="md:col-span-2">
+              <div className="lg:col-span-2">
                 <FormField
                   control={form.control}
                   name="projectDescription"
@@ -306,13 +324,15 @@ export function ProjectForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {customers
-                          .filter(c => c.status === 'Active')
-                          .map((customer) => (
+                        {customers.length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground">No customers found</div>
+                        ) : (
+                          customers.map((customer) => (
                             <SelectItem key={customer._id || customer.id} value={customer.customerName}>
                               {customer.customerName} ({customer.customerNo})
                             </SelectItem>
-                          ))}
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -652,16 +672,16 @@ export function ProjectForm({
                   </FormItem>
                 )}
               />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-            {/* Tab 2: Schedule & Status */}
-            <TabsContent value="schedule" className="mt-6">
+          {/* Step 2: Schedule & Status */}
+          {currentStep === 2 && (
               <Card className="border-0 shadow-none">
                 <CardContent className="p-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                     {/* Start Date */}
                     <FormField
                       control={form.control}
@@ -727,30 +747,57 @@ export function ProjectForm({
                         </FormItem>
                       )}
                     />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Fixed Bottom Action Buttons */}
         <div className="sticky bottom-0 left-0 right-0 bg-background border-t pt-4 mt-6">
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => form.reset()}
-              disabled={isLoading}
-              className="gap-2"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset
-            </Button>
-            <Button type="submit" disabled={isLoading} className="gap-2">
-              <Save className="h-4 w-4" />
-              {isLoading ? 'Saving...' : submitLabel}
-            </Button>
+          <div className="flex justify-between gap-3">
+            <div className="flex gap-2">
+              {currentStep > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBack}
+                  disabled={isLoading}
+                  className="gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => form.reset()}
+                disabled={isLoading}
+                className="gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              {currentStep < totalSteps ? (
+                <Button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={isLoading}
+                  className="gap-2"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button type="submit" disabled={isLoading} className="gap-2">
+                  <Save className="h-4 w-4" />
+                  {isLoading ? 'Saving...' : submitLabel}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </form>

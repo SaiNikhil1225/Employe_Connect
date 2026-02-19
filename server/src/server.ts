@@ -31,6 +31,7 @@ import superAdminRoutes from './routes/superAdmin';
 import customerRoutes from './routes/customers';
 import customerPORoutes from './routes/customerPOs';
 import financialLineRoutes from './routes/financialLines';
+import flResourceRoutes from './routes/flResources';
 
 dotenv.config();
 
@@ -121,6 +122,7 @@ app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/financial-lines', financialLineRoutes);
 app.use('/api/customer-pos', customerPORoutes);
+app.use('/api/fl-resources', flResourceRoutes);
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {

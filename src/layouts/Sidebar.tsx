@@ -32,6 +32,9 @@ import {
   LineChart,
   BarChart3,
   CircleDot,
+  FolderKanban,
+  Building,
+  Briefcase,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -67,6 +70,9 @@ const iconMap: Record<string, LucideIcon> = {
   LineChart,
   BarChart3,
   CircleDot,
+  FolderKanban,
+  Building,
+  Briefcase,
 };
 
 interface MenuSection {

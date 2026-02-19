@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import type { CustomerPO } from '@/types/customerPO';
 import { useCustomerStore } from '@/store/customerStore';
 import { useProjectStore } from '@/store/projectStore';
@@ -37,9 +36,17 @@ const customerPOSchema = z.object({
   poAmount: z.coerce.number({ message: 'PO amount is required' }).positive('PO amount must be greater than 0'),
   poCurrency: z.string({ message: 'Currency is required' }).min(1, 'Currency is required'),
   paymentTerms: z.enum(['Net 30', 'Net 45', 'Net 60', 'Net 90', 'Immediate', 'Custom'], { message: 'Payment terms are required' }),
-  autoRelease: z.boolean().default(false),
   status: z.enum(['Active', 'Closed', 'Expired'], { message: 'Status is required' }),
   notes: z.string().optional(),
+}).refine((data) => {
+  // PO Start Date must be AFTER PO Creation Date
+  if (data.poCreationDate && data.poStartDate) {
+    return new Date(data.poStartDate) > new Date(data.poCreationDate);
+  }
+  return true;
+}, {
+  message: 'PO Start Date must be after PO Creation Date',
+  path: ['poStartDate'],
 });
 
 type CustomerPOFormValues = z.infer<typeof customerPOSchema>;
@@ -73,7 +80,6 @@ export function CustomerPOForm({ po, onSubmit }: CustomerPOFormProps) {
           poAmount: po.poAmount,
           poCurrency: po.poCurrency,
           paymentTerms: po.paymentTerms,
-          autoRelease: po.autoRelease,
           status: po.status,
           notes: po.notes || '',
         }
@@ -89,7 +95,6 @@ export function CustomerPOForm({ po, onSubmit }: CustomerPOFormProps) {
           poAmount: 0,
           poCurrency: 'USD',
           paymentTerms: 'Net 30',
-          autoRelease: false,
           status: 'Active',
           notes: '',
         },
@@ -335,24 +340,6 @@ export function CustomerPOForm({ po, onSubmit }: CustomerPOFormProps) {
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="autoRelease"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>Auto Release</FormLabel>
-              </div>
-            </FormItem>
-          )}
-        />
 
         <FormField
           control={form.control}

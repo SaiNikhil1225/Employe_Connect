@@ -9,7 +9,7 @@ import {
   type PaginationState,
 } from '@tanstack/react-table';
 import { useState } from 'react';
-import { MoreHorizontal, Pencil, Trash2, Eye, Copy, Archive, Download, X } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, Eye, Copy, Archive, Download, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import {
@@ -161,6 +161,7 @@ export function CustomerPOTable({ data, loading }: CustomerPOTableProps) {
       ),
       enableSorting: false,
       enableHiding: false,
+      size: 40,
     },
     {
       accessorKey: 'contractNo',
@@ -168,6 +169,7 @@ export function CustomerPOTable({ data, loading }: CustomerPOTableProps) {
       cell: ({ row }) => (
         <div className="font-medium">{row.getValue('contractNo')}</div>
       ),
+      enableSorting: true,
     },
     {
       accessorKey: 'poNo',
@@ -175,6 +177,7 @@ export function CustomerPOTable({ data, loading }: CustomerPOTableProps) {
       cell: ({ row }) => (
         <div className="font-medium">{row.getValue('poNo')}</div>
       ),
+      enableSorting: true,
     },
     {
       accessorKey: 'customerId',
@@ -186,6 +189,7 @@ export function CustomerPOTable({ data, loading }: CustomerPOTableProps) {
         }
         return <div>-</div>;
       },
+      enableSorting: true,
     },
     {
       accessorKey: 'projectId',
@@ -197,10 +201,12 @@ export function CustomerPOTable({ data, loading }: CustomerPOTableProps) {
         }
         return <div>-</div>;
       },
+      enableSorting: true,
     },
     {
       accessorKey: 'bookingEntity',
       header: 'Booking Entity',
+      enableSorting: true,
     },
     {
       accessorKey: 'poAmount',
@@ -214,6 +220,7 @@ export function CustomerPOTable({ data, loading }: CustomerPOTableProps) {
           </div>
         );
       },
+      enableSorting: true,
     },
     {
       accessorKey: 'poValidityDate',
@@ -222,6 +229,7 @@ export function CustomerPOTable({ data, loading }: CustomerPOTableProps) {
         const date = row.getValue('poValidityDate') as string;
         return <div>{format(new Date(date), 'MMM dd, yyyy')}</div>;
       },
+      enableSorting: true,
     },
     {
       accessorKey: 'status',
@@ -230,9 +238,11 @@ export function CustomerPOTable({ data, loading }: CustomerPOTableProps) {
         const status = row.getValue('status') as string;
         return <Badge variant={getStatusBadgeVariant(status)}>{status}</Badge>;
       },
+      enableSorting: true,
     },
     {
       id: 'actions',
+      header: 'Actions',
       cell: ({ row }) => {
         const po = row.original;
         return (
@@ -343,36 +353,109 @@ export function CustomerPOTable({ data, loading }: CustomerPOTableProps) {
         </div>
       )}
 
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
+              <TableRow key={headerGroup.id} className="bg-muted/50">
+                {headerGroup.headers.map((header) => {
+                  const isSortable = header.column.getCanSort();
+                  const sortDirection = header.column.getIsSorted();
+                  
+                  return (
+                    <TableHead 
+                      key={header.id}
+                      className={`font-semibold whitespace-nowrap ${
+                        header.id === 'select'
+                          ? 'w-[40px] sticky left-0 bg-muted z-20'
+                          : header.id === 'poNo'
+                          ? 'sticky left-[40px] bg-muted z-20'
+                          : header.id === 'actions'
+                          ? 'sticky right-0 bg-muted z-20'
+                          : ''
+                      }`}
+                      style={{
+                        ...(header.id === 'select' && {
+                          boxShadow: '4px 0 8px -2px rgba(0,0,0,0.1)',
+                          backgroundColor: 'hsl(var(--muted))'
+                        }),
+                        ...(header.id === 'poNo' && {
+                          boxShadow: '4px 0 8px -2px rgba(0,0,0,0.1)',
+                          backgroundColor: 'hsl(var(--muted))'
+                        }),
+                        ...(header.id === 'actions' && {
+                          boxShadow: '-4px 0 8px -2px rgba(0,0,0,0.1)',
+                          backgroundColor: 'hsl(var(--muted))'
+                        })
+                      }}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={isSortable ? 'flex items-center gap-2 cursor-pointer select-none' : ''}
+                          onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                          {isSortable && (
+                            <span className="ml-auto">
+                              {sortDirection === 'asc' ? (
+                                <ArrowUp className="h-4 w-4" />
+                              ) : sortDirection === 'desc' ? (
+                                <ArrowDown className="h-4 w-4" />
+                              ) : (
+                                <ArrowUpDown className="h-4 w-4 opacity-50" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow key={row.id} className="hover:bg-muted/30">
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell 
+                    key={cell.id}
+                    className={`${
+                      cell.column.id === 'select'
+                        ? 'w-[40px] sticky left-0 bg-background z-20'
+                        : cell.column.id === 'poNo'
+                        ? 'sticky left-[40px] bg-background z-20'
+                        : cell.column.id === 'actions'
+                        ? 'sticky right-0 bg-background z-20'
+                        : ''
+                    }`}
+                    style={{
+                      ...(cell.column.id === 'select' && {
+                        boxShadow: '4px 0 8px -2px rgba(0,0,0,0.1)',
+                        backgroundColor: 'hsl(var(--background))'
+                      }),
+                      ...(cell.column.id === 'poNo' && {
+                        boxShadow: '4px 0 8px -2px rgba(0,0,0,0.1)',
+                        backgroundColor: 'hsl(var(--background))'
+                      }),
+                      ...(cell.column.id === 'actions' && {
+                        boxShadow: '-4px 0 8px -2px rgba(0,0,0,0.1)',
+                        backgroundColor: 'hsl(var(--background))'
+                      })
+                    }}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
 
       {/* Pagination Controls */}

@@ -1,7 +1,29 @@
 import express, { Request, Response } from 'express';
 import Project from '../models/Project';
+import Customer from '../models/Customer';
 
 const router = express.Router();
+
+// Helper function to update customer status based on active project count
+async function updateCustomerStatusBasedOnProjects(customerId: string) {
+  if (!customerId) return;
+  
+  try {
+    // Count ALL projects for this customer (regardless of status)
+    const projectCount = await Project.countDocuments({
+      customerId: customerId
+    });
+    
+    // Update customer status based on project count
+    // Customer is Active if they have ANY project assigned
+    const newStatus = projectCount > 0 ? 'Active' : 'Inactive';
+    await Customer.findByIdAndUpdate(customerId, { status: newStatus });
+    
+    console.log(`Customer ${customerId} status updated to ${newStatus} (${projectCount} total projects)`);
+  } catch (error) {
+    console.error('Failed to update customer status:', error);
+  }
+}
 
 // Get next project ID
 router.get('/next-id', async (req: Request, res: Response) => {
@@ -118,6 +140,13 @@ router.post('/', async (req: Request, res: Response) => {
     const project = new Project(req.body);
     await project.save();
     console.log('Project created successfully:', project.projectId);
+    
+    // Update customer status to Active when a new project is created
+    const customerId = project.customerId?.toString();
+    if (customerId) {
+      await updateCustomerStatusBasedOnProjects(customerId);
+    }
+    
     res.status(201).json({ success: true, data: project });
   } catch (error) {
     console.error('Failed to create project:', error);
@@ -134,6 +163,10 @@ router.post('/', async (req: Request, res: Response) => {
 // Update project
 router.put('/:id', async (req: Request, res: Response) => {
   try {
+    // Get the project before update to check if customerId changes
+    const existingProject = await Project.findById(req.params.id);
+    const oldCustomerId = existingProject?.customerId?.toString();
+    
     const project = await Project.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -142,6 +175,15 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    // Update customer status for both old and new customer if they differ
+    const newCustomerId = project.customerId?.toString();
+    if (oldCustomerId) {
+      await updateCustomerStatusBasedOnProjects(oldCustomerId);
+    }
+    if (newCustomerId && newCustomerId !== oldCustomerId) {
+      await updateCustomerStatusBasedOnProjects(newCustomerId);
     }
 
     res.json({ success: true, data: project });
@@ -154,10 +196,20 @@ router.put('/:id', async (req: Request, res: Response) => {
 // Delete project
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const project = await Project.findByIdAndDelete(req.params.id);
+    const project = await Project.findById(req.params.id);
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
+    
+    const customerId = project.customerId?.toString();
+    
+    await Project.findByIdAndDelete(req.params.id);
+    
+    // Update customer status based on remaining projects
+    if (customerId) {
+      await updateCustomerStatusBasedOnProjects(customerId);
+    }
+    
     res.json({ success: true, message: 'Project deleted successfully' });
   } catch (error) {
     console.error('Failed to delete project:', error);
@@ -172,11 +224,17 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
     const project = await Project.findByIdAndUpdate(
       req.params.id,
       { status },
-      {  new: true , runValidators: true }
+      { new: true, runValidators: true }
     );
 
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    // Update customer status based on project status change
+    const customerId = project.customerId?.toString();
+    if (customerId) {
+      await updateCustomerStatusBasedOnProjects(customerId);
     }
 
     res.json({ success: true, data: project });

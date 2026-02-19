@@ -31,8 +31,14 @@ const step1Schema = z.object({
   executionEntity: z.string({ message: 'Execution entity is required' }).min(1, 'Execution entity is required'),
   timesheetApprover: z.string({ message: 'Timesheet approver is required' }).min(1, 'Timesheet approver is required'),
   scheduleStart: z.string({ message: 'Schedule start date is required' }).min(1, 'Schedule start date is required'),
-  scheduleEnd: z.string({ message: 'Schedule end date is required' }).min(1, 'Schedule end date is required'),
+  scheduleFinish: z.string({ message: 'Schedule finish date is required' }).min(1, 'Schedule finish date is required'),
   currency: z.string({ message: 'Currency is required' }).min(1, 'Currency is required'),
+  billingRate: z.coerce.number().min(0, 'Billing rate must be at least 0'),
+  rateUom: z.string({ message: 'Rate UOM is required' }).min(1, 'Rate UOM is required'),
+  effort: z.coerce.number().min(0, 'Effort must be at least 0'),
+  effortUom: z.string({ message: 'Effort UOM is required' }).min(1, 'Effort UOM is required'),
+  revenueAmount: z.coerce.number().min(0, 'Revenue amount must be at least 0'),
+  expectedRevenue: z.coerce.number().min(0, 'Expected revenue must be at least 0'),
 });
 
 type Step1FormValues = z.infer<typeof step1Schema>;
@@ -60,7 +66,7 @@ export function Step1BasicDetailsForm({ defaultValues, onNext, onCancel }: Step1
       executionEntity: '',
       timesheetApprover: '',
       scheduleStart: '',
-      scheduleEnd: '',
+      scheduleFinish: '',
       currency: 'USD',
     },
   });
@@ -261,7 +267,7 @@ export function Step1BasicDetailsForm({ defaultValues, onNext, onCancel }: Step1
 
             <FormField
               control={form.control}
-              name="scheduleEnd"
+              name="scheduleFinish"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-brand-navy font-medium">Schedule End Date *</FormLabel>

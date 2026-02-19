@@ -31,7 +31,7 @@ export interface CustomerPOFormData {
   poAmount: number;
   poCurrency: string;
   paymentTerms: 'Net 30' | 'Net 45' | 'Net 60' | 'Net 90' | 'Immediate' | 'Custom';
-  autoRelease: boolean;
+  autoRelease?: boolean;
   status: 'Active' | 'Closed' | 'Expired';
   notes?: string;
 }

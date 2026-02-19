@@ -361,7 +361,7 @@ export function ProjectTable({ projects, isLoading, onCreateProject, columnVisib
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`-ml-3 h-8 data-[state=open]:bg-accent ${sortConfig?.key === 'projectName' ? 'font-semibold' : ''}`}
+                  className={`-ml-3 h-8 whitespace-nowrap data-[state=open]:bg-accent ${sortConfig?.key === 'projectName' ? 'font-semibold' : ''}`}
                   onClick={() => handleSort('projectName')}
                 >
                   Project Name
@@ -373,7 +373,7 @@ export function ProjectTable({ projects, isLoading, onCreateProject, columnVisib
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`-ml-3 h-8 data-[state=open]:bg-accent ${sortConfig?.key === 'owner' ? 'font-semibold' : ''}`}
+                    className={`-ml-3 h-8 whitespace-nowrap data-[state=open]:bg-accent ${sortConfig?.key === 'owner' ? 'font-semibold' : ''}`}
                     onClick={() => handleSort('owner')}
                   >
                     Owner
@@ -386,7 +386,7 @@ export function ProjectTable({ projects, isLoading, onCreateProject, columnVisib
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`-ml-3 h-8 data-[state=open]:bg-accent ${sortConfig?.key === 'status' ? 'font-semibold' : ''}`}
+                    className={`-ml-3 h-8 whitespace-nowrap data-[state=open]:bg-accent ${sortConfig?.key === 'status' ? 'font-semibold' : ''}`}
                     onClick={() => handleSort('status')}
                   >
                     Status
@@ -399,7 +399,7 @@ export function ProjectTable({ projects, isLoading, onCreateProject, columnVisib
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`-ml-3 h-8 data-[state=open]:bg-accent ${sortConfig?.key === 'progress' ? 'font-semibold' : ''}`}
+                    className={`-ml-3 h-8 whitespace-nowrap data-[state=open]:bg-accent ${sortConfig?.key === 'progress' ? 'font-semibold' : ''}`}
                     onClick={() => handleSort('progress')}
                   >
                     Progress
@@ -412,7 +412,7 @@ export function ProjectTable({ projects, isLoading, onCreateProject, columnVisib
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`-ml-3 h-8 data-[state=open]:bg-accent ${sortConfig?.key === 'budget' ? 'font-semibold' : ''}`}
+                    className={`-ml-3 h-8 whitespace-nowrap data-[state=open]:bg-accent ${sortConfig?.key === 'budget' ? 'font-semibold' : ''}`}
                     onClick={() => handleSort('budget')}
                   >
                     Budget Used
@@ -420,13 +420,13 @@ export function ProjectTable({ projects, isLoading, onCreateProject, columnVisib
                   </Button>
                 </TableHead>
               )}
-              {columns.team && <TableHead>Team</TableHead>}
+              {columns.team && <TableHead className="normal-case !font-medium !tracking-normal whitespace-nowrap">Team</TableHead>}
               {columns.dueDate && (
                 <TableHead>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`-ml-3 h-8 data-[state=open]:bg-accent ${sortConfig?.key === 'dueDate' ? 'font-semibold' : ''}`}
+                    className={`-ml-3 h-8 whitespace-nowrap data-[state=open]:bg-accent ${sortConfig?.key === 'dueDate' ? 'font-semibold' : ''}`}
                     onClick={() => handleSort('dueDate')}
                   >
                     Due Date
@@ -434,7 +434,7 @@ export function ProjectTable({ projects, isLoading, onCreateProject, columnVisib
                   </Button>
                 </TableHead>
               )}
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right normal-case !font-medium !tracking-normal whitespace-nowrap">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

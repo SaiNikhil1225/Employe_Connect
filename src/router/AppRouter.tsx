@@ -47,15 +47,10 @@ import { NewAnnouncement } from '@/pages/hr/NewAnnouncement';
 import { AdminAnnouncements } from '@/pages/hr/AdminAnnouncements';
 
 // RMG Pages
-import { ResourcePool } from '@/pages/rmg/ResourcePool';
-import { Allocations } from '@/pages/rmg/Allocations';
 import { Utilization } from '@/pages/rmg/Utilization';
-import { Forecasting } from '@/pages/rmg/Forecasting';
-import { RMGAnalytics } from '@/pages/rmg/RMGAnalytics';
 import { CustomerListPage } from '@/pages/rmg/customers/CustomerListPage';
 import { ProjectListPage } from '@/pages/rmg/projects/ProjectListPage';
 import { ProjectDetailPage } from '@/pages/rmg/projects/ProjectDetailPage';
-import { CustomerPOListPage } from '@/pages/rmg/customer-pos/CustomerPOListPage';
 import { FinancialLineListPage } from '@/pages/rmg/financial-lines/FinancialLineListPage';
 
 // Super Admin Pages
@@ -65,7 +60,6 @@ import { UserManagement } from '@/pages/superadmin/UserManagement';
 import { ApproverOverview } from '@/pages/superadmin/ApproverOverview';
 
 // Common Pages
-import { Reports } from '@/pages/Reports';
 import { Employees } from '@/pages/Employees';
 
 // Wrapper component for viewing other employee profiles
@@ -352,42 +346,10 @@ export function AppRouter() {
 
           {/* RMG Routes */}
           <Route
-            path="/resource-pool"
-            element={
-              <ProtectedRoute requiredPath="/resource-pool">
-                <ResourcePool />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/allocations"
-            element={
-              <ProtectedRoute requiredPath="/allocations">
-                <Allocations />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/utilization"
             element={
               <ProtectedRoute requiredPath="/utilization">
                 <Utilization />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/forecasting"
-            element={
-              <ProtectedRoute requiredPath="/forecasting">
-                <Forecasting />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rmg/analytics"
-            element={
-              <ProtectedRoute requiredPath="/rmg/analytics">
-                <RMGAnalytics />
               </ProtectedRoute>
             }
           />
@@ -456,14 +418,6 @@ export function AppRouter() {
           />
 
           {/* Common Routes */}
-          <Route
-            path="/reports"
-            element={
-              <ProtectedRoute requiredPath="/reports">
-                <Reports />
-              </ProtectedRoute>
-            }
-          />
         </Route>
 
         {/* Catch all - redirect to 403 */}

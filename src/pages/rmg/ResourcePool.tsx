@@ -5,13 +5,19 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, Loader2, Users } from 'lucide-react';
 import { employeeService, type Employee } from '@/services/employeeService';
-import { allocationService, type Allocation } from '@/services/allocationService';
 import { toast } from 'sonner';
+
+interface FLResourceAllocation {
+  flNo: string;
+  flName: string;
+  allocation: number;
+  billable: boolean;
+}
 
 interface ResourceWithAllocation extends Employee {
   totalAllocation: number;
   isBillable: boolean;
-  allocations: Allocation[];
+  allocations: FLResourceAllocation[];
 }
 
 export function ResourcePool() {
@@ -27,25 +33,52 @@ export function ResourcePool() {
         // Fetch all active employees
         const employees = await employeeService.getActive();
 
-        // Fetch all active allocations
-        const allAllocations = await allocationService.getActive();
+        // Fetch all active FL Resources
+        const response = await fetch('/api/fl-resources?status=Active');
+        if (!response.ok) throw new Error('Failed to fetch FL resources');
+        const flResources = await response.json();
 
-        // Combine employee and allocation data
+        // Combine employee and FL resource allocation data
         const resourcesData: ResourceWithAllocation[] = employees.map((emp) => {
-          // Get allocations for this employee
-          const empAllocations = allAllocations.filter((a) => a.employeeId === emp.employeeId);
+          // Get FL resources for this employee
+          const empFLResources = flResources.filter(
+            (flr: any) => flr.employeeId === emp.employeeId
+          );
+
+          // Calculate allocation for each FL resource and total
+          const allocations: FLResourceAllocation[] = empFLResources.map((flr: any) => {
+            const monthlyAllocations = flr.monthlyAllocations || [];
+            let avgAllocation = 0;
+            
+            if (monthlyAllocations.length > 0) {
+              const totalMonthlyAllocation = monthlyAllocations.reduce(
+                (sum: number, month: any) => sum + (month.allocation || 0), 
+                0
+              );
+              avgAllocation = Math.round(totalMonthlyAllocation / monthlyAllocations.length);
+            } else if (flr.utilizationPercentage) {
+              avgAllocation = flr.utilizationPercentage;
+            }
+
+            return {
+              flNo: flr.flNo,
+              flName: flr.flName,
+              allocation: avgAllocation,
+              billable: flr.billable,
+            };
+          });
 
           // Calculate total allocation percentage
-          const totalAllocation = empAllocations.reduce((sum, a) => sum + a.allocation, 0);
+          const totalAllocation = allocations.reduce((sum, a) => sum + a.allocation, 0);
 
           // Check if any allocation is billable
-          const isBillable = empAllocations.some((a) => a.billable);
+          const isBillable = allocations.some((a) => a.billable);
 
           return {
             ...emp,
             totalAllocation,
             isBillable,
-            allocations: empAllocations,
+            allocations,
           };
         });
 

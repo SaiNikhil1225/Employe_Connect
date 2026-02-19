@@ -74,7 +74,7 @@ export function StatCard({
   const content = (
     <div
       className={cn(
-        'bg-background/80 backdrop-blur rounded-lg p-3 border transition-all duration-200',
+        'bg-white dark:bg-gray-900 rounded-lg p-3 border transition-all duration-200',
         isClickable && 'cursor-pointer hover:shadow-md hover:scale-[1.02] hover:border-primary/50',
         className
       )}

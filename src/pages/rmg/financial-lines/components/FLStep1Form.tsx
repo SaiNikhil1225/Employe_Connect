@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,8 +7,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useProjectStore } from '@/store/projectStore';
 import { useToast } from '@/hooks/use-toast';
 import type { FLStep1Data, FLStep2Data, UOM, ContractType, LocationType } from '@/types/financialLine';
@@ -47,15 +45,7 @@ interface FLStep1FormProps {
   defaultProjectId?: string;
 }
 
-const MOCK_USERS = [
-  { id: '1', name: 'John Doe', email: 'john@example.com' },
-  { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
-  { id: '3', name: 'Bob Johnson', email: 'bob@example.com' },
-];
-
 export function FLStep1Form({ data, step2Data, onDataChange, onNext, defaultProjectId }: FLStep1FormProps) {
-  const [isBasicOpen, setIsBasicOpen] = useState(true);
-  const [isRevenueOpen, setIsRevenueOpen] = useState(true);
   const { projects, fetchProjects } = useProjectStore();
   const { toast } = useToast();
 
@@ -72,9 +62,9 @@ export function FLStep1Form({ data, step2Data, onDataChange, onNext, defaultProj
       executionEntity: data.executionEntity || '',
       currency: data.currency || '',
       billingRate: data.billingRate || 0,
-      rateUom: data.rateUom || 'Hr',
+      rateUom: data.rateUom || 'Day',
       effort: data.effort || 0,
-      effortUom: data.effortUom || 'Hr',
+      effortUom: data.effortUom || 'Day',
       revenueAmount: data.revenueAmount || 0,
       expectedRevenue: data.expectedRevenue || 0,
     },
@@ -84,7 +74,7 @@ export function FLStep1Form({ data, step2Data, onDataChange, onNext, defaultProj
     fetchProjects({});
   }, [fetchProjects]);
 
-  // Auto-fill execution entity and currency from project
+  // Auto-fill execution entity, currency, and timesheet approver from project
   useEffect(() => {
     const watchedProjectId = form.watch('projectId');
     if (watchedProjectId) {
@@ -96,6 +86,14 @@ export function FLStep1Form({ data, step2Data, onDataChange, onNext, defaultProj
         // Set contract type from project billing type
         if (project.billingType) {
           form.setValue('contractType', project.billingType as ContractType);
+        }
+        
+        // Auto-populate timesheet approver from PM or DM
+        // Prefer Project Manager, fallback to Delivery Manager
+        const approver = project.projectManager || project.deliveryManager;
+        const approverName = approver?.name || '';
+        if (approverName && !form.getValues('timesheetApprover')) {
+          form.setValue('timesheetApprover', approverName);
         }
       }
     }
@@ -146,13 +144,40 @@ export function FLStep1Form({ data, step2Data, onDataChange, onNext, defaultProj
 
       if (isBefore(flFinish, projStart) || isAfter(flFinish, projEnd)) {
         toast({
-          title: 'Validation Error',
-          description: 'FL Schedule Finish must be within project start and end dates',
+          title: 'Date Extension Required',
+          description: `FL end date (${format(flFinish, 'MMM dd, yyyy')}) extends beyond project end date (${format(projEnd, 'MMM dd, yyyy')}). Please extend the Project End Date first.`,
           variant: 'destructive',
         });
         return false;
       }
     }
+    return true;
+  };
+
+  // Check if FL dates are being extended (for edit mode)
+  const checkDateExtension = () => {
+    if (!data.scheduleFinish) return true; // Not edit mode or no previous date
+    
+    const previousEndDate = new Date(data.scheduleFinish);
+    const newEndDate = new Date(form.getValues('scheduleFinish'));
+    
+    if (isAfter(newEndDate, previousEndDate)) {
+      // FL end date is being extended
+      const confirmed = window.confirm(
+        'Financial Line duration is being extended.\n\n' +
+        'After saving, please remember to:\n' +
+        '• Add additional PO funding allocation for the extended period\n' +
+        '• Update planned revenue for the extended months\n\n' +
+        'Do you want to continue?'
+      );
+      
+      if (!confirmed) {
+        // Reset to original date
+        form.setValue('scheduleFinish', data.scheduleFinish);
+        return false;
+      }
+    }
+    
     return true;
   };
 
@@ -180,6 +205,12 @@ export function FLStep1Form({ data, step2Data, onDataChange, onNext, defaultProj
       return;
     }
 
+    // Check for date extension and show warning
+    if (!checkDateExtension()) {
+      console.error('FLStep1 - Date extension cancelled by user');
+      return;
+    }
+
     console.log('FLStep1 - Validation passed, calling onNext');
     onDataChange(values);
     onNext();
@@ -195,108 +226,121 @@ export function FLStep1Form({ data, step2Data, onDataChange, onNext, defaultProj
     <Form {...form}>
       <div className="space-y-6">
         {/* Basic Details Section */}
-        <Collapsible open={isBasicOpen} onOpenChange={setIsBasicOpen}>
-          <Card>
-            <CollapsibleTrigger className="w-full">
-              <CardHeader className="flex flex-row items-center justify-between cursor-pointer hover:bg-gray-50">
-                <CardTitle className="text-lg">Basic Details</CardTitle>
-                {isBasicOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Auto-filled Disabled Fields */}
-                  <FormField
-                    control={form.control}
-                    name="projectId"
-                    render={({ field }) => (
-                      <FormItem className="hidden">
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormItem>
-                    <FormLabel>FL No</FormLabel>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Basic Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Auto-filled Disabled Fields */}
+              <FormField
+                control={form.control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem className="hidden">
                     <FormControl>
-                      <Input value={flNo} disabled className="bg-blue-50 border-blue-200" />
+                      <Input {...field} />
                     </FormControl>
                   </FormItem>
+                )}
+              />
+
+              <FormItem>
+                <FormLabel>FL No</FormLabel>
+                <FormControl>
+                  <Input value={flNo} disabled className="bg-blue-50 border-blue-200" />
+                </FormControl>
+              </FormItem>
+              
+              <FormItem>
+                <FormLabel>Project ID</FormLabel>
+                <FormControl>
+                  <Input 
+                    value={selectedProject?.projectId || '-'} 
+                    disabled 
+                    className="bg-blue-50 border-blue-200 font-medium" 
+                  />
+                </FormControl>
+              </FormItem>
+              
+              <FormItem>
+                <FormLabel>Project Name</FormLabel>
+                <FormControl>
+                  <Input 
+                    value={selectedProject?.projectName || '-'} 
+                    disabled 
+                    className="bg-blue-50 border-blue-200" 
+                  />
+                </FormControl>
+              </FormItem>
+
+              <FormField
+                control={form.control}
+                name="executionEntity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Execution Entity</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled className="bg-blue-50 border-blue-200" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Currency</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled className="bg-blue-50 border-blue-200" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Editable Fields */}
+              <FormField
+                control={form.control}
+                name="flName"
+                render={({field}) => (
+                  <FormItem>
+                    <FormLabel>FL Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter FL name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="timesheetApprover"
+                render={({ field }) => {
+                  const approverOptions: { id: string; name: string; role: string }[] = [];
+                  if (selectedProject?.projectManager?.name) {
+                    approverOptions.push({ 
+                      id: 'pm', 
+                      name: selectedProject.projectManager.name, 
+                      role: 'Project Manager' 
+                    });
+                  }
+                  if (selectedProject?.deliveryManager?.name && selectedProject.deliveryManager.name !== selectedProject?.projectManager?.name) {
+                    approverOptions.push({ 
+                      id: 'dm', 
+                      name: selectedProject.deliveryManager.name, 
+                      role: 'Delivery Manager' 
+                    });
+                  }
                   
-                  <FormItem>
-                    <FormLabel>Project ID</FormLabel>
-                    <FormControl>
-                      <Input 
-                        value={selectedProject?.projectId || '-'} 
-                        disabled 
-                        className="bg-blue-50 border-blue-200 font-medium" 
-                      />
-                    </FormControl>
-                  </FormItem>
-                  
-                  <FormItem>
-                    <FormLabel>Project Name</FormLabel>
-                    <FormControl>
-                      <Input 
-                        value={selectedProject?.projectName || '-'} 
-                        disabled 
-                        className="bg-blue-50 border-blue-200" 
-                      />
-                    </FormControl>
-                  </FormItem>
-
-                  <FormField
-                    control={form.control}
-                    name="executionEntity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Execution Entity</FormLabel>
-                        <FormControl>
-                          <Input {...field} disabled className="bg-blue-50 border-blue-200" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="currency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Currency</FormLabel>
-                        <FormControl>
-                          <Input {...field} disabled className="bg-blue-50 border-blue-200" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Editable Fields */}
-                  <FormField
-                    control={form.control}
-                    name="flName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>FL Name *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter FL name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="timesheetApprover"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Timesheet Approver *</FormLabel>
+                  return (
+                    <FormItem>
+                      <FormLabel>Timesheet Approver *</FormLabel>
+                      {approverOptions.length > 0 ? (
                         <Select value={field.value} onValueChange={field.onChange}>
                           <FormControl>
                             <SelectTrigger>
@@ -304,256 +348,217 @@ export function FLStep1Form({ data, step2Data, onDataChange, onNext, defaultProj
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {MOCK_USERS.map((user) => (
-                              <SelectItem key={user.id} value={user.name}>
-                                {user.name}
+                            {approverOptions.map((approver) => (
+                              <SelectItem key={approver.id} value={approver.name}>
+                                {approver.name} ({approver.role})
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="locationType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Location Type *</FormLabel>
-                        <Select value={field.value} onValueChange={(value) => field.onChange(value as LocationType)}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select location type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Onsite">Onsite</SelectItem>
-                            <SelectItem value="Offshore">Offshore</SelectItem>
-                            <SelectItem value="Hybrid">Hybrid</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="contractType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Contract Type *</FormLabel>
-                        <Select value={field.value} onValueChange={(value) => field.onChange(value as ContractType)}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select contract type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="T&M">T&M</SelectItem>
-                            <SelectItem value="Fixed Bid">Fixed Bid</SelectItem>
-                            <SelectItem value="Fixed Monthly">Fixed Monthly</SelectItem>
-                            <SelectItem value="License">License</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="scheduleStart"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Schedule Start *</FormLabel>
+                      ) : (
                         <FormControl>
-                          <DatePicker
-                            value={field.value}
-                            onChange={(date) => field.onChange(date)}
-                            placeholder="Select start date"
+                          <Input 
+                            {...field} 
+                            disabled 
+                            placeholder="Select a project first" 
+                            className="bg-gray-100"
                           />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
 
-                  <FormField
-                    control={form.control}
-                    name="scheduleFinish"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Schedule Finish *</FormLabel>
-                        <FormControl>
-                          <DatePicker
-                            value={field.value}
-                            onChange={(date) => field.onChange(date)}
-                            placeholder="Select finish date"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+              <FormField
+                control={form.control}
+                name="locationType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location Type *</FormLabel>
+                    <Select value={field.value} onValueChange={(value) => field.onChange(value as LocationType)}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select location type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Onsite">Onsite</SelectItem>
+                        <SelectItem value="Offshore">Offshore</SelectItem>
+                        <SelectItem value="Hybrid">Hybrid</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="contractType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contract Type *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        value={field.value} 
+                        disabled 
+                        className="bg-blue-50 border-blue-200 font-medium"
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Inherited from project billing type
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="scheduleStart"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Schedule Start *</FormLabel>
+                    <FormControl>
+                      <DatePicker
+                        value={field.value}
+                        onChange={(date) => field.onChange(date)}
+                        placeholder="Select start date"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="scheduleFinish"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Schedule Finish *</FormLabel>
+                    <FormControl>
+                      <DatePicker
+                        value={field.value}
+                        onChange={(date) => field.onChange(date)}
+                        placeholder="Select finish date"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Revenue Details Section */}
-        <Collapsible open={isRevenueOpen} onOpenChange={setIsRevenueOpen}>
-          <Card>
-            <CollapsibleTrigger className="w-full">
-              <CardHeader className="flex flex-row items-center justify-between cursor-pointer hover:bg-gray-50">
-                <CardTitle className="text-lg">Revenue Details</CardTitle>
-                {isRevenueOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="billingRate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Billing Rate *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Revenue Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <FormField
+                control={form.control}
+                name="billingRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Billing Rate *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Rate per unit (based on Rate Unit)
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                  <FormField
-                    control={form.control}
-                    name="rateUom"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Rate UOM *</FormLabel>
-                        <Select value={field.value} onValueChange={(value) => field.onChange(value as UOM)}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select UOM" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Hr">Hr</SelectItem>
-                            <SelectItem value="Day">Day</SelectItem>
-                            <SelectItem value="Month">Month</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <FormField
+                control={form.control}
+                name="rateUom"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rate Unit *</FormLabel>
+                    <Select value={field.value} onValueChange={(value) => field.onChange(value as UOM)}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Unit" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Hr">Hour</SelectItem>
+                        <SelectItem value="Day">Day</SelectItem>
+                        <SelectItem value="Month">Month</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                  <FormField
-                    control={form.control}
-                    name="effort"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Effort *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            {...field}
-                            readOnly
-                            disabled
-                            className="bg-gray-100 cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground mt-1">Auto-calculated from PO funding in Step 2</p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <FormField
+                control={form.control}
+                name="revenueAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Revenue Amount</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...field}
+                        disabled
+                        className="bg-blue-50 border-blue-200"
+                        value={field.value.toFixed(2)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                  <FormField
-                    control={form.control}
-                    name="effortUom"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Effort UOM *</FormLabel>
-                        <Select value={field.value} onValueChange={(value) => field.onChange(value as UOM)}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select UOM" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Hr">Hr</SelectItem>
-                            <SelectItem value="Day">Day</SelectItem>
-                            <SelectItem value="Month">Month</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <FormField
+                control={form.control}
+                name="expectedRevenue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Expected Revenue</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...field}
+                        disabled
+                        className="bg-blue-50 border-blue-200"
+                        value={field.value.toFixed(2)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-                  <FormField
-                    control={form.control}
-                    name="revenueAmount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Revenue Amount</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            disabled
-                            className="bg-blue-50 border-blue-200"
-                            value={field.value.toFixed(2)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
-                  <FormField
-                    control={form.control}
-                    name="expectedRevenue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Expected Revenue</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            disabled
-                            className="bg-blue-50 border-blue-200"
-                            value={field.value.toFixed(2)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-
-        {/* Hidden Next Button - Controlled by parent */}
-        <button type="button" onClick={handleNext} className="hidden" id="step1-next" />
+        <button 
+          type="button" 
+          onClick={handleNext} 
+          className="hidden" 
+          id="step1-next" 
+        />
       </div>
     </Form>
   );

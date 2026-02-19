@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plus, DollarSign, CheckCircle2, Clock, TrendingUp, AlertCircle } from 'lucide-react';
+import { Plus, DollarSign, CheckCircle2, Clock, TrendingUp, AlertCircle, Filter } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFinancialLineStore } from '@/store/financialLineStore';
 import { useProjectStore } from '@/store/projectStore';
@@ -12,7 +12,8 @@ import { CreateFLWizard } from './components/CreateFLWizard';
 
 export function FinancialLineListPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const { fls = [], loading, filters, fetchFLs, setFilter } = useFinancialLineStore();
+  const [showFilters, setShowFilters] = useState(false);
+  const { fls = [], loading, filters, fetchFLs, setFilter, clearFilters } = useFinancialLineStore();
   const { projects = [], fetchProjects } = useProjectStore();
 
   useEffect(() => {
@@ -46,13 +47,13 @@ export function FinancialLineListPage() {
   const handleStatClick = (status?: string) => {
     if (status) {
       setFilter('status', status);
+      setFilter('search', '');
+      setFilter('locationType', '');
+      setFilter('contractType', '');
+      setFilter('projectId', '');
     } else {
       // Clear all filters
-      setFilter('search', '');
-      setFilter('status', ' ');
-      setFilter('locationType', ' ');
-      setFilter('contractType', ' ');
-      setFilter('projectId', ' ');
+      clearFilters();
     }
   };
 
@@ -139,71 +140,85 @@ export function FinancialLineListPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>Search and filter financial lines</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            <Input
-              placeholder="Search by FL no, name..."
-              value={filters.search}
-              onChange={(e) => setFilter('search', e.target.value)}
-            />
-            
-            <Select value={filters.status} onValueChange={(value) => setFilter('status', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value=" ">All Statuses</SelectItem>
-                <SelectItem value="Draft">Draft</SelectItem>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="On Hold">On Hold</SelectItem>
-                <SelectItem value="Closed">Closed</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filters.locationType} onValueChange={(value) => setFilter('locationType', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Location Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value=" ">All Locations</SelectItem>
-                <SelectItem value="Onsite">Onsite</SelectItem>
-                <SelectItem value="Offshore">Offshore</SelectItem>
-                <SelectItem value="Hybrid">Hybrid</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filters.contractType} onValueChange={(value) => setFilter('contractType', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Contract Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value=" ">All Types</SelectItem>
-                <SelectItem value="T&M">T&M</SelectItem>
-                <SelectItem value="Fixed Price">Fixed Price</SelectItem>
-                <SelectItem value="Retainer">Retainer</SelectItem>
-                <SelectItem value="Milestone-based">Milestone-based</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filters.projectId} onValueChange={(value) => setFilter('projectId', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Project" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value=" ">All Projects</SelectItem>
-                {activeProjects.map((project) => (
-                  <SelectItem key={project._id} value={project._id}>
-                    {project.projectName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Filters</CardTitle>
+              <CardDescription>Search and filter financial lines</CardDescription>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </Button>
           </div>
-        </CardContent>
+        </CardHeader>
+        {showFilters && (
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+              <Input
+                placeholder="Search by FL no, name..."
+                value={filters.search}
+                onChange={(e) => setFilter('search', e.target.value)}
+              />
+              
+              <Select value={filters.status} onValueChange={(value) => setFilter('status', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value=" ">All Statuses</SelectItem>
+                  <SelectItem value="Draft">Draft</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="On Hold">On Hold</SelectItem>
+                  <SelectItem value="Closed">Closed</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.locationType} onValueChange={(value) => setFilter('locationType', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Location Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value=" ">All Locations</SelectItem>
+                  <SelectItem value="Onsite">Onsite</SelectItem>
+                  <SelectItem value="Offshore">Offshore</SelectItem>
+                  <SelectItem value="Hybrid">Hybrid</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.contractType} onValueChange={(value) => setFilter('contractType', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Contract Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value=" ">All Types</SelectItem>
+                  <SelectItem value="T&M">T&M</SelectItem>
+                  <SelectItem value="Fixed Price">Fixed Price</SelectItem>
+                  <SelectItem value="Retainer">Retainer</SelectItem>
+                  <SelectItem value="Milestone-based">Milestone-based</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.projectId} onValueChange={(value) => setFilter('projectId', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value=" ">All Projects</SelectItem>
+                  {activeProjects.map((project) => (
+                    <SelectItem key={project._id} value={project._id}>
+                      {project.projectName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       <Card>

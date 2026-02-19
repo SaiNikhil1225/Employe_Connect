@@ -35,13 +35,16 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { CreateCustomerDialog } from './CreateCustomerDialog';
 import { CustomerTableSkeleton } from './CustomerTableSkeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import type { ColumnVisibility } from './ColumnToggle';
 
 interface CustomerTableProps {
   customers: Customer[];
   isLoading: boolean;
+  columnVisibility?: ColumnVisibility;
 }
 
-export function CustomerTable({ customers, isLoading }: CustomerTableProps) {
+export function CustomerTable({ customers, isLoading, columnVisibility }: CustomerTableProps) {
   const { deleteCustomer } = useCustomerStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -51,6 +54,17 @@ export function CustomerTable({ customers, isLoading }: CustomerTableProps) {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+
+  // Default column visibility if not provided
+  const cols = columnVisibility || {
+    customerNumber: true,
+    customerName: true,
+    industry: true,
+    region: true,
+    regionHead: true,
+    status: true,
+    createdAt: true,
+  };
 
   const handleEdit = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -223,12 +237,11 @@ export function CustomerTable({ customers, isLoading }: CustomerTableProps) {
 
   if (customers.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <p className="text-muted-foreground">No customers found</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Create your first customer to get started
-        </p>
-      </div>
+      <EmptyState
+        variant="search"
+        title="No customers found"
+        description="Try adjusting your search query or filters to find what you're looking for."
+      />
     );
   }
 
@@ -282,74 +295,86 @@ export function CustomerTable({ customers, isLoading }: CustomerTableProps) {
                   aria-label="Select all on page"
                 />
               </TableHead>
-              <TableHead>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`-ml-3 h-8 ${sortConfig?.key === 'customerNo' ? 'font-semibold' : ''}`}
-                  onClick={() => handleSort('customerNo')}
-                >
-                  Customer No
-                  {getSortIcon('customerNo')}
-                </Button>
-              </TableHead>
-              <TableHead>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`-ml-3 h-8 ${sortConfig?.key === 'customerName' ? 'font-semibold' : ''}`}
-                  onClick={() => handleSort('customerName')}
-                >
-                  Customer Name
-                  {getSortIcon('customerName')}
-                </Button>
-              </TableHead>
-              <TableHead>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`-ml-3 h-8 ${sortConfig?.key === 'industry' ? 'font-semibold' : ''}`}
-                  onClick={() => handleSort('industry')}
-                >
-                  Industry
-                  {getSortIcon('industry')}
-                </Button>
-              </TableHead>
-              <TableHead>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`-ml-3 h-8 ${sortConfig?.key === 'region' ? 'font-semibold' : ''}`}
-                  onClick={() => handleSort('region')}
-                >
-                  Region
-                  {getSortIcon('region')}
-                </Button>
-              </TableHead>
-              <TableHead>Region Head</TableHead>
-              <TableHead>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`-ml-3 h-8 ${sortConfig?.key === 'status' ? 'font-semibold' : ''}`}
-                  onClick={() => handleSort('status')}
-                >
-                  Status
-                  {getSortIcon('status')}
-                </Button>
-              </TableHead>
-              <TableHead>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`-ml-3 h-8 ${sortConfig?.key === 'createdAt' ? 'font-semibold' : ''}`}
-                  onClick={() => handleSort('createdAt')}
-                >
-                  Created
-                  {getSortIcon('createdAt')}
-                </Button>
-              </TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {cols.customerNumber && (
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`-ml-3 h-8 whitespace-nowrap ${sortConfig?.key === 'customerNo' ? 'font-semibold' : ''}`}
+                    onClick={() => handleSort('customerNo')}
+                  >
+                    Customer Number
+                    {getSortIcon('customerNo')}
+                  </Button>
+                </TableHead>
+              )}
+              {cols.customerName && (
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`-ml-3 h-8 whitespace-nowrap ${sortConfig?.key === 'customerName' ? 'font-semibold' : ''}`}
+                    onClick={() => handleSort('customerName')}
+                  >
+                    Customer Name
+                    {getSortIcon('customerName')}
+                  </Button>
+                </TableHead>
+              )}
+              {cols.industry && (
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`-ml-3 h-8 whitespace-nowrap ${sortConfig?.key === 'industry' ? 'font-semibold' : ''}`}
+                    onClick={() => handleSort('industry')}
+                  >
+                    Industry
+                    {getSortIcon('industry')}
+                  </Button>
+                </TableHead>
+              )}
+              {cols.region && (
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`-ml-3 h-8 whitespace-nowrap ${sortConfig?.key === 'region' ? 'font-semibold' : ''}`}
+                    onClick={() => handleSort('region')}
+                  >
+                    Region
+                    {getSortIcon('region')}
+                  </Button>
+                </TableHead>
+              )}
+              {cols.regionHead && <TableHead className="normal-case !font-medium !tracking-normal whitespace-nowrap">Region Head</TableHead>}
+              {cols.status && (
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`-ml-3 h-8 whitespace-nowrap ${sortConfig?.key === 'status' ? 'font-semibold' : ''}`}
+                    onClick={() => handleSort('status')}
+                  >
+                    Status
+                    {getSortIcon('status')}
+                  </Button>
+                </TableHead>
+              )}
+              {cols.createdAt && (
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`-ml-3 h-8 whitespace-nowrap ${sortConfig?.key === 'createdAt' ? 'font-semibold' : ''}`}
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    Created Date
+                    {getSortIcon('createdAt')}
+                  </Button>
+                </TableHead>
+              )}
+              <TableHead className="text-right normal-case !font-medium !tracking-normal whitespace-nowrap">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -364,23 +389,27 @@ export function CustomerTable({ customers, isLoading }: CustomerTableProps) {
                       aria-label={`Select ${customer.customerName}`}
                     />
                   </TableCell>
-                  <TableCell className="font-medium">{customer.customerNo}</TableCell>
-                  <TableCell>{customer.customerName}</TableCell>
-                  <TableCell>{customer.industry}</TableCell>
-                  <TableCell>{customer.region}</TableCell>
-                  <TableCell>{customer.regionHead || '-'}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={customer.status === 'Active' ? 'default' : 'secondary'}
-                    >
-                      {customer.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {customer.createdAt
-                      ? format(new Date(customer.createdAt), 'MMM dd, yyyy')
-                      : '-'}
-                  </TableCell>
+                  {cols.customerNumber && <TableCell className="font-medium">{customer.customerNo}</TableCell>}
+                  {cols.customerName && <TableCell>{customer.customerName}</TableCell>}
+                  {cols.industry && <TableCell>{customer.industry}</TableCell>}
+                  {cols.region && <TableCell>{customer.region}</TableCell>}
+                  {cols.regionHead && <TableCell>{customer.regionHead || '-'}</TableCell>}
+                  {cols.status && (
+                    <TableCell>
+                      <Badge
+                        variant={customer.status === 'Active' ? 'default' : 'secondary'}
+                      >
+                        {customer.status}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {cols.createdAt && (
+                    <TableCell>
+                      {customer.createdAt
+                        ? format(new Date(customer.createdAt), 'MMM dd, yyyy')
+                        : '-'}
+                    </TableCell>
+                  )}
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

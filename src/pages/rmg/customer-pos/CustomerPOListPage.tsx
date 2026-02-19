@@ -36,7 +36,7 @@ export function CustomerPOListPage() {
   const activePOs = pos.filter(po => po.status === 'Active').length;
   const closedPOs = pos.filter(po => po.status === 'Closed').length;
   const expiredPOs = pos.filter(po => po.status === 'Expired').length;
-  const totalPOValue = pos.reduce((sum, po) => sum + (po.contractValue || 0), 0);
+  const totalPOValue = pos.reduce((sum, po) => sum + (po.poAmount || 0), 0);
 
   // Mock trend data (in real app, compare with last month from API)
   const trends = {
@@ -186,7 +186,7 @@ export function CustomerPOListPage() {
               <SelectContent>
                 <SelectItem value=" ">All Customers</SelectItem>
                 {activeCustomers.map((customer) => (
-                  <SelectItem key={customer._id} value={customer._id}>
+                  <SelectItem key={customer._id} value={customer._id || ''}>
                     {customer.customerName}
                   </SelectItem>
                 ))}
@@ -199,11 +199,11 @@ export function CustomerPOListPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value=" ">All Projects</SelectItem>
-                {activeProjects.map((project) => (
+                {activeProjects.map((project) => project._id ? (
                   <SelectItem key={project._id} value={project._id}>
                     {typeof project.projectName === 'string' ? project.projectName : 'Unknown'}
                   </SelectItem>
-                ))}
+                ) : null)}
               </SelectContent>
             </Select>
           </div>

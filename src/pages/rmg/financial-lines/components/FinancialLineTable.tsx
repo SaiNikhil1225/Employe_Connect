@@ -9,8 +9,7 @@ import {
   type PaginationState,
 } from '@tanstack/react-table';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Trash2, Pencil, UserPlus, Eye, Copy, Archive, Download, X } from 'lucide-react';
+import { MoreHorizontal, Trash2, Pencil, Eye, Copy, Archive, Download, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,6 +44,7 @@ import { useFinancialLineStore } from '@/store/financialLineStore';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { FinancialLineTableSkeleton } from './FinancialLineTableSkeleton';
+import { CreateFLForm } from './CreateFLForm';
 
 interface FinancialLineTableProps {
   data: FinancialLine[];
@@ -52,7 +52,6 @@ interface FinancialLineTableProps {
 }
 
 export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
-  const navigate = useNavigate();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState({});
   const [pagination, setPagination] = useState<PaginationState>({
@@ -62,16 +61,18 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [selectedFL, setSelectedFL] = useState<FinancialLine | null>(null);
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const [editingFL, setEditingFL] = useState<FinancialLine | null>(null);
   const { deleteFL, fetchFLs } = useFinancialLineStore();
 
-  const handleEditClick = (fl: FinancialLine) => {
-    // TODO: Implement edit functionality
-    toast.info(`Edit functionality for FL ${fl.flNo} will be available soon`);
+  const handleViewClick = (fl: FinancialLine) => {
+    // View details in a modal/drawer - showing FL information
+    toast.info(`View details for FL ${fl.flNo} - Feature in development. All FL data is visible in the table.`);
   };
 
-  const handleAddResourceClick = (fl: FinancialLine) => {
-    // TODO: Implement add resource functionality
-    toast.info(`Add Resource functionality for FL ${fl.flNo} will be available soon`);
+  const handleEditClick = (fl: FinancialLine) => {
+    setEditingFL(fl);
+    setIsEditFormOpen(true);
   };
 
   const handleDeleteClick = (fl: FinancialLine) => {
@@ -86,17 +87,17 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
         toast.success(`FL ${selectedFL.flNo} deleted successfully`);
         setIsDeleteOpen(false);
         setSelectedFL(null);
-      } catch (error) {
+      } catch {
         toast.error('Failed to delete financial line');
       }
     }
   };
 
-  const handleDuplicate = (fl: FinancialLine) => {
+  const handleDuplicate = () => {
     toast.info('Duplicate feature coming soon');
   };
 
-  const handleArchive = (fl: FinancialLine) => {
+  const handleArchive = () => {
     toast.info('Archive feature coming soon');
   };
 
@@ -136,25 +137,8 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
       toast.success(`Deleted ${selectedFLs.length} FL(s)`);
       setRowSelection({});
       setBulkDeleteDialogOpen(false);
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete some financial lines');
-    }
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'default';
-      case 'Draft':
-        return 'secondary';
-      case 'On Hold':
-        return 'outline';
-      case 'Closed':
-        return 'destructive';
-      case 'Completed':
-        return 'default';
-      default:
-        return 'outline';
     }
   };
 
@@ -177,6 +161,7 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
       ),
       enableSorting: false,
       enableHiding: false,
+      size: 40,
     },
     {
       accessorKey: 'flNo',
@@ -184,6 +169,7 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
       cell: ({ row }) => (
         <div className="font-medium text-primary whitespace-nowrap">{row.getValue('flNo')}</div>
       ),
+      enableSorting: true,
     },
     {
       accessorKey: 'flName',
@@ -236,7 +222,7 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
     },
     {
       accessorKey: 'billingRate',
-      header: 'Bill Rate',
+      header: 'Billing Rate',
       cell: ({ row }) => {
         const rate = row.getValue('billingRate') as number;
         const currency = row.original.currency;
@@ -249,29 +235,26 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
     },
     {
       accessorKey: 'rateUom',
-      header: 'Bill Rate Unit',
+      header: 'Rate Unit',
       cell: ({ row }) => (
         <div className="text-sm">{row.getValue('rateUom')}</div>
       ),
     },
     {
-      accessorKey: 'effort',
-      header: 'Efforts',
+      accessorKey: 'projectId',
+      header: 'Project',
       cell: ({ row }) => {
-        const effort = row.original.effort || 0;
-        return (
-          <div className="font-medium">
-            {effort.toLocaleString()}
-          </div>
-        );
+        const project = row.original.projectId;
+        if (typeof project === 'string') {
+          // Only ID, no name
+          return <span>{project}</span>;
+        } else if (project && typeof project === 'object') {
+          // Object with projectId and projectName
+          return <span>{project.projectId} - {project.projectName}</span>;
+        } else {
+          return <span>-</span>;
+        }
       },
-    },
-    {
-      accessorKey: 'effortUom',
-      header: 'Effort Unit',
-      cell: ({ row }) => (
-        <div className="text-sm">{row.getValue('effortUom')}</div>
-      ),
     },
     {
       accessorKey: 'totalPlannedRevenue',
@@ -288,9 +271,10 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
     },
     {
       id: 'actions',
-      header: 'Action',
+      header: 'Actions',
       cell: ({ row }) => {
         const fl = row.original;
+        
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -300,7 +284,7 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleViewClick(fl)}>
                 <Eye className="mr-2 h-4 w-4" />
                 View Details
               </DropdownMenuItem>
@@ -308,16 +292,12 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDuplicate(fl)}>
+              <DropdownMenuItem onClick={handleDuplicate}>
                 <Copy className="mr-2 h-4 w-4" />
                 Duplicate
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleAddResourceClick(fl)}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add Resource
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleArchive(fl)}>
+              <DropdownMenuItem onClick={handleArchive}>
                 <Archive className="mr-2 h-4 w-4" />
                 Archive
               </DropdownMenuItem>
@@ -409,23 +389,62 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
-                  {headerGroup.headers.map((header, index) => (
-                    <TableHead 
-                      key={header.id} 
-                      className={`font-semibold whitespace-nowrap ${
-                        header.id === 'actions' 
-                          ? 'sticky right-0 bg-muted/50 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] z-20' 
-                          : ''
-                      }`}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
+                  {headerGroup.headers.map((header) => {
+                    const isSortable = header.column.getCanSort();
+                    const sortDirection = header.column.getIsSorted();
+                    
+                    return (
+                      <TableHead 
+                        key={header.id} 
+                        className={`font-semibold whitespace-nowrap ${
+                          header.id === 'select'
+                            ? 'w-[40px] sticky left-0 bg-muted z-20'
+                            : header.id === 'flNo'
+                            ? 'sticky left-[40px] bg-muted z-20'
+                            : header.id === 'actions' 
+                            ? 'sticky right-0 bg-muted z-20' 
+                            : ''
+                        }`}
+                        style={{
+                          ...(header.id === 'select' && {
+                            boxShadow: '4px 0 8px -2px rgba(0,0,0,0.1)',
+                            backgroundColor: 'hsl(var(--muted))'
+                          }),
+                          ...(header.id === 'flNo' && {
+                            boxShadow: '4px 0 8px -2px rgba(0,0,0,0.1)',
+                            backgroundColor: 'hsl(var(--muted))'
+                          }),
+                          ...(header.id === 'actions' && {
+                            boxShadow: '-4px 0 8px -2px rgba(0,0,0,0.1)',
+                            backgroundColor: 'hsl(var(--muted))'
+                          })
+                        }}
+                      >
+                        {header.isPlaceholder ? null : (
+                          <div
+                            className={isSortable ? 'flex items-center gap-2 cursor-pointer select-none' : ''}
+                            onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
+                          >
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                            {isSortable && (
+                              <span className="ml-auto">
+                                {sortDirection === 'asc' ? (
+                                  <ArrowUp className="h-4 w-4" />
+                                ) : sortDirection === 'desc' ? (
+                                  <ArrowDown className="h-4 w-4" />
+                                ) : (
+                                  <ArrowUpDown className="h-4 w-4 opacity-50" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableHeader>
@@ -436,11 +455,28 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
                     <TableCell 
                       key={cell.id}
                       className={`${
-                        cell.column.id === 'actions' 
-                          ? 'sticky right-0 bg-white dark:bg-slate-950 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] z-20' 
+                        cell.column.id === 'select'
+                          ? 'w-[40px] sticky left-0 bg-background z-20'
+                          : cell.column.id === 'flNo'
+                          ? 'sticky left-[40px] bg-background z-20'
+                          : cell.column.id === 'actions' 
+                          ? 'sticky right-0 bg-background z-20' 
                           : ''
                       }`}
-                      style={cell.column.id === 'actions' ? { backgroundColor: 'var(--background)' } : {}}
+                      style={{
+                        ...(cell.column.id === 'select' && {
+                          boxShadow: '4px 0 8px -2px rgba(0,0,0,0.1)',
+                          backgroundColor: 'hsl(var(--background))'
+                        }),
+                        ...(cell.column.id === 'flNo' && {
+                          boxShadow: '4px 0 8px -2px rgba(0,0,0,0.1)',
+                          backgroundColor: 'hsl(var(--background))'
+                        }),
+                        ...(cell.column.id === 'actions' && {
+                          boxShadow: '-4px 0 8px -2px rgba(0,0,0,0.1)',
+                          backgroundColor: 'hsl(var(--background))'
+                        })
+                      }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
@@ -525,6 +561,21 @@ export function FinancialLineTable({ data, loading }: FinancialLineTableProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit FL Form */}
+      <CreateFLForm
+        open={isEditFormOpen}
+        onOpenChange={(open) => {
+          setIsEditFormOpen(open);
+          if (!open) setEditingFL(null);
+        }}
+        editData={editingFL}
+        isEditMode={true}
+        onSuccess={() => {
+          fetchFLs();
+          toast.success('Financial Line updated successfully');
+        }}
+      />
     </>
   );
 }

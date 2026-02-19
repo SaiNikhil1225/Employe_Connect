@@ -35,11 +35,11 @@ export const useFinancialLineStore = create<FinancialLineStore>((set, get) => ({
       const { filters } = get();
       const params = new URLSearchParams();
       
-      if (filters.search) params.append('search', filters.search);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.locationType) params.append('locationType', filters.locationType);
-      if (filters.contractType) params.append('contractType', filters.contractType);
-      if (filters.projectId) params.append('projectId', filters.projectId);
+      if (filters.search && filters.search.trim()) params.append('search', filters.search);
+      if (filters.status && filters.status.trim()) params.append('status', filters.status);
+      if (filters.locationType && filters.locationType.trim()) params.append('locationType', filters.locationType);
+      if (filters.contractType && filters.contractType.trim()) params.append('contractType', filters.contractType);
+      if (filters.projectId && filters.projectId.trim()) params.append('projectId', filters.projectId);
 
       console.log('fetchFLs - Fetching with filters:', filters);
       console.log('fetchFLs - API URL:', `/api/financial-lines?${params.toString()}`);
@@ -106,8 +106,10 @@ export const useFinancialLineStore = create<FinancialLineStore>((set, get) => ({
   },
 
   setFilter: (key: keyof FinancialLineFilters, value: string) => {
+    // Normalize space character to empty string (treats " " as "no filter")
+    const normalizedValue = value.trim() === '' ? '' : value;
     set((state) => ({
-      filters: { ...state.filters, [key]: value }
+      filters: { ...state.filters, [key]: normalizedValue }
     }));
   },
 

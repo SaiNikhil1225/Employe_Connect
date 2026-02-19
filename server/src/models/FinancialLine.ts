@@ -243,6 +243,40 @@ financialLineSchema.pre('save', function(next) {
     }
   }
   
+  // Calculate totalPlannedRevenue from revenuePlanning array
+  if (this.revenuePlanning && this.revenuePlanning.length > 0) {
+    this.totalPlannedRevenue = this.revenuePlanning.reduce((sum, item) => {
+      return sum + (item.plannedRevenue || 0);
+    }, 0);
+    console.log('Calculated totalPlannedRevenue:', this.totalPlannedRevenue);
+  } else {
+    this.totalPlannedRevenue = 0;
+  }
+  
+  next();
+});
+
+// Pre-update hook to calculate totalPlannedRevenue
+financialLineSchema.pre('findOneAndUpdate', function(next) {
+  const update = this.getUpdate() as any;
+  
+  // Calculate totalPlannedRevenue from revenuePlanning array if it's being updated
+  if (update.revenuePlanning && Array.isArray(update.revenuePlanning)) {
+    const totalPlannedRevenue = update.revenuePlanning.reduce((sum: number, item: any) => {
+      return sum + (item.plannedRevenue || 0);
+    }, 0);
+    update.totalPlannedRevenue = totalPlannedRevenue;
+    console.log('Pre-update: Calculated totalPlannedRevenue:', totalPlannedRevenue);
+    this.setUpdate(update);
+  } else if (update.$set?.revenuePlanning && Array.isArray(update.$set.revenuePlanning)) {
+    const totalPlannedRevenue = update.$set.revenuePlanning.reduce((sum: number, item: any) => {
+      return sum + (item.plannedRevenue || 0);
+    }, 0);
+    update.$set.totalPlannedRevenue = totalPlannedRevenue;
+    console.log('Pre-update ($set): Calculated totalPlannedRevenue:', totalPlannedRevenue);
+    this.setUpdate(update);
+  }
+  
   next();
 });
 

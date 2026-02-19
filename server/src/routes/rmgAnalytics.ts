@@ -1,6 +1,6 @@
 import express from 'express';
 import { Request, Response } from 'express';
-import Allocation from '../models/Allocation';
+import { FLResource } from '../models/FLResource';
 import Employee from '../models/Employee';
 import Project from '../models/Project';
 
@@ -90,57 +90,76 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
       ? new Date(startDate as string) 
       : new Date(end.getFullYear(), end.getMonth(), 1);
 
-    // Build employee filter
-    const employeeFilter: Record<string, unknown> = {
-      status: 'active',
-      isActive: true
-    };
+    console.log('=== Resource Utilization Query Debug ===');
+    console.log('Date Range:', { start, end });
+    console.log('Filters:', { department, role, billable });
 
-    if (department) {
-      employeeFilter.department = department;
-    }
-
-    if (role) {
-      employeeFilter.designation = role;
-    }
-
-    // Fetch all active employees matching filter
-    const employees = await Employee.find(employeeFilter).lean();
-
-    // Build allocation filter
-    const allocationFilter: Record<string, unknown> = {
-      status: 'active',
+    // Build FL resource filter
+    const flResourceFilter: Record<string, unknown> = {
+      status: 'Active',
       $or: [
         {
-          startDate: { $lte: end },
-          $or: [
-            { endDate: { $gte: start } },
-            { endDate: null }
-          ]
+          requestedFromDate: { $lte: end },
+          requestedToDate: { $gte: start }
         }
       ]
     };
 
     if (billable !== undefined) {
-      allocationFilter.billable = billable === 'true';
+      flResourceFilter.billable = billable === 'true';
     }
 
-    // Fetch allocations for the period
-    const allocations = await Allocation.find(allocationFilter).lean();
+    if (department) {
+      flResourceFilter.department = department;
+    }
+
+    if (role) {
+      flResourceFilter.jobRole = role;
+    }
+
+    console.log('FL Resource Filter:', JSON.stringify(flResourceFilter, null, 2));
+
+    // Fetch FL resources for the period
+    const flResources = await FLResource.find(flResourceFilter).lean();
+    
+    console.log('FL Resources Found:', flResources.length);
+    if (flResources.length > 0) {
+      console.log('Sample FL Resource:', JSON.stringify(flResources[0], null, 2));
+    }
+
+    // Get unique employee IDs from FL resources
+    const employeeIds = [...new Set(flResources.map(r => r.employeeId).filter(Boolean))];
+
+    console.log('Employee IDs from FL Resources:', employeeIds);
+
+
+    // Fetch only employees with FL resources (for utilization)
+    const employeeFilter: Record<string, unknown> = {
+      employeeId: { $in: employeeIds },
+      status: 'active',
+      isActive: true
+    };
+    const employees = await Employee.find(employeeFilter).lean();
+
+    // Fetch all active employees for global headcount
+    const globalEmployeeCount = await Employee.countDocuments({ status: 'active', isActive: true });
+    console.log('Employees Found:', employees.length);
+    console.log('Global Employee Count:', globalEmployeeCount);
+    console.log('=== End Debug ===\n');
 
     // Calculate utilization for each employee
     const employeeUtilization = new Map();
     const departmentMap = new Map();
 
     employees.forEach(emp => {
-      const empAllocations = allocations.filter(a => a.employeeId === emp.employeeId);
-      const totalAllocation = empAllocations.reduce((sum, a) => sum + a.allocation, 0);
+      const empAllocations = flResources.filter(a => a.employeeId === emp.employeeId);
+      const totalAllocation = empAllocations.reduce((sum, a) => sum + (a.utilizationPercentage || 0), 0);
       const billableAllocation = empAllocations
         .filter(a => a.billable)
-        .reduce((sum, a) => sum + a.allocation, 0);
+        .reduce((sum, a) => sum + (a.utilizationPercentage || 0), 0);
       const nonBillableAllocation = empAllocations
         .filter(a => !a.billable)
-        .reduce((sum, a) => sum + a.allocation, 0);
+        .reduce((sum, a) => sum + (a.utilizationPercentage || 0), 0);
 
       employeeUtilization.set(emp.employeeId, {
         employee: emp,
@@ -175,7 +194,7 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
     });
 
     // Calculate summary metrics
-    const totalResources = employees.length;
+    const totalResources = globalEmployeeCount;
     const utilizedResources = Array.from(employeeUtilization.values())
       .filter((u: UserAllocation) => u.totalAllocation >= 50).length;
     
@@ -322,25 +341,22 @@ router.get('/allocation-efficiency', async (req: Request, res: Response) => {
       : new Date(end.getFullYear(), end.getMonth(), 1);
 
     // Build filters
-    const allocationFilter: Record<string, unknown> = {
-      status: 'active',
+    const flResourceFilter: Record<string, unknown> = {
+      status: 'Active',
       $or: [
         {
-          startDate: { $lte: end },
-          $or: [
-            { endDate: { $gte: start } },
-            { endDate: null }
-          ]
+          requestedFromDate: { $lte: end },
+          requestedToDate: { $gte: start }
         }
       ]
     };
 
     if (projectId) {
-      allocationFilter.projectId = projectId;
+      flResourceFilter.projectId = projectId;
     }
 
-    const allocations = await Allocation.find(allocationFilter).lean();
-    const employeeIds = [...new Set(allocations.map(a => a.employeeId))];
+    const flResources = await FLResource.find(flResourceFilter).lean();
+    const employeeIds = [...new Set(flResources.map(a => a.employeeId).filter(Boolean))];
     
     const employeeFilter: Record<string, unknown> = {
       employeeId: { $in: employeeIds },
@@ -357,8 +373,8 @@ router.get('/allocation-efficiency', async (req: Request, res: Response) => {
     // Calculate allocation per employee
     const employeeAllocations = new Map();
     employees.forEach(emp => {
-      const empAllocs = allocations.filter(a => a.employeeId === emp.employeeId);
-      const totalAllocation = empAllocs.reduce((sum, a) => sum + a.allocation, 0);
+      const empAllocs = flResources.filter(a => a.employeeId === emp.employeeId);
+      const totalAllocation = empAllocs.reduce((sum, a) => sum + (a.utilizationPercentage || 0), 0);
       
       employeeAllocations.set(emp.employeeId, {
         employee: emp,
@@ -402,9 +418,9 @@ router.get('/allocation-efficiency', async (req: Request, res: Response) => {
 
     // Project-wise allocation summary
     const projectSummary = projects.map(proj => {
-      const projAllocs = allocations.filter(a => a.projectId === proj.projectId);
-      const resourceCount = new Set(projAllocs.map(a => a.employeeId)).size;
-      const totalAllocation = projAllocs.reduce((sum, a) => sum + a.allocation, 0);
+      const projAllocs = flResources.filter(a => a.projectId?.toString() === proj.projectId);
+      const resourceCount = new Set(projAllocs.map(a => a.employeeId).filter(Boolean)).size;
+      const totalAllocation = projAllocs.reduce((sum, a) => sum + (a.utilizationPercentage || 0), 0);
       const avgAllocation = resourceCount > 0 ? totalAllocation / resourceCount : 0;
 
       return {
@@ -487,16 +503,13 @@ router.get('/cost-summary', async (req: Request, res: Response) => {
     }
     const employees = await Employee.find(employeeFilter).lean();
 
-    // Get allocations for the period
-    const allocationFilter: Record<string, unknown> = {
-      status: 'active',
-      startDate: { $lte: end },
-      $or: [
-        { endDate: { $gte: start } },
-        { endDate: null }
-      ]
+    // Get FL resources for the period
+    const flResourceFilter: Record<string, unknown> = {
+      status: 'Active',
+      requestedFromDate: { $lte: end },
+      requestedToDate: { $gte: start }
     };
-    const allocations = await Allocation.find(allocationFilter).lean();
+    const flResources = await FLResource.find(flResourceFilter).lean();
 
     // Get projects
     const projectFilter: Record<string, unknown> = { status: { $in: ['active', 'on-hold', 'completed'] } };
@@ -512,7 +525,7 @@ router.get('/cost-summary', async (req: Request, res: Response) => {
       department: string;
       monthlySalary: number;
       periodCost: number;
-      allocations: typeof allocations;
+      allocations: typeof flResources;
       billableAllocation: number;
       nonBillableAllocation: number;
       billableCost: number;
@@ -523,12 +536,12 @@ router.get('/cost-summary', async (req: Request, res: Response) => {
     const employeeCosts = new Map<string, EmployeeCost>();
 
     employees.forEach(emp => {
-      const empAllocs = allocations.filter(a => a.employeeId === emp.employeeId);
+      const empAllocs = flResources.filter(a => a.employeeId === emp.employeeId);
       const billableAllocs = empAllocs.filter(a => a.billable !== false);
       const nonBillableAllocs = empAllocs.filter(a => a.billable === false);
 
-      const billableAllocation = billableAllocs.reduce((sum, a) => sum + a.allocation, 0);
-      const nonBillableAllocation = nonBillableAllocs.reduce((sum, a) => sum + a.allocation, 0);
+      const billableAllocation = billableAllocs.reduce((sum, a) => sum + (a.utilizationPercentage || 0), 0);
+      const nonBillableAllocation = nonBillableAllocs.reduce((sum, a) => sum + (a.utilizationPercentage || 0), 0);
       const totalAllocation = billableAllocation + nonBillableAllocation;
 
       const monthlySalary = (emp as any).monthlySalary || 0; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -889,9 +902,9 @@ router.get('/demand-forecast', async (req: Request, res: Response) => {
       startDate: { $gte: start, $lte: end }
     }).lean();
 
-    // Get current allocations to understand demand
-    const allocations = await Allocation.find({
-      status: 'active'
+    // Get current FL resources to understand demand
+    const flResources = await FLResource.find({
+      status: 'Active'
     }).lean();
 
     // Build employee filter
@@ -913,8 +926,8 @@ router.get('/demand-forecast', async (req: Request, res: Response) => {
     // Calculate current utilization
     const currentUtilization = new Map();
     employees.forEach(emp => {
-      const empAllocs = allocations.filter(a => a.employeeId === emp.employeeId);
-      const totalAlloc = empAllocs.reduce((sum, a) => sum + a.allocation, 0);
+      const empAllocs = flResources.filter(a => a.employeeId === emp.employeeId);
+      const totalAlloc = empAllocs.reduce((sum, a) => sum + (a.utilizationPercentage || 0), 0);
       currentUtilization.set(emp.employeeId, totalAlloc);
     });
 

@@ -14,7 +14,7 @@ interface FLStep4MilestonesProps {
   step2Data: FLStep2Data;
   onDataChange: (data: Partial<FLStep4Data>) => void;
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: (data?: Partial<FLStep4Data>) => void;  // Updated to accept optional data parameter
   isSubmitting?: boolean;
 }
 
@@ -102,10 +102,15 @@ export function FLStep4Milestones({ data, step1Data, step2Data, onDataChange, on
       return;
     }
 
-    onDataChange({
+    const step4Data = {
       paymentMilestones: milestones,
-    });
-    onComplete();
+    };
+    
+    // Update parent state
+    onDataChange(step4Data);
+    
+    // Pass data directly to onComplete to avoid state timing issues
+    onComplete(step4Data);
   };
 
   const totalMilestones = calculateTotalMilestones();

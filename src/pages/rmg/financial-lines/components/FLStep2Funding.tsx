@@ -8,6 +8,7 @@ import { useCustomerPOStore } from '@/store/customerPOStore';
 import { useToast } from '@/hooks/use-toast';
 import type { FLStep1Data, FLStep2Data, FundingAllocation, UOM } from '@/types/financialLine';
 import { useEffect } from 'react';
+import axios from 'axios';
 
 interface FLStep2FundingProps {
   data: Partial<FLStep2Data>;
@@ -21,6 +22,7 @@ export function FLStep2Funding({ data, step1Data, onDataChange, onNext, onBack }
   const [fundingRows, setFundingRows] = useState<FundingAllocation[]>(data.funding || []);
   const { pos, fetchPOs } = useCustomerPOStore();
   const { toast } = useToast();
+  const [poAllocations, setPOAllocations] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchPOs();
@@ -33,6 +35,38 @@ export function FLStep2Funding({ data, step1Data, onDataChange, onNext, onBack }
     }
     return po.projectId === step1Data.projectId;
   });
+
+  // Fetch existing allocations for each PO
+  useEffect(() => {
+    const fetchPOAllocations = async () => {
+      try {
+        const response = await axios.get(`/api/financial-lines?projectId=${step1Data.projectId}`);
+        const allFLs = response.data.data || [];
+        
+        // Calculate total allocated amount per PO
+        const allocations: Record<string, number> = {};
+        
+        allFLs.forEach((fl: any) => {
+          if (fl.funding && Array.isArray(fl.funding)) {
+            fl.funding.forEach((allocation: any) => {
+              const poNo = allocation.poNo;
+              const amount = allocation.fundingAmountPoCurrency || 0;
+              allocations[poNo] = (allocations[poNo] || 0) + amount;
+            });
+          }
+        });
+        
+        console.log('PO Allocations calculated:', allocations);
+        setPOAllocations(allocations);
+      } catch (error) {
+        console.error('Error fetching PO allocations:', error);
+      }
+    };
+
+    if (step1Data.projectId && projectPOs.length > 0) {
+      fetchPOAllocations();
+    }
+  }, [step1Data.projectId, projectPOs.length]);
 
   const addFundingRow = () => {
     const newRow: FundingAllocation = {
@@ -65,8 +99,15 @@ export function FLStep2Funding({ data, step1Data, onDataChange, onNext, onBack }
       if (selectedPO) {
         updated[index].contractNo = selectedPO.contractNo;
         updated[index].poCurrency = selectedPO.poCurrency;
-        updated[index].availablePOLineInPO = selectedPO.poAmount;
-        updated[index].availablePOLineInProject = selectedPO.poAmount;
+        
+        // Calculate available balance: PO Amount - Already Allocated
+        const alreadyAllocated = poAllocations[selectedPO.poNo] || 0;
+        const availableBalance = selectedPO.poAmount - alreadyAllocated;
+        
+        console.log(`PO ${selectedPO.poNo}: Total=${selectedPO.poAmount}, Allocated=${alreadyAllocated}, Available=${availableBalance}`);
+        
+        updated[index].availablePOLineInPO = availableBalance;
+        updated[index].availablePOLineInProject = availableBalance;
       }
     }
 
@@ -164,11 +205,11 @@ export function FLStep2Funding({ data, step1Data, onDataChange, onNext, onBack }
           <div className="space-y-4">
             {/* Info Message */}
             <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800">
-              <p className="font-medium mb-1">💡 Calculation Logic:</p>
+              <p className="font-medium mb-1">💡 Day-Based Calculation:</p>
               <ul className="list-disc list-inside space-y-1 text-xs">
-                <li><strong>Funding Value = Unit Rate × Funding Units</strong></li>
-                <li>Edit <strong>Funding Units</strong> or <strong>Unit Rate</strong> → <strong>Funding Value</strong> auto-calculates</li>
-                <li>Edit <strong>Funding Value</strong> directly → <strong>Funding Units</strong> auto-calculates (Unit Rate ÷ Funding Value)</li>
+                <li><strong>Funding Value = Billing Rate × Number of Working Days</strong></li>
+                <li>Edit <strong>Funding Days</strong> or <strong>Billing Rate</strong> → <strong>Funding Value</strong> auto-calculates</li>
+                <li>Edit <strong>Funding Value</strong> directly → <strong>Funding Days</strong> auto-calculates</li>
               </ul>
             </div>
             
@@ -182,8 +223,8 @@ export function FLStep2Funding({ data, step1Data, onDataChange, onNext, onBack }
                     <th className="border p-2 text-left text-sm font-medium">Contract No</th>
                     <th className="border p-2 text-left text-sm font-medium">Project Currency</th>
                     <th className="border p-2 text-left text-sm font-medium">PO Currency</th>
-                    <th className="border p-2 text-left text-sm font-medium">Unit Rate *</th>
-                    <th className="border p-2 text-left text-sm font-medium">Funding Units</th>
+                    <th className="border p-2 text-left text-sm font-medium">Billing Rate *</th>
+                    <th className="border p-2 text-left text-sm font-medium">Working</th>
                     <th className="border p-2 text-left text-sm font-medium">UOM</th>
                     <th className="border p-2 text-left text-sm font-medium">Funding Value (Project) *</th>
                     <th className="border p-2 text-left text-sm font-medium">Available PO Line</th>

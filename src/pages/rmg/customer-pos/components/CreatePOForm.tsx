@@ -27,7 +27,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Upload, FileText } from 'lucide-react';
 import type { CustomerPOFormData } from '@/types/customerPO';
@@ -53,8 +52,16 @@ const poFormSchema = z.object({
   paymentTerms: z.enum(['Net 30', 'Net 45', 'Net 60', 'Net 90', 'Immediate', 'Custom'], { 
     message: 'Payment terms are required' 
   }),
-  autoRelease: z.boolean().default(true),
   notes: z.string().optional(),
+}).refine((data) => {
+  // PO Start Date must be AFTER PO Creation Date
+  if (data.poCreationDate && data.poStartDate) {
+    return new Date(data.poStartDate) > new Date(data.poCreationDate);
+  }
+  return true;
+}, {
+  message: 'PO Start Date must be after PO Creation Date',
+  path: ['poStartDate'],
 }).refine((data) => {
   // PO Validity Date must be >= PO Start Date
   if (data.poStartDate && data.poValidityDate) {
@@ -81,7 +88,6 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
   const { projects = [], fetchProjects } = useProjectStore();
   const { customers = [], fetchCustomers } = useCustomerStore();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [contractNo, setContractNo] = useState('');
 
   // Generate unique contract number
   const generateContractNo = () => {
@@ -114,7 +120,6 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
       poAmount: 0,
       poCurrency: 'USD',
       paymentTerms: 'Net 30',
-      autoRelease: true,
       notes: '',
     },
   });
@@ -125,7 +130,6 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
       form.setValue('projectId', defaultProjectId);
       // Generate contract number when form opens
       const newContractNo = generateContractNo();
-      setContractNo(newContractNo);
       form.setValue('contractNo', newContractNo);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,7 +235,6 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
         poAmount: data.poAmount,
         poCurrency: data.poCurrency,
         paymentTerms: data.paymentTerms,
-        autoRelease: data.autoRelease,
         status: 'Active',
         notes: data.notes,
       };
@@ -258,14 +261,14 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
   const handleClose = () => {
     form.reset();
     setUploadedFile(null);
-    setContractNo('');
     onOpenChange(false);
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-3xl w-full">
-        <SheetHeader className="pb-6 border-b border-brand-light-gray">
+      <SheetContent className="flex flex-col h-full overflow-hidden !w-[75vw] max-w-none">
+        {/* Fixed Header */}
+        <SheetHeader className="flex-shrink-0 pb-6 border-b border-brand-light-gray">
           <SheetTitle className="text-2xl font-bold text-brand-navy">Create Customer PO</SheetTitle>
           <SheetDescription className="text-brand-slate">
             Fill in the purchase order details to create a new customer PO.
@@ -273,17 +276,19 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
         </SheetHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 mt-6 pb-6">
-            {/* Hidden fields for IDs */}
-            <input type="hidden" {...form.register('projectId')} />
-            <input type="hidden" {...form.register('customerId')} />
-            
-            {/* Auto-Filled Fields Section - Read Only */}
-            <div className="bg-gradient-to-br from-blue-50 to-transparent p-6 rounded-lg border border-blue-200">
-              <h3 className="text-lg font-semibold text-brand-navy mb-2">Auto-Generated & Project Details</h3>
-              <p className="text-xs text-brand-slate mb-4">These fields are automatically filled and cannot be edited</p>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto space-y-6 mt-6 pr-2">
+              {/* Hidden fields for IDs */}
+              <input type="hidden" {...form.register('projectId')} />
+              <input type="hidden" {...form.register('customerId')} />
               
-              <div className="space-y-4">
+              {/* Auto-Filled Fields Section - Read Only */}
+              <div className="bg-gradient-to-br from-blue-50 to-transparent p-6 rounded-lg border border-blue-200">
+                <h3 className="text-lg font-semibold text-brand-navy mb-2">Auto-Generated & Project Details</h3>
+                <p className="text-xs text-brand-slate mb-4">These fields are automatically filled and cannot be edited</p>
+                
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                 <FormField
                   control={form.control}
                   name="contractNo"
@@ -374,7 +379,7 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
             <div className="bg-gradient-to-br from-brand-green/5 to-transparent p-6 rounded-lg border border-brand-light-gray">
               <h3 className="text-lg font-semibold text-brand-navy mb-4">PO Details</h3>
               
-              <div className="space-y-5">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                 <FormField
                   control={form.control}
                   name="poNo"
@@ -417,7 +422,7 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
             <div className="bg-white p-6 rounded-lg border border-brand-light-gray shadow-sm">
               <h3 className="text-lg font-semibold text-brand-navy mb-4">PO Dates</h3>
               
-              <div className="grid gap-5 md:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                 <FormField
                   control={form.control}
                   name="poCreationDate"
@@ -481,7 +486,7 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
             <div className="bg-white p-6 rounded-lg border border-brand-light-gray shadow-sm">
               <h3 className="text-lg font-semibold text-brand-navy mb-4">Financial Info</h3>
               
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                 <FormField
                   control={form.control}
                   name="poAmount"
@@ -532,31 +537,33 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
             <div className="bg-white p-6 rounded-lg border border-brand-light-gray shadow-sm">
               <h3 className="text-lg font-semibold text-brand-navy mb-4">Payment & Terms</h3>
               
-              <FormField
-                control={form.control}
-                name="paymentTerms"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-brand-navy font-medium">Payment Terms (Days) *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="border-brand-light-gray focus:border-brand-green focus:ring-brand-green">
-                          <SelectValue placeholder="Select payment terms" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Net 30">Net 30</SelectItem>
-                        <SelectItem value="Net 45">Net 45</SelectItem>
-                        <SelectItem value="Net 60">Net 60</SelectItem>
-                        <SelectItem value="Net 90">Net 90</SelectItem>
-                        <SelectItem value="Immediate">Immediate</SelectItem>
-                        <SelectItem value="Custom">Custom</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+                <FormField
+                  control={form.control}
+                  name="paymentTerms"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-brand-navy font-medium">Payment Terms (Days) *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="border-brand-light-gray focus:border-brand-green focus:ring-brand-green">
+                            <SelectValue placeholder="Select payment terms" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Net 30">Net 30</SelectItem>
+                          <SelectItem value="Net 45">Net 45</SelectItem>
+                          <SelectItem value="Net 60">Net 60</SelectItem>
+                          <SelectItem value="Net 90">Net 90</SelectItem>
+                          <SelectItem value="Immediate">Immediate</SelectItem>
+                          <SelectItem value="Custom">Custom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             {/* Document Upload Section */}
@@ -595,37 +602,13 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
 
             {/* Other Options Section */}
             <div className="bg-white p-6 rounded-lg border border-brand-light-gray shadow-sm">
-              <h3 className="text-lg font-semibold text-brand-navy mb-4">Other Options</h3>
+              <h3 className="text-lg font-semibold text-brand-navy mb-4">Additional Notes</h3>
               
-              <FormField
-                control={form.control}
-                name="autoRelease"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="border-brand-light-gray data-[state=checked]:bg-brand-green data-[state=checked]:border-brand-green"
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel className="text-brand-navy font-medium">
-                        Auto Release *
-                      </FormLabel>
-                      <FormDescription className="text-brand-slate text-xs">
-                        Automatically release this PO when conditions are met
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
                 name="notes"
                 render={({ field }) => (
-                  <FormItem className="mt-4">
+                  <FormItem>
                     <FormLabel className="text-brand-navy font-medium">Notes</FormLabel>
                     <FormControl>
                       <textarea 
@@ -640,9 +623,10 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
                 )}
               />
             </div>
+            </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-brand-light-gray">
+            <div className="flex-shrink-0 flex justify-end gap-3 pt-4 mt-6 border-t border-brand-light-gray">
               <Button 
                 type="button" 
                 variant="outline" 

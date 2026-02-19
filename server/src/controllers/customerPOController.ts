@@ -90,9 +90,9 @@ export const createCustomerPO = async (req: Request, res: Response) => {
       }
 
       // Validate poValidityDate <= project endDate
-      if (req.body.poValidityDate && project.endDate) {
+      if (req.body.poValidityDate && project.projectEndDate) {
         const poValidity = new Date(req.body.poValidityDate);
-        const projectEnd = new Date(project.endDate);
+        const projectEnd = new Date(project.projectEndDate);
         if (poValidity > projectEnd) {
           return res.status(400).json({ 
             success: false, 
@@ -128,9 +128,9 @@ export const updateCustomerPO = async (req: Request, res: Response) => {
       }
 
       // Validate poValidityDate >= project endDate
-      if (req.body.poValidityDate && project.endDate) {
+      if (req.body.poValidityDate && project.projectEndDate) {
         const poValidity = new Date(req.body.poValidityDate);
-        const projectEnd = new Date(project.endDate);
+        const projectEnd = new Date(project.projectEndDate);
         if (poValidity < projectEnd) {
           return res.status(400).json({ 
             success: false, 

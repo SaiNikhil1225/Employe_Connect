@@ -39,17 +39,21 @@ export function CreateProjectDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col h-full overflow-hidden !w-[60vw] max-w-none">
+      <SheetContent className="flex flex-col h-full overflow-hidden w-full sm:max-w-6xl p-0">
         {/* Fixed Header */}
-        <SheetHeader className="flex-shrink-0 border-b pb-4">
-          <SheetTitle>Create New Project</SheetTitle>
-          <SheetDescription>
-            Add a new project to your portfolio. Fill in the basic details and schedule information.
-          </SheetDescription>
-        </SheetHeader>
+        <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+          <SheetHeader>
+            <SheetTitle className="text-xl font-semibold text-brand-navy dark:text-gray-100">
+              Create New Project
+            </SheetTitle>
+            <SheetDescription className="text-sm text-brand-slate dark:text-gray-400">
+              Add a new project to your portfolio. Fill in the basic details and schedule information.
+            </SheetDescription>
+          </SheetHeader>
+        </div>
         
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="flex-1 overflow-y-auto p-6">
           <ProjectForm
             onSubmit={handleSubmit}
             isLoading={isLoading}
