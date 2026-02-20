@@ -52,6 +52,7 @@ import { CustomerListPage } from '@/pages/rmg/customers/CustomerListPage';
 import { ProjectListPage } from '@/pages/rmg/projects/ProjectListPage';
 import { ProjectDetailPage } from '@/pages/rmg/projects/ProjectDetailPage';
 import { FinancialLineListPage } from '@/pages/rmg/financial-lines/FinancialLineListPage';
+import ConfigurationPage from '@/pages/rmg/ConfigurationPage';
 
 // Super Admin Pages
 import { SuperAdminDashboard } from '@/pages/superadmin/SuperAdminDashboard';
@@ -379,6 +380,14 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/rmg/projects">
                 <ProjectDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rmg/configuration"
+            element={
+              <ProtectedRoute requiredPath="/rmg/configuration">
+                <ConfigurationPage />
               </ProtectedRoute>
             }
           />

@@ -190,7 +190,7 @@ const SubCategoryMapping = mongoose.model('SubCategoryMapping', subCategoryMappi
 // Read JSON file helper
 function readJsonFile(filename: string): Record<string, unknown>[] {
   try {
-    const dataPath = path.join(__dirname, '../../src/data', filename);
+    const dataPath = path.join(__dirname, 'data', filename);
     const data = fs.readFileSync(dataPath, 'utf-8');
     const jsonData = JSON.parse(data);
     
@@ -201,8 +201,8 @@ function readJsonFile(filename: string): Record<string, unknown>[] {
       return rest;
     });
   } catch (error) {
-    console.error(`❌ Error reading JSON file ${filename}:`, error);
-    throw new Error(`Failed to parse ${filename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error(`⚠️  Warning: Could not read ${filename}:`, error instanceof Error ? error.message : 'Unknown error');
+    return [];
   }
 }
 
@@ -233,74 +233,118 @@ async function seedDatabase() {
     // Seed Users
     console.log('📥 Importing users...');
     const users = readJsonFile('users.json');
-    await User.insertMany(users);
-    console.log(`✅ Imported ${users.length} users`);
+    if (users.length > 0) {
+      await User.insertMany(users);
+      console.log(`✅ Imported ${users.length} users`);
+    } else {
+      console.log('⚠️  Skipped users (no data file found)');
+    }
 
     // Seed Employees
     console.log('📥 Importing employees...');
     const employees = readJsonFile('employees.json');
-    await Employee.insertMany(employees);
-    console.log(`✅ Imported ${employees.length} employees`);
+    if (employees.length > 0) {
+      await Employee.insertMany(employees);
+      console.log(`✅ Imported ${employees.length} employees`);
+    } else {
+      console.log('⚠️  Skipped employees (no data file found)');
+    }
 
     // Seed Attendance
     console.log('📥 Importing attendance records...');
     const attendance = readJsonFile('attendance.json');
-    await Attendance.insertMany(attendance);
-    console.log(`✅ Imported ${attendance.length} attendance records`);
+    if (attendance.length > 0) {
+      await Attendance.insertMany(attendance);
+      console.log(`✅ Imported ${attendance.length} attendance records`);
+    } else {
+      console.log('⚠️  Skipped attendance (no data file found)');
+    }
 
     // Seed Leaves
     console.log('📥 Importing leave records...');
     const leaves = readJsonFile('leaves.json');
-    await Leave.insertMany(leaves);
-    console.log(`✅ Imported ${leaves.length} leave records`);
+    if (leaves.length > 0) {
+      await Leave.insertMany(leaves);
+      console.log(`✅ Imported ${leaves.length} leave records`);
+    } else {
+      console.log('⚠️  Skipped leaves (no data file found)');
+    }
 
     // Seed Holidays
     console.log('📥 Importing holidays...');
     const holidays = readJsonFile('holidays.json');
-    await Holiday.insertMany(holidays);
-    console.log(`✅ Imported ${holidays.length} holidays`);
+    if (holidays.length > 0) {
+      await Holiday.insertMany(holidays);
+      console.log(`✅ Imported ${holidays.length} holidays`);
+    } else {
+      console.log('⚠️  Skipped holidays (no data file found)');
+    }
 
     // Seed Announcements
     console.log('📥 Importing announcements...');
     const announcements = readJsonFile('announcements.json');
-    await Announcement.insertMany(announcements);
-    console.log(`✅ Imported ${announcements.length} announcements`);
+    if (announcements.length > 0) {
+      await Announcement.insertMany(announcements);
+      console.log(`✅ Imported ${announcements.length} announcements`);
+    } else {
+      console.log('⚠️  Skipped announcements (no data file found)');
+    }
 
     // Seed Celebrations
     console.log('📥 Importing celebrations...');
     const celebrations = readJsonFile('celebrations.json');
-    await Celebration.insertMany(celebrations);
-    console.log(`✅ Imported ${celebrations.length} celebrations`);
+    if (celebrations.length > 0) {
+      await Celebration.insertMany(celebrations);
+      console.log(`✅ Imported ${celebrations.length} celebrations`);
+    } else {
+      console.log('⚠️  Skipped celebrations (no data file found)');
+    }
 
     // Seed New Joiners
     console.log('📥 Importing new joiners...');
     const newJoiners = readJsonFile('newJoiners.json');
-    await NewJoiner.insertMany(newJoiners);
-    console.log(`✅ Imported ${newJoiners.length} new joiners`);
+    if (newJoiners.length > 0) {
+      await NewJoiner.insertMany(newJoiners);
+      console.log(`✅ Imported ${newJoiners.length} new joiners`);
+    } else {
+      console.log('⚠️  Skipped new joiners (no data file found)');
+    }
 
     // Seed Projects
     console.log('📥 Importing projects...');
     const projects = readJsonFile('projects.json');
-    await Project.insertMany(projects);
-    console.log(`✅ Imported ${projects.length} projects`);
+    if (projects.length > 0) {
+      await Project.insertMany(projects);
+      console.log(`✅ Imported ${projects.length} projects`);
+    } else {
+      console.log('⚠️  Skipped projects (no data file found)');
+    }
 
     // Seed Allocations
     console.log('📥 Importing allocations...');
     const allocations = readJsonFile('allocations.json');
-    await Allocation.insertMany(allocations);
-    console.log(`✅ Imported ${allocations.length} allocations`);
+    if (allocations.length > 0) {
+      await Allocation.insertMany(allocations);
+      console.log(`✅ Imported ${allocations.length} allocations`);
+    } else {
+      console.log('⚠️  Skipped allocations (no data file found)');
+    }
 
     // Seed Payroll
     console.log('📥 Importing payroll records...');
     const payroll = readJsonFile('payroll.json');
-    await Payroll.insertMany(payroll);
-    console.log(`✅ Imported ${payroll.length} payroll records`);
+    if (payroll.length > 0) {
+      await Payroll.insertMany(payroll);
+      console.log(`✅ Imported ${payroll.length} payroll records`);
+    } else {
+      console.log('⚠️  Skipped payroll (no data file found)');
+    }
 
     // Seed SubCategory Mapping
     console.log('📥 Importing subcategory mappings...');
     try {
       const subCategoryMappingRaw = fs.readFileSync(
-        path.join(__dirname, '../../src/data/subCategoryMapping.json'),
+        path.join(__dirname, 'data/subCategoryMapping.json'),
         'utf-8'
       );
       const subCategoryMapping = JSON.parse(subCategoryMappingRaw);
@@ -310,8 +354,7 @@ async function seedDatabase() {
       }]);
       console.log(`✅ Imported subcategory mappings`);
     } catch (error) {
-      console.error('❌ Error importing subcategory mappings:', error);
-      throw error;
+      console.log('⚠️  Skipped subcategory mappings (no data file found)');
     }
 
     console.log('\n🎉 Database seeding completed successfully!');

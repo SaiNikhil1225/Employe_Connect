@@ -59,6 +59,17 @@ export function Utilization() {
   const [designation, setDesignation] = useState<string>('all');
   const [project, setProject] = useState<string>('all');
 
+  // Clear all filters to default (no filters)
+  const handleClearFilters = () => {
+    setSearch('');
+    setFromDate(undefined);
+    setToDate(undefined);
+    setDepartment('all');
+    setDesignation('all');
+    setProject('all');
+    fetchData();
+  };
+
   // Option lists (dynamic)
   const [departmentOptions, setDepartmentOptions] = useState<string[]>(['all']);
   const [designationOptions, setDesignationOptions] = useState<string[]>(['all']);
@@ -229,8 +240,9 @@ export function Utilization() {
               </Select>
             </div>
           </div>
-          <div className="flex justify-end mt-4">
+          <div className="flex justify-end mt-4 gap-2">
             <Button onClick={handleApplyFilters} variant="default">Apply Filters</Button>
+            <Button onClick={handleClearFilters} variant="outline">Clear Filters</Button>
           </div>
         </CardContent>
       </Card>
@@ -321,17 +333,21 @@ export function Utilization() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">-</TableCell>
+                          <TableCell className="text-sm">{employee.designation}</TableCell>
                           <TableCell className="text-sm">{employee.department}</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">-</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">-</TableCell>
+                          <TableCell className="text-sm">
+                            {employee.startDate ? new Date(employee.startDate).toLocaleDateString() : '-'}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {employee.endDate ? new Date(employee.endDate).toLocaleDateString() : '-'}
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2 min-w-[120px]">
                               <Progress value={employee.utilization} className="h-2 flex-1" />
                               <span className="text-sm font-medium whitespace-nowrap">{employee.utilization}%</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">Multiple Projects</TableCell>
+                          <TableCell className="text-sm">{employee.projectName}</TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import type { ProjectFormData } from '@/types/project';
 import type { Customer } from '@/types/customer';
 import { useCustomerStore } from '@/store/customerStore';
+import { configService, type ConfigMaster } from '@/services/configService';
 import axios from 'axios';
 import {
   Form,
@@ -60,33 +61,7 @@ const REGION_HEADS = [
   'Mohammed Al-Rashid',
 ] as const;
 
-const LEAD_SOURCES = [
-  'Direct',
-  'Partner Referral',
-  'Website',
-  'Event',
-  'Cold Outreach',
-  'Existing Customer',
-  'Marketing Campaign',
-  'Other',
-] as const;
-
-const REVENUE_TYPES = [
-  'New Business',
-  'Expansion',
-  'Renewal',
-  'Upsell',
-  'Cross-sell',
-] as const;
-
-const CLIENT_TYPES = [
-  'Enterprise',
-  'Mid-Market',
-  'SMB',
-  'Startup',
-  'Government',
-] as const;
-
+// Validation schema
 const projectSchema = z.object({
   projectId: z.string().optional(),
   customerId: z.string({ message: 'Customer is required. Please select a customer from Account Name.' }).min(1, 'Customer is required'),
@@ -98,7 +73,7 @@ const projectSchema = z.object({
   projectManager: z.string({ message: 'Project manager is required' }).min(1, 'Project manager is required'),
   deliveryManager: z.string({ message: 'Delivery manager is required' }).min(1, 'Delivery manager is required'),
   dealOwner: z.string({ message: 'Deal owner is required' }).min(1, 'Deal owner is required'),
-  billingType: z.enum(['T&M', 'Fixed Bid', 'Fixed Monthly', 'License'], { message: 'Billing type is required' }),
+  billingType: z.string({ message: 'Billing type is required' }).min(1, 'Billing type is required'),
   practiceUnit: z.enum(['AiB & Automation', 'GenAI', 'Data & Analytics', 'Cloud Engineering', 'Other'], { message: 'Practice unit is required' }),
   region: z.enum(['UK', 'India', 'USA', 'ME', 'Other'], { message: 'Region is required' }),
   industry: z.string({ message: 'Industry is required' }).min(1, 'Industry is required'),
@@ -109,7 +84,7 @@ const projectSchema = z.object({
   projectWonThroughRFP: z.boolean().default(false),
   projectStartDate: z.string({ message: 'Start date is required' }).min(1, 'Start date is required'),
   projectEndDate: z.string({ message: 'End date is required' }).min(1, 'End date is required'),
-  projectCurrency: z.enum(['USD', 'GBP', 'INR', 'EUR', 'AED'], { message: 'Currency is required' }),
+  projectCurrency: z.string({ message: 'Currency is required' }).min(1, 'Currency is required'),
 });
 
 interface ProjectFormProps {
@@ -134,6 +109,14 @@ export function ProjectForm({
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 2;
 
+  // Configuration state
+  const [leadSources, setLeadSources] = useState<ConfigMaster[]>([]);
+  const [revenueTypes, setRevenueTypes] = useState<ConfigMaster[]>([]);
+  const [clientTypes, setClientTypes] = useState<ConfigMaster[]>([]);
+  const [billingTypes, setBillingTypes] = useState<ConfigMaster[]>([]);
+  const [currencies, setCurrencies] = useState<ConfigMaster[]>([]);
+  const [configLoading, setConfigLoading] = useState(true);
+
   const form = useForm({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -147,7 +130,7 @@ export function ProjectForm({
       projectManager: '',
       deliveryManager: '',
       dealOwner: '',
-      billingType: undefined,
+      billingType: '',
       practiceUnit: undefined,
       region: undefined,
       industry: '',
@@ -158,7 +141,7 @@ export function ProjectForm({
       projectWonThroughRFP: false,
       projectStartDate: '',
       projectEndDate: '',
-      projectCurrency: 'USD' as const,
+      projectCurrency: '',
       ...defaultValues,
     },
   });
@@ -167,6 +150,34 @@ export function ProjectForm({
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
+
+  // Fetch configuration values on mount
+  useEffect(() => {
+    const fetchConfigurations = async () => {
+      try {
+        setConfigLoading(true);
+        const [leadSourcesData, revenueTypesData, clientTypesData, billingTypesData, currenciesData] = await Promise.all([
+          configService.getActiveByType('lead-source'),
+          configService.getActiveByType('revenue-type'),
+          configService.getActiveByType('client-type'),
+          configService.getActiveByType('billing-type'),
+          configService.getActiveByType('project-currency'),
+        ]);
+        
+        setLeadSources(leadSourcesData);
+        setRevenueTypes(revenueTypesData);
+        setClientTypes(clientTypesData);
+        setBillingTypes(billingTypesData);
+        setCurrencies(currenciesData);
+      } catch (error) {
+        console.error('Failed to fetch configurations:', error);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+
+    fetchConfigurations();
+  }, []);
 
   // Fetch next project ID for create mode
   useEffect(() => {
@@ -448,17 +459,24 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Billing Type *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select billing type" />
+                          <SelectValue placeholder={configLoading ? "Loading..." : billingTypes.length === 0 ? "No active values configured" : "Select billing type"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="T&M">Time & Material</SelectItem>
-                        <SelectItem value="Fixed Bid">Fixed Bid</SelectItem>
-                        <SelectItem value="Fixed Monthly">Fixed Monthly</SelectItem>
-                        <SelectItem value="License">License</SelectItem>
+                        {billingTypes.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            No active billing types configured
+                          </div>
+                        ) : (
+                          billingTypes.map((type) => (
+                            <SelectItem key={type._id} value={type.name}>
+                              {type.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -577,18 +595,24 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lead Source *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select lead source" />
+                          <SelectValue placeholder={configLoading ? "Loading..." : leadSources.length === 0 ? "No active values configured" : "Select lead source"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {LEAD_SOURCES.map((source) => (
-                          <SelectItem key={source} value={source}>
-                            {source}
-                          </SelectItem>
-                        ))}
+                        {leadSources.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            No active lead sources configured
+                          </div>
+                        ) : (
+                          leadSources.map((source) => (
+                            <SelectItem key={source._id} value={source.name}>
+                              {source.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -603,18 +627,24 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Revenue Type *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select revenue type" />
+                          <SelectValue placeholder={configLoading ? "Loading..." : revenueTypes.length === 0 ? "No active values configured" : "Select revenue type"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {REVENUE_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
+                        {revenueTypes.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            No active revenue types configured
+                          </div>
+                        ) : (
+                          revenueTypes.map((type) => (
+                            <SelectItem key={type._id} value={type.name}>
+                              {type.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -629,18 +659,24 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Client Type *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select client type" />
+                          <SelectValue placeholder={configLoading ? "Loading..." : clientTypes.length === 0 ? "No active values configured" : "Select client type"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {CLIENT_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
+                        {clientTypes.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            No active client types configured
+                          </div>
+                        ) : (
+                          clientTypes.map((type) => (
+                            <SelectItem key={type._id} value={type.name}>
+                              {type.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -729,18 +765,24 @@ export function ProjectForm({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Project Currency *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select currency" />
+                                <SelectValue placeholder={configLoading ? "Loading..." : currencies.length === 0 ? "No active values configured" : "Select currency"} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="USD">USD - US Dollar</SelectItem>
-                              <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                              <SelectItem value="INR">INR - Indian Rupee</SelectItem>
-                              <SelectItem value="EUR">EUR - Euro</SelectItem>
-                              <SelectItem value="AED">AED - UAE Dirham</SelectItem>
+                              {currencies.length === 0 ? (
+                                <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                  No active currencies configured
+                                </div>
+                              ) : (
+                                currencies.map((currency) => (
+                                  <SelectItem key={currency._id} value={currency.name}>
+                                    {currency.name} {currency.description && `- ${currency.description}`}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />

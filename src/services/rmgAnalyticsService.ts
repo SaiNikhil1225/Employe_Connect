@@ -70,7 +70,12 @@ export interface TopPerformer {
   employeeId: string;
   name: string;
   department: string;
+  designation: string;
+  startDate: string | Date;
+  endDate: string | Date;
   utilization: number;
+  projectId: string;
+  projectName: string;
   billablePercentage: number;
 }
 

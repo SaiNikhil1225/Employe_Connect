@@ -112,6 +112,10 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/utilization',
     '/new-announcement',
     '/admin-announcements',
+    '/rmg/customers',
+    '/rmg/projects',
+    '/rmg/financial-lines',
+    '/rmg/configuration',
   ],
   HR: [
     '/dashboard',
@@ -131,6 +135,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/rmg/customers',
     '/rmg/projects',
     '/rmg/financial-lines',
+    '/rmg/configuration',
   ],
   FINANCE_ADMIN: [
     '/dashboard',
@@ -371,6 +376,12 @@ export const navigationConfig: RoutePermission[] = [
     label: 'Projects',
     icon: 'FolderKanban',
     roles: ['RMG'],
+  },
+  {
+    path: '/rmg/configuration',
+    label: 'Configuration',
+    icon: 'Settings',
+    roles: ['RMG', 'SUPER_ADMIN'],
   },
 ];
 

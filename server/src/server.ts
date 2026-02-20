@@ -32,6 +32,7 @@ import customerRoutes from './routes/customers';
 import customerPORoutes from './routes/customerPOs';
 import financialLineRoutes from './routes/financialLines';
 import flResourceRoutes from './routes/flResources';
+import configRoutes from './routes/config';
 
 dotenv.config();
 
@@ -123,6 +124,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/financial-lines', financialLineRoutes);
 app.use('/api/customer-pos', customerPORoutes);
 app.use('/api/fl-resources', flResourceRoutes);
+app.use('/api/config', configRoutes);
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {

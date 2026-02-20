@@ -28,16 +28,18 @@ const employeeSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: [
-      'EMPLOYEE',      // Regular employee
-      'MANAGER',       // Team manager
-      'HR',            // HR personnel
-      'RMG',           // Resource Management Group
-      'IT_ADMIN',      // IT Administrator
-      'IT_EMPLOYEE',   // IT Specialist/Support
-      'L1_APPROVER',   // Level 1 Approver (Team Lead)
-      'L2_APPROVER',   // Level 2 Approver (Manager)
-      'L3_APPROVER',   // Level 3 Approver (Director)
-      'SUPER_ADMIN',   // Super Admin - Full system access
+      'EMPLOYEE',           // Regular employee
+      'MANAGER',            // Team manager
+      'HR',                 // HR personnel
+      'RMG',                // Resource Management Group
+      'IT_ADMIN',           // IT Administrator
+      'IT_EMPLOYEE',        // IT Specialist/Support
+      'L1_APPROVER',        // Level 1 Approver (Team Lead)
+      'L2_APPROVER',        // Level 2 Approver (Manager)
+      'L3_APPROVER',        // Level 3 Approver (Director)
+      'FINANCE_SPECIALIST', // Finance Specialist
+      'FACILITIES_SPECIALIST', // Facilities Specialist
+      'SUPER_ADMIN',        // Super Admin - Full system access
     ],
     default: 'EMPLOYEE'
   },

@@ -27,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Trash2, Eye, UserX, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, Eye, UserX, ArrowUpDown, ArrowUp, ArrowDown, Clock } from 'lucide-react';
 import { SkillTags } from './SkillTag';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -56,15 +56,19 @@ interface ResourceTableProps {
   onEdit?: (resource: Resource) => void;
   onRemove?: (resource: Resource) => void;
   onRelease?: (resource: Resource) => void;
+  onExtend?: (resource: Resource) => void;
   visibleColumns?: string[];
 }
 
-export function ResourceTable({ resources, isLoading, onView, onEdit, onRemove, onRelease, visibleColumns }: ResourceTableProps) {
+// Add onExtend prop
+export function ResourceTable({ resources, isLoading, onView, onEdit, onRemove, onRelease, onExtend, visibleColumns }: ResourceTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 25,
   });
+
+
 
   const getInitials = (name: string) => {
     return name
@@ -235,6 +239,13 @@ export function ResourceTable({ resources, isLoading, onView, onEdit, onRemove, 
           >
             <UserX className="mr-2 h-4 w-4" />
             Release Resource
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onExtend?.(row.original)}
+            disabled={!onExtend || row.original.status !== 'Active'}
+          >
+            <Clock className="mr-2 h-4 w-4" />
+            Extend Allocation
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem 

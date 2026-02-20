@@ -10,6 +10,8 @@
     "seed": "ts-node src/seed.ts",
     "seed:specialists": "ts-node src/seedITSpecialists.ts",
     "seed:approvers": "ts-node src/seedApprovers.ts",
+    "seed:config": "ts-node src/seedConfigMaster.ts",
+    "seed:users": "ts-node src/seedAllUsers.ts",
     "migrate:unified-employee": "ts-node src/migrateToUnifiedEmployee.ts",
     "fix-employees": "ts-node src/fixEmployees.ts"
   },

@@ -36,7 +36,12 @@ interface TopPerformer {
   employeeId: string;
   name: string;
   department: string;
+  designation: string;
+  startDate: Date;
+  endDate: Date;
   utilization: number;
+  projectId: string;
+  projectName: string;
   billablePercentage: number;
 }
 
@@ -84,26 +89,37 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
       billable
     } = req.query;
 
-    // Default to current month if no date range provided
-    const end = endDate ? new Date(endDate as string) : new Date();
-    const start = startDate 
+    // For querying: use provided dates or no date filter
+    let queryStart: Date | undefined = undefined;
+    let queryEnd: Date | undefined = undefined;
+    if (startDate) queryStart = new Date(startDate as string);
+    if (endDate) queryEnd = new Date(endDate as string);
+
+    // For response/calculations: use provided dates or default to current month
+    const responseEnd = endDate ? new Date(endDate as string) : new Date();
+    const responseStart = startDate 
       ? new Date(startDate as string) 
-      : new Date(end.getFullYear(), end.getMonth(), 1);
+      : new Date(responseEnd.getFullYear(), responseEnd.getMonth(), 1);
 
     console.log('=== Resource Utilization Query Debug ===');
-    console.log('Date Range:', { start, end });
+    console.log('Query Date Range:', { queryStart, queryEnd });
+    console.log('Response Date Range:', { responseStart, responseEnd });
     console.log('Filters:', { department, role, billable });
 
     // Build FL resource filter
     const flResourceFilter: Record<string, unknown> = {
-      status: 'Active',
-      $or: [
-        {
-          requestedFromDate: { $lte: end },
-          requestedToDate: { $gte: start }
-        }
-      ]
+      status: 'Active'
     };
+
+    // Only add date overlap filter if either start or end is provided
+    if (queryStart || queryEnd) {
+      flResourceFilter.$or = [
+        {
+          requestedFromDate: { $lte: queryEnd || new Date('9999-12-31') },
+          requestedToDate: { $gte: queryStart || new Date('1900-01-01') }
+        }
+      ];
+    }
 
     if (billable !== undefined) {
       flResourceFilter.billable = billable === 'true';
@@ -129,6 +145,7 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
 
     // Get unique employee IDs from FL resources
     const employeeIds = [...new Set(flResources.map(r => r.employeeId).filter(Boolean))];
+    const allocatedEmployeeIds = new Set(employeeIds);
 
     console.log('Employee IDs from FL Resources:', employeeIds);
 
@@ -136,21 +153,61 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
     // Fetch only employees with FL resources (for utilization)
     const employeeFilter: Record<string, unknown> = {
       employeeId: { $in: employeeIds },
-      status: 'active',
-      isActive: true
+      status: 'active'
     };
     const employees = await Employee.find(employeeFilter).lean();
 
-    // Fetch all active employees for global headcount
-    const globalEmployeeCount = await Employee.countDocuments({ status: 'active', isActive: true });
+    // Fetch all active employees for global headcount and bench calculation
+    const allActiveEmployeesQuery1 = await Employee.find({ status: 'active', isActive: true }).lean();
+    const allActiveEmployeesQuery2 = await Employee.find({ status: 'active' }).lean();
+    const allActiveEmployeesQuery3 = await Employee.countDocuments({ status: 'active', isActive: true });
+    const allActiveEmployeesQuery4 = await Employee.countDocuments({});
+    console.log('Query Results:');
+    console.log('  - With status=active AND isActive=true:', allActiveEmployeesQuery1.length);
+    console.log('  - With status=active only:', allActiveEmployeesQuery2.length);
+    console.log('  - Count with status=active AND isActive=true:', allActiveEmployeesQuery3);
+    console.log('  - Total count:', allActiveEmployeesQuery4);
+    
+    const allActiveEmployees = allActiveEmployeesQuery2; // Use the working query
+    const globalEmployeeCount = allActiveEmployees.length;
+    
+    // Fetch project data for project names
+    const projectIds = [...new Set(flResources.map(r => r.projectId).filter(Boolean))];
+    const projects = await Project.find({ _id: { $in: projectIds } }).lean();
+    const projectMap = new Map(projects.map(p => [p._id.toString(), p]));
+    
     console.log('Employees Found:', employees.length);
     console.log('Global Employee Count:', globalEmployeeCount);
+    console.log('Projects Found:', projects.length);
+    console.log('Project IDs to fetch:', projectIds.map(id => id.toString()));
+    if (projects.length > 0) {
+      console.log('Sample Project:', JSON.stringify(projects[0], null, 2));
+      console.log('ProjectMap keys:', Array.from(projectMap.keys()));
+    }
     console.log('=== End Debug ===\n');
 
     // Calculate utilization for each employee
     const employeeUtilization = new Map();
     const departmentMap = new Map();
 
+    // Initialize departmentMap with ALL active employees
+    allActiveEmployees.forEach(emp => {
+      const dept = emp.department || 'Unassigned';
+      if (!departmentMap.has(dept)) {
+        departmentMap.set(dept, {
+          totalEmployees: 0,
+          allocatedEmployees: 0,
+          totalUtilization: 0,
+          billableHours: 0,
+          nonBillableHours: 0,
+          benchCount: 0
+        });
+      }
+      const deptStats = departmentMap.get(dept);
+      deptStats.totalEmployees++;
+    });
+
+    // Calculate utilization for employees with allocations
     employees.forEach(emp => {
       const empAllocations = flResources.filter(a => a.employeeId === emp.employeeId);
       const totalAllocation = empAllocations.reduce((sum, a) => sum + (a.utilizationPercentage || 0), 0);
@@ -169,34 +226,25 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
         allocationCount: empAllocations.length
       });
 
-      // Track department stats
-      const dept = emp.department;
-      if (!departmentMap.has(dept)) {
-        departmentMap.set(dept, {
-          totalEmployees: 0,
-          totalUtilization: 0,
-          billableHours: 0,
-          nonBillableHours: 0,
-          benchCount: 0
-        });
-      }
-
+      // Track department stats for allocated employees
+      const dept = emp.department || 'Unassigned';
       const deptStats = departmentMap.get(dept);
-      deptStats.totalEmployees++;
-      deptStats.totalUtilization += totalAllocation;
-      deptStats.billableHours += billableAllocation;
-      deptStats.nonBillableHours += nonBillableAllocation;
-      
-      // Bench: < 50% allocated
-      if (totalAllocation < 50) {
-        deptStats.benchCount++;
+      if (deptStats) {
+        deptStats.allocatedEmployees++;
+        deptStats.totalUtilization += totalAllocation;
+        deptStats.billableHours += billableAllocation;
+        deptStats.nonBillableHours += nonBillableAllocation;
       }
+    });
+
+    // Calculate bench count for each department
+    departmentMap.forEach((stats, dept) => {
+      stats.benchCount = stats.totalEmployees - stats.allocatedEmployees;
     });
 
     // Calculate summary metrics
     const totalResources = globalEmployeeCount;
-    const utilizedResources = Array.from(employeeUtilization.values())
-      .filter((u: UserAllocation) => u.totalAllocation >= 50).length;
+    const utilizedResources = allocatedEmployeeIds.size;
     
     const totalUtilizationSum = Array.from(employeeUtilization.values())
       .reduce((sum: number, u: UserAllocation) => sum + u.totalAllocation, 0);
@@ -219,8 +267,7 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
       ? Math.round((totalNonBillableSum / (totalResources * 100)) * 100 * 100) / 100
       : 0;
 
-    const benchStrength = Array.from(employeeUtilization.values())
-      .filter((u: UserAllocation) => u.totalAllocation < 50).length;
+    const benchStrength = totalResources - utilizedResources;
     const summary: ResourceUtilizationSummary = {
       totalResources,
       utilizedResources,
@@ -247,11 +294,11 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
 
     // Generate trend data (daily aggregation)
     const trendData: TrendDataPoint[] = [];
-    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.ceil((responseEnd.getTime() - responseStart.getTime()) / (1000 * 60 * 60 * 24));
     
     for (let i = 0; i <= Math.min(daysDiff, 30); i++) {
-      const currentDate = new Date(start);
-      currentDate.setDate(start.getDate() + i);
+      const currentDate = new Date(responseStart);
+      currentDate.setDate(responseStart.getDate() + i);
       
       trendData.push({
         date: currentDate.toISOString().split('T')[0],
@@ -261,47 +308,50 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
       });
     }
 
-    // Top performers (highly utilized resources)
-    const topPerformers: TopPerformer[] = Array.from(employeeUtilization.values())
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((u: any) => u.totalAllocation >= 50)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .sort((a: any, b: any) => b.totalAllocation - a.totalAllocation)
-      .slice(0, 10)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((u: any) => ({
-        employeeId: u.employee.employeeId,
-        name: u.employee.name,
-        department: u.employee.department,
-        utilization: Math.round(u.totalAllocation * 100) / 100,
-        billablePercentage: u.totalAllocation > 0
-          ? Math.round((u.billableAllocation / u.totalAllocation) * 100 * 100) / 100
-          : 0
-      }));
+    // Active allocations - show ALL FL resources (each allocation separately)
+    const topPerformers: TopPerformer[] = flResources.map(flResource => {
+      // Try to find employee record, fallback to FL resource data
+      const employee = employees.find(e => e.employeeId === flResource.employeeId);
+      const project = flResource.projectId ? projectMap.get(flResource.projectId.toString()) : null;
+      
+      // Debug: Log project mapping
+      if (flResource.projectId) {
+        console.log('Looking for project:', flResource.projectId.toString(), 'Found:', project ? project.name : 'NOT FOUND');
+      }
+      
+      return {
+        employeeId: flResource.employeeId || 'N/A',
+        name: employee ? employee.name : flResource.resourceName,
+        department: employee ? employee.department : flResource.department,
+        designation: employee ? employee.designation : flResource.jobRole,
+        startDate: flResource.requestedFromDate,
+        endDate: flResource.requestedToDate,
+        utilization: flResource.utilizationPercentage || 0,
+        projectId: project ? project.projectId : 'N/A',
+        projectName: project ? project.name : flResource.flName,
+        billablePercentage: flResource.billable ? 100 : 0
+      };
+    });
 
-    // Bench resources (under-utilized)
-    const benchResources: BenchResource[] = Array.from(employeeUtilization.values())
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((u: any) => u.totalAllocation < 50)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .sort((a: any, b: any) => a.totalAllocation - b.totalAllocation)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((u: any) => ({
-        employeeId: u.employee.employeeId,
-        name: u.employee.name,
-        department: u.employee.department,
-        designation: u.employee.designation,
-        utilization: Math.round(u.totalAllocation * 100) / 100,
-        skills: u.employee.skills || [],
-        availableSince: u.allocationCount === 0 ? u.employee.dateOfJoining : null
+    // Bench resources - ALL employees without active FL resources
+    const benchResources: BenchResource[] = allActiveEmployees
+      .filter(emp => !allocatedEmployeeIds.has(emp.employeeId))
+      .map(emp => ({
+        employeeId: emp.employeeId,
+        name: emp.name,
+        department: emp.department,
+        designation: emp.designation,
+        utilization: 0,
+        skills: emp.skills || [],
+        availableSince: emp.dateOfJoining || null
       }));
 
     res.json({
       success: true,
       data: {
         period: {
-          start: start.toISOString().split('T')[0],
-          end: end.toISOString().split('T')[0]
+          start: responseStart.toISOString().split('T')[0],
+          end: responseEnd.toISOString().split('T')[0]
         },
         summary,
         departmentBreakdown,

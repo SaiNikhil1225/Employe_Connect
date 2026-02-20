@@ -107,6 +107,7 @@ const getQuickActions = (role: string, navigate: (path: string) => void) => {
     RMG: [
       { label: 'Resources', icon: BarChart3, path: '/rmg/resources', color: 'bg-pink-500 hover:bg-pink-600' },
       { label: 'Analytics', icon: TrendingUp, path: '/rmg/analytics', color: 'bg-purple-500 hover:bg-purple-600' },
+      { label: 'Configuration', icon: Settings, path: '/rmg/configuration', color: 'bg-gray-500 hover:bg-gray-600' },
       { label: 'Reports', icon: FileText, path: '/reports', color: 'bg-blue-500 hover:bg-blue-600' }
     ],
     SUPER_ADMIN: [

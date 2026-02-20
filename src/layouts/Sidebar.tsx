@@ -35,6 +35,7 @@ import {
   FolderKanban,
   Building,
   Briefcase,
+  Settings,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -73,6 +74,7 @@ const iconMap: Record<string, LucideIcon> = {
   FolderKanban,
   Building,
   Briefcase,
+  Settings,
 };
 
 interface MenuSection {

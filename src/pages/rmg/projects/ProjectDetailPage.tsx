@@ -89,6 +89,8 @@ export function ProjectDetailPage() {
   const [isEditResourceOpen, setIsEditResourceOpen] = useState(false);
   const [isDeleteResourceOpen, setIsDeleteResourceOpen] = useState(false);
   const [resourceToDelete, setResourceToDelete] = useState<any | null>(null);
+  const [isReleaseResourceOpen, setIsReleaseResourceOpen] = useState(false);
+  const [resourceToRelease, setResourceToRelease] = useState<any | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState('');
@@ -419,15 +421,21 @@ export function ProjectDetailPage() {
   };
 
   const handleReleaseResource = async (resource: any) => {
+    setResourceToRelease(resource);
+    setIsReleaseResourceOpen(true);
+  };
+
+  const handleReleaseResourceConfirm = async () => {
+    if (!resourceToRelease) return;
     try {
       // Find the full resource object
-      const fullResource = flResources.find(r => r._id === resource.id);
-      
+      const fullResource = flResources.find(r => r._id === resourceToRelease.id);
       if (!fullResource) {
         toast.error('Resource not found');
+        setIsReleaseResourceOpen(false);
+        setResourceToRelease(null);
         return;
       }
-
       // Set end date to today and status to Inactive
       const today = new Date();
       const updateData = {
@@ -435,15 +443,13 @@ export function ProjectDetailPage() {
         requestedToDate: today.toISOString(),
         status: 'Inactive'
       };
-
-      const response = await fetch(`/api/fl-resources/${resource.id}`, {
+      const response = await fetch(`/api/fl-resources/${resourceToRelease.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(updateData),
       });
-
       if (response.ok) {
         toast.success('Resource released successfully');
         fetchFLResources(); // Refresh the list
@@ -454,6 +460,9 @@ export function ProjectDetailPage() {
     } catch (error) {
       console.error('Error releasing resource:', error);
       toast.error('Failed to release resource');
+    } finally {
+      setIsReleaseResourceOpen(false);
+      setResourceToRelease(null);
     }
   };
 
@@ -860,8 +869,26 @@ export function ProjectDetailPage() {
                       onEdit={handleEditResource}
                       onRemove={handleRemoveResource}
                       onRelease={handleReleaseResource}
+                      onExtend={handleEditResource}
                       visibleColumns={allocatedHoursColumns}
                     />
+                    {/* Release Resource Confirmation Dialog */}
+                    <AlertDialog open={isReleaseResourceOpen} onOpenChange={setIsReleaseResourceOpen}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Release Resource?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to release this resource? This will set the end date to today and mark the resource as inactive.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleReleaseResourceConfirm} className="bg-orange-600 text-white hover:bg-orange-700">
+                            Release
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </CardContent>
                 </Card>
               </div>
