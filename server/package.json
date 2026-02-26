@@ -13,7 +13,8 @@
     "seed:config": "ts-node src/seedConfigMaster.ts",
     "seed:users": "ts-node src/seedAllUsers.ts",
     "migrate:unified-employee": "ts-node src/migrateToUnifiedEmployee.ts",
-    "fix-employees": "ts-node src/fixEmployees.ts"
+    "fix-employees": "ts-node src/fixEmployees.ts",
+    "setup:timesheet-indexes": "ts-node src/scripts/createTimesheetIndexes.ts"
   },
   "keywords": [
     "express",
@@ -24,10 +25,12 @@
   "license": "MIT",
   "dependencies": {
     "@radix-ui/react-collapsible": "^1.1.12",
+    "@types/multer": "^2.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "csurf": "^1.11.0",
     "dotenv": "^16.3.1",
+    "exceljs": "^4.4.0",
     "express": "^4.21.2",
     "express-rate-limit": "^8.2.1",
     "express-validator": "^7.0.1",
@@ -35,6 +38,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
     "morgan": "^1.10.0",
+    "multer": "^2.0.2",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0",
     "xlsx": "^0.18.5"

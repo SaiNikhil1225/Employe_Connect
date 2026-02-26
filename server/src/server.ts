@@ -33,6 +33,16 @@ import customerPORoutes from './routes/customerPOs';
 import financialLineRoutes from './routes/financialLines';
 import flResourceRoutes from './routes/flResources';
 import configRoutes from './routes/config';
+import timesheetEntryRoutes from './routes/timesheetEntries';
+import timesheetRoutes from './routes/timesheets';
+import udaConfigurationRoutes from './routes/udaConfigurations';
+import employeeHoursReports from './routes/employeeHoursReport';
+import bulkUploadRoutes from './routes/bulkUpload';
+import trainingRoutes from './routes/training';
+import teamsRoutes from './routes/teams';
+import surveysRoutes from './routes/surveys';
+import eventsRoutes from './routes/events';
+import pollsRoutes from './routes/polls';
 
 dotenv.config();
 
@@ -123,8 +133,18 @@ app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/financial-lines', financialLineRoutes);
 app.use('/api/customer-pos', customerPORoutes);
-app.use('/api/fl-resources', flResourceRoutes);
+app.use('/api/flresources', flResourceRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/timesheet-entries', timesheetEntryRoutes);
+app.use('/api/timesheets', timesheetRoutes);
+app.use('/api/uda-configurations', udaConfigurationRoutes);
+app.use('/api/employee-hours-reports', employeeHoursReports);
+app.use('/api/employees/bulk-upload', bulkUploadRoutes);
+app.use('/api/training', trainingRoutes);
+app.use('/api/teams', teamsRoutes);
+app.use('/api/surveys', surveysRoutes);
+app.use('/api/events', eventsRoutes);
+app.use('/api/polls', pollsRoutes);
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {

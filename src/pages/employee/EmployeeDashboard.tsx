@@ -17,7 +17,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { EmployeeCard } from '@/components/dashboard/EmployeeCard';
 import { HolidaysDialog } from '@/components/modals/HolidaysDialog';
-import { getAvatarGradient } from '@/constants/design-system';
+import { getAvatarGradient, getInitials } from '@/constants/design-system';
 
 export function EmployeeDashboard() {
   const navigate = useNavigate();
@@ -273,10 +273,6 @@ export function EmployeeDashboard() {
 
   const toggleExpand = (postId: number) => {
     setExpandedPosts(prev => ({ ...prev, [postId]: !prev[postId] }));
-  };
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   // Filter out expired announcements for employees, then sort: pinned first, then by date

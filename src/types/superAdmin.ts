@@ -72,6 +72,7 @@ export interface SuperAdminUser {
   employeeId?: string;
   avatar?: string;
   isActive: boolean;
+  modules?: string[];
   createdAt?: string;
   updatedAt?: string;
   approverAssignments?: ApproverAssignment[];
@@ -91,6 +92,7 @@ export interface UserFormData {
   department?: string;
   designation?: string;
   employeeId?: string;
+  modules?: string[];
 }
 
 // ===========================================
@@ -191,4 +193,177 @@ export interface ApiResponse<T> {
   data: T;
   message?: string;
   pagination?: PaginationInfo;
+}
+
+// ===========================================
+// MODULE PERMISSION TYPES
+// ===========================================
+
+export type ModuleName = 'EMPLOYEE' | 'HR' | 'RMG' | 'HELPDESK' | 'LEAVE';
+export type PermissionAction = 'view' | 'add' | 'modify';
+
+export interface ModulePermissions {
+  view: boolean;
+  add: boolean;
+  modify: boolean;
+}
+
+export interface ModulePermission {
+  _id?: string;
+  employeeId: string;
+  module: ModuleName;
+  enabled: boolean;
+  isAdmin: boolean;
+  permissions: ModulePermissions;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface EmployeeModulePermission {
+  employeeId: string;
+  name: string;
+  email: string;
+  designation?: string;
+  department?: string;
+  modules: {
+    [key in ModuleName]?: {
+      enabled: boolean;
+      isAdmin: boolean;
+      permissions: ModulePermissions;
+    };
+  };
+}
+
+// ===========================================
+// APPROVAL FLOW TYPES
+// ===========================================
+
+export type FlowModule = 'HELPDESK' | 'LEAVE' | 'HR';
+export type FlowType = 'NONE' | 'SINGLE' | 'TWO' | 'THREE';
+export type ApprovalRole =
+  | 'MANAGER'
+  | 'RMG'
+  | 'EXECUTIVE'
+  | 'HR'
+  | 'IT_ADMIN'
+  | 'L1_APPROVER'
+  | 'L2_APPROVER'
+  | 'L3_APPROVER'
+  | 'SUPER_ADMIN';
+
+export interface ApprovalStep {
+  role: ApprovalRole;
+  order: number;
+}
+
+export interface ApprovalFlow {
+  _id?: string;
+  module: FlowModule;
+  flowType: FlowType;
+  steps: ApprovalStep[];
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ===========================================
+// HR REGION CONFIG TYPES
+// ===========================================
+
+export type Region = 'INDIA' | 'US' | 'UK' | 'MIDDLE_EAST' | 'OTHER';
+export type FieldType = 'text' | 'number' | 'date' | 'select' | 'file';
+
+export interface FieldConfig {
+  name: string;
+  label: string;
+  required: boolean;
+  regex?: string;
+  message?: string;
+  fieldType?: FieldType;
+  options?: string[];
+}
+
+export interface HRRegionConfig {
+  _id?: string;
+  region: Region;
+  fields: FieldConfig[];
+  departments: string[];
+  designations: string[];
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ===========================================
+// HELPDESK CONFIG TYPES
+// ===========================================
+
+export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export interface RequestType {
+  name: string;
+  description?: string;
+  sla?: number;
+  priority?: Priority;
+  isActive: boolean;
+}
+
+export interface HelpdeskConfig {
+  _id?: string;
+  category: string;
+  requestTypes: RequestType[];
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ===========================================
+// LEAVE POLICY TYPES
+// ===========================================
+
+export type Distribution = 'QUARTERLY' | 'HALF_YEARLY' | 'ANNUAL';
+
+export interface LeavePolicy {
+  _id?: string;
+  leaveType: string; // Manual entry instead of predefined types
+  country: string; // Country-specific policy
+  allocation: number;
+  distribution: Distribution;
+  carryForward: boolean;
+  maxCarryForward?: number;
+  encashable: boolean;
+  requiresApproval: boolean;
+  minDaysNotice?: number;
+  maxConsecutiveDays?: number;
+  description?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ===========================================
+// HOLIDAY CALENDAR TYPES
+// ===========================================
+
+export type HolidayType = 'PUBLIC' | 'OPTIONAL' | 'REGIONAL';
+
+export interface Holiday {
+  name: string;
+  date: Date | string;
+  type?: HolidayType;
+  description?: string;
+}
+
+export interface HolidayCalendar {
+  _id?: string;
+  title: string;
+  year: number;
+  country: string;
+  state?: string;
+  client?: string;
+  bannerImage?: string;
+  holidays: Holiday[];
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }

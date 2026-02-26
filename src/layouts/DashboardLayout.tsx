@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { GlobalHelpdeskProvider, useGlobalHelpdesk } from '@/contexts/GlobalHelpdeskContext';
+import { ProfileProvider } from '@/contexts/ProfileContext';
 import { RaiseRequestDrawer } from '@/components/helpdesk/RaiseRequestDrawer';
 
 function DashboardLayoutContent() {
@@ -33,7 +34,9 @@ function DashboardLayoutContent() {
 export function DashboardLayout() {
   return (
     <GlobalHelpdeskProvider>
-      <DashboardLayoutContent />
+      <ProfileProvider>
+        <DashboardLayoutContent />
+      </ProfileProvider>
     </GlobalHelpdeskProvider>
   );
 }

@@ -11,6 +11,8 @@ import User from '../models/User';
 import SubCategoryConfig from '../models/SubCategoryConfig';
 import HelpdeskTicket from '../models/HelpdeskTicket';
 import Employee from '../models/Employee';
+import { ModulePermission } from '../models/ModulePermission';
+import { LeavePolicy } from '../models/LeavePolicy';
 
 const router = express.Router();
 
@@ -1058,6 +1060,256 @@ router.get(
     res.json({
       success: true,
       data: results.slice(0, 50)
+    });
+  })
+);
+
+// ===========================================
+// MODULE PERMISSION ROUTES
+// ===========================================
+
+/**
+ * GET /superadmin/permissions
+ * Get all module permissions with employee details
+ */
+router.get(
+  '/permissions',
+  asyncHandler(async (req: Request, res: Response) => {
+    const permissions = await ModulePermission.find();
+
+    const permissionsWithEmployees = await Promise.all(
+      permissions.map(async (permission) => {
+        const employee = await Employee.findOne({ employeeId: permission.employeeId });
+        return {
+          ...permission.toObject(),
+          employee: employee ? {
+            name: employee.name,
+            email: employee.email,
+            employeeId: employee.employeeId,
+            designation: employee.designation,
+            department: employee.department,
+          } : null
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: permissionsWithEmployees,
+    });
+  })
+);
+
+/**
+ * GET /superadmin/permissions/:employeeId
+ * Get permissions for a specific employee
+ */
+router.get(
+  '/permissions/:employeeId',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { employeeId } = req.params;
+
+    const permissions = await ModulePermission.find({ employeeId });
+
+    res.json({
+      success: true,
+      data: permissions,
+    });
+  })
+);
+
+/**
+ * POST /superadmin/permissions
+ * Create or update module permission
+ */
+router.post(
+  '/permissions',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { employeeId, module, enabled, isAdmin, permissions } = req.body;
+
+    // Validate employee exists
+    const employee = await Employee.findOne({ employeeId });
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found',
+      });
+    }
+
+    // Upsert permission
+    const permission = await ModulePermission.findOneAndUpdate(
+      { employeeId, module },
+      {
+        employeeId,
+        module,
+        enabled,
+        isAdmin,
+        permissions,
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Permission updated successfully',
+      data: permission,
+    });
+  })
+);
+
+/**
+ * PUT /superadmin/permissions/:id
+ * Update module permission by ID
+ */
+router.put(
+  '/permissions/:id',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { enabled, isAdmin, permissions } = req.body;
+
+    const permission = await ModulePermission.findByIdAndUpdate(
+      id,
+      { enabled, isAdmin, permissions },
+      { new: true }
+    );
+
+    if (!permission) {
+      return res.status(404).json({
+        success: false,
+        message: 'Permission not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Permission updated successfully',
+      data: permission,
+    });
+  })
+);
+
+/**
+ * DELETE /superadmin/permissions/:id
+ * Delete module permission
+ */
+router.delete(
+  '/permissions/:id',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const permission = await ModulePermission.findByIdAndDelete(id);
+
+    if (!permission) {
+      return res.status(404).json({
+        success: false,
+        message: 'Permission not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Permission deleted successfully',
+    });
+  })
+);
+
+// ===========================================
+// LEAVE POLICY ROUTES
+// ===========================================
+
+/**
+ * GET /superadmin/leave-policies
+ * Get all leave policies
+ */
+router.get(
+  '/leave-policies',
+  asyncHandler(async (req: Request, res: Response) => {
+    const policies = await LeavePolicy.find({ isActive: true });
+
+    res.json({
+      success: true,
+      data: policies,
+    });
+  })
+);
+
+/**
+ * POST /superadmin/leave-policy
+ * Create leave policy
+ */
+router.post(
+  '/leave-policy',
+  asyncHandler(async (req: Request, res: Response) => {
+    const policyData = req.body;
+
+    const policy = await LeavePolicy.findOneAndUpdate(
+      { leaveType: policyData.leaveType, country: policyData.country },
+      { ...policyData, isActive: true },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Leave policy saved successfully',
+      data: policy,
+    });
+  })
+);
+
+/**
+ * PUT /superadmin/leave-policy/:id
+ * Update leave policy
+ */
+router.put(
+  '/leave-policy/:id',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const policyData = req.body;
+
+    const policy = await LeavePolicy.findByIdAndUpdate(id, policyData, {
+      new: true,
+    });
+
+    if (!policy) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave policy not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Leave policy updated successfully',
+      data: policy,
+    });
+  })
+);
+
+/**
+ * DELETE /superadmin/leave-policy/:id
+ * Delete leave policy
+ */
+router.delete(
+  '/leave-policy/:id',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const policy = await LeavePolicy.findByIdAndUpdate(
+      id,
+      { isActive: false },
+      { new: true }
+    );
+
+    if (!policy) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave policy not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Leave policy deleted successfully',
     });
   })
 );

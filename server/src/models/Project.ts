@@ -50,7 +50,17 @@ const projectSchema = new mongoose.Schema({
     employeeId: String,
     name: String
   },
+  dealOwner: {
+    employeeId: String,
+    name: String
+  },
   industry: {
+    type: String
+  },
+  regionHead: {
+    type: String
+  },
+  leadSource: {
     type: String
   },
   clientType: {
@@ -58,6 +68,10 @@ const projectSchema = new mongoose.Schema({
   },
   revenueType: {
     type: String
+  },
+  projectWonThroughRFP: {
+    type: Boolean,
+    default: false
   },
   projectStartDate: {
     type: Date,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useProjectStore } from '@/store/projectStore';
 import { useCustomerPOStore } from '@/store/customerPOStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,11 +18,18 @@ import {
   CommandInput,
   CommandItem,
 } from '@/components/ui/command';
-import { Plus, FileText, DollarSign, Users, BarChart3, ArrowLeft, CalendarIcon, X, Check, ChevronsUpDown, FilterX, Filter } from 'lucide-react';
+import { Plus, FileText, DollarSign, Users, BarChart3, CalendarIcon, X, Check, ChevronsUpDown, FilterX, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,6 +147,7 @@ export function ProjectDetailPage() {
       fetchFLResources();
       fetchCalculatedValues();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchCalculatedValues = async () => {
@@ -160,9 +168,10 @@ export function ProjectDetailPage() {
       }
 
       // Fetch FL Resources to calculate team size
-      const flResourcesResponse = await fetch(`/api/fl-resources?projectId=${id}`);
+      const flResourcesResponse = await fetch(`/api/flresources?projectId=${id}`);
       if (flResourcesResponse.ok) {
-        const flResources = await flResourcesResponse.json();
+        const responseData = await flResourcesResponse.json();
+        const flResources = responseData.data || responseData; // Handle both formats
         
         // Count unique employees (filter by unique employeeId)
         const uniqueEmployees = new Set(
@@ -182,9 +191,23 @@ export function ProjectDetailPage() {
     
     setIsLoadingResources(true);
     try {
-      const response = await fetch(`/api/fl-resources?projectId=${id}`);
+      // Build query parameters for date filtering
+      const params = new URLSearchParams();
+      params.append('projectId', id);
+      
+      // Add date filters if present (for allocated resources tab)
+      if (allocatedDateFrom) {
+        params.append('startDate', allocatedDateFrom.toISOString());
+      }
+      if (allocatedDateTo) {
+        params.append('endDate', allocatedDateTo.toISOString());
+      }
+      
+      // Use the new endpoint that calculates hours dynamically
+      const response = await fetch(`/api/flresources/with-hours?${params.toString()}`);
       if (response.ok) {
-        const data = await response.json();
+        const responseData = await response.json();
+        const data = responseData.data || responseData; // Handle both formats
         setFlResources(data);
         
         // Also update team size calculation
@@ -266,7 +289,12 @@ export function ProjectDetailPage() {
       setAllocatedDateFrom(undefined);
       setAllocatedDateTo(undefined);
     }
-  }, [allocatedTimeline]);
+    // Refetch resources when date range changes
+    if (id) {
+      fetchFLResources();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allocatedTimeline, allocatedDateFrom, allocatedDateTo]);
 
   // Clear filters functions
   const clearAllocatedFilters = () => {
@@ -469,7 +497,7 @@ export function ProjectDetailPage() {
   const handleDeleteResourceConfirm = async () => {
     if (resourceToDelete) {
       try {
-        const response = await fetch(`/api/fl-resources/${resourceToDelete.id}`, {
+        const response = await fetch(`/api/flresources/${resourceToDelete.id}`, {
           method: 'DELETE',
         });
         
@@ -501,10 +529,23 @@ export function ProjectDetailPage() {
   if (!selectedProject) {
     return (
       <div className="container mx-auto py-6">
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <Link to="/rmg/projects" className="transition-colors hover:text-foreground">
+                Projects
+              </Link>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Project Details</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <p className="text-muted-foreground font-medium">Project not found</p>
           <Button onClick={() => navigate('/rmg/projects')} className="mt-4">
-            Back to Projects
+            Go to Projects
           </Button>
         </div>
       </div>
@@ -515,15 +556,20 @@ export function ProjectDetailPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Enhanced Header Section */}
       <div className="bg-primary/5 rounded-xl p-6 border">
-        <div className="flex items-center justify-between mb-4">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/rmg/projects')}
-            className="gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Projects
-          </Button>
+        <div className="mb-4">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <Link to="/rmg/projects" className="transition-colors hover:text-foreground">
+                  Projects
+                </Link>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{selectedProject.projectName}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
 
       {/* Project Header */}
@@ -1429,7 +1475,7 @@ export function ProjectDetailPage() {
                         return;
                       }
 
-                      const response = await fetch(`/api/fl-resources/${fullResource._id}`, {
+                      const response = await fetch(`/api/flresources/${fullResource._id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

@@ -1,8 +1,18 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import type { Project, ProjectFormData, ProjectStats, ProjectFilters } from '@/types/project';
+import { useEmployeeStore } from './employeeStore';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// Helper function to get employeeId by name
+const getEmployeeIdByName = (name: string): string => {
+  const employeeStore = useEmployeeStore.getState();
+  const employee = employeeStore.activeEmployees.find(
+    emp => emp.name === name
+  );
+  return employee?.employeeId || employee?._id || '';
+};
 
 interface ProjectStore {
   projects: Project[];
@@ -119,6 +129,17 @@ export const useProjectStore = create<ProjectStore>((set) => ({
         projectId = response.data.data;
       }
       
+      // Look up employee IDs
+      const projectManagerId = data.projectManager ? getEmployeeIdByName(data.projectManager) : '';
+      const deliveryManagerId = data.deliveryManager ? getEmployeeIdByName(data.deliveryManager) : '';
+      const dealOwnerId = data.dealOwner ? getEmployeeIdByName(data.dealOwner) : '';
+      
+      console.log('📋 Employee IDs resolved for project creation:', {
+        projectManager: { name: data.projectManager, employeeId: projectManagerId },
+        deliveryManager: { name: data.deliveryManager, employeeId: deliveryManagerId },
+        dealOwner: { name: data.dealOwner, employeeId: dealOwnerId }
+      });
+      
       // Transform the data to match backend schema
       const projectData = {
         projectId,
@@ -130,18 +151,25 @@ export const useProjectStore = create<ProjectStore>((set) => ({
         billingType: data.billingType,
         practiceUnit: data.practiceUnit,
         region: data.region,
-        // Transform manager fields from string to object
+        // Transform manager fields from string to object with employeeId lookup
         projectManager: data.projectManager ? {
           name: data.projectManager,
-          employeeId: '' // Will be populated later when we have employee data
+          employeeId: projectManagerId
         } : undefined,
         deliveryManager: data.deliveryManager ? {
           name: data.deliveryManager,
-          employeeId: '' // Will be populated later when we have employee data
+          employeeId: deliveryManagerId
+        } : undefined,
+        dealOwner: data.dealOwner ? {
+          name: data.dealOwner,
+          employeeId: dealOwnerId
         } : undefined,
         industry: data.industry || '',
+        regionHead: data.regionHead || '',
+        leadSource: data.leadSource || '',
         clientType: data.clientType || '',
         revenueType: data.revenueType || '',
+        projectWonThroughRFP: data.projectWonThroughRFP || false,
         projectStartDate: data.projectStartDate,
         projectEndDate: data.projectEndDate,
         projectCurrency: data.projectCurrency,
@@ -167,9 +195,51 @@ export const useProjectStore = create<ProjectStore>((set) => ({
   },
 
   updateProject: async (id: string, data: Partial<ProjectFormData>) => {
+    console.log('🏪 Store updateProject called with ID:', id);
+    console.log('🏪 Store updateProject data:', data);
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.put(`${API_URL}/projects/${id}`, data);
+      // Transform the data to match backend schema (similar to create)
+      const projectData: any = {
+        ...data,
+      };
+
+      // Transform manager fields from string to object if provided
+      if (data.projectManager) {
+        const projectManagerId = getEmployeeIdByName(data.projectManager);
+        console.log('🔍 Project Manager ID lookup:', { name: data.projectManager, id: projectManagerId });
+        projectData.projectManager = {
+          name: data.projectManager,
+          employeeId: projectManagerId
+        };
+      }
+      if (data.deliveryManager) {
+        const deliveryManagerId = getEmployeeIdByName(data.deliveryManager);
+        console.log('🔍 Delivery Manager ID lookup:', { name: data.deliveryManager, id: deliveryManagerId });
+        projectData.deliveryManager = {
+          name: data.deliveryManager,
+          employeeId: deliveryManagerId
+        };
+      }
+      if (data.dealOwner) {
+        const dealOwnerId = getEmployeeIdByName(data.dealOwner);
+        console.log('🔍 Deal Owner ID lookup:', { name: data.dealOwner, id: dealOwnerId });
+        projectData.dealOwner = {
+          name: data.dealOwner,
+          employeeId: dealOwnerId
+        };
+      }
+
+      // Add description mapping
+      if (data.projectDescription !== undefined) {
+        projectData.description = data.projectDescription;
+        delete projectData.projectDescription;
+      }
+
+      console.log('🌐 Sending PUT request to:', `${API_URL}/projects/${id}`);
+      console.log('🌐 Request data:', projectData);
+      const response = await axios.put(`${API_URL}/projects/${id}`, projectData);
+      console.log('✅ Server response:', response.data);
       const updatedProject = response.data.data;
       
       set(state => ({

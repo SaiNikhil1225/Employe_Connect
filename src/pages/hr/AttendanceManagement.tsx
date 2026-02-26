@@ -53,7 +53,7 @@ interface AttendanceRecord {
 
 export function AttendanceManagement() {
   const { employees, fetchEmployees } = useEmployeeStore();
-  const { records, fetchAttendanceRecords } = useAttendanceStore();
+  const { records } = useAttendanceStore();
   
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,8 +63,7 @@ export function AttendanceManagement() {
 
   useEffect(() => {
     fetchEmployees();
-    fetchAttendanceRecords();
-  }, [fetchEmployees, fetchAttendanceRecords]);
+  }, [fetchEmployees]);
 
   // Get unique departments
   const departments = useMemo(() => {

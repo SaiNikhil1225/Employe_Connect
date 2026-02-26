@@ -45,6 +45,12 @@ import { Recruitment } from '@/pages/hr/Recruitment';
 import { PerformanceManagement } from '@/pages/hr/PerformanceManagement';
 import { NewAnnouncement } from '@/pages/hr/NewAnnouncement';
 import { AdminAnnouncements } from '@/pages/hr/AdminAnnouncements';
+import { WorkforceSummary } from '@/pages/hr/WorkforceSummary';
+import { DiversityInclusion } from '@/pages/hr/DiversityInclusion';
+import { RecognitionCelebrations } from '@/pages/hr/RecognitionCelebrations';
+import { TrainingDashboard } from '@/pages/hr/TrainingDashboard';
+import { AddTrainingForm } from '@/pages/hr/AddTrainingForm';
+import { TeamsMembers } from '@/pages/hr/TeamsMembers';
 
 // RMG Pages
 import { Utilization } from '@/pages/rmg/Utilization';
@@ -53,12 +59,19 @@ import { ProjectListPage } from '@/pages/rmg/projects/ProjectListPage';
 import { ProjectDetailPage } from '@/pages/rmg/projects/ProjectDetailPage';
 import { FinancialLineListPage } from '@/pages/rmg/financial-lines/FinancialLineListPage';
 import ConfigurationPage from '@/pages/rmg/ConfigurationPage';
+import WeeklyTimesheet from '@/pages/rmg/uda-configuration/WeeklyTimesheet';
+import { UDAConfigurationPage } from '@/pages/rmg/uda-configuration/UDAConfigurationPage';
+import EmployeeHoursReport from '@/pages/rmg/uda-configuration/EmployeeHoursReport';
 
 // Super Admin Pages
 import { SuperAdminDashboard } from '@/pages/superadmin/SuperAdminDashboard';
 import { CategoryManagement } from '@/pages/superadmin/CategoryManagement';
 import { UserManagement } from '@/pages/superadmin/UserManagement';
 import { ApproverOverview } from '@/pages/superadmin/ApproverOverview';
+import LeavePolicyConfig from '@/pages/superadmin/LeavePolicyConfig';
+import PermissionsMatrix from '@/pages/superadmin/PermissionsMatrix';
+import { HolidayManagement } from '@/pages/superadmin/HolidayManagement';
+import { HolidayConfiguration } from '@/pages/superadmin/HolidayConfiguration';
 
 // Common Pages
 import { Employees } from '@/pages/Employees';
@@ -67,6 +80,18 @@ import { Employees } from '@/pages/Employees';
 function ProfileWithParams() {
   const { employeeId } = useParams<{ employeeId: string }>();
   return <Profile employeeId={employeeId} />;
+}
+
+function DefaultRedirect() {
+  const user = useAuthStore((state) => state.user);
+  
+  // Redirect based on user role
+  if (user?.role === 'HR') {
+    return <Navigate to="/hr/workforce-summary" replace />;
+  }
+  
+  // Default to dashboard for other roles
+  return <Navigate to="/dashboard" replace />;
 }
 
 export function AppRouter() {
@@ -78,7 +103,7 @@ export function AppRouter() {
         {/* Public Routes */}
         <Route
           path="/login"
-          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+          element={isAuthenticated ? <DefaultRedirect /> : <Login />}
         />
         <Route path="/403" element={<NotAuthorized />} />
 
@@ -87,7 +112,7 @@ export function AppRouter() {
           path="/"
           element={
             isAuthenticated ? (
-              <Navigate to="/dashboard" replace />
+              <DefaultRedirect />
             ) : (
               <Navigate to="/login" replace />
             )
@@ -344,6 +369,62 @@ export function AppRouter() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/hr/workforce-summary"
+            element={
+              <ProtectedRoute requiredPath="/hr/workforce-summary">
+                <WorkforceSummary />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/diversity-inclusion"
+            element={
+              <ProtectedRoute requiredPath="/hr/diversity-inclusion">
+                <DiversityInclusion />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/leave-attendance-overview"
+            element={
+              <ProtectedRoute requiredPath="/hr/leave-attendance-overview">
+                <ManagerLeaveApprovals />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/recognition-celebrations"
+            element={
+              <ProtectedRoute requiredPath="/hr/recognition-celebrations">
+                <RecognitionCelebrations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/training"
+            element={
+              <ProtectedRoute requiredPath="/hr/training">
+                <TrainingDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/training/add"
+            element={
+              <ProtectedRoute requiredPath="/hr/training">
+                <AddTrainingForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/teams"
+            element={
+              <ProtectedRoute requiredPath="/hr/teams">
+                <TeamsMembers />
+              </ProtectedRoute>
+            }
+          />
 
           {/* RMG Routes */}
           <Route
@@ -391,6 +472,30 @@ export function AppRouter() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/rmg/uda-configuration"
+            element={
+              <ProtectedRoute requiredPath="/rmg/uda-configuration">
+                <UDAConfigurationPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rmg/timesheet"
+            element={
+              <ProtectedRoute requiredPath="/rmg/timesheet">
+                <WeeklyTimesheet />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rmg/employee-hours-report"
+            element={
+              <ProtectedRoute requiredPath="/rmg/employee-hours-report">
+                <EmployeeHoursReport />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Super Admin Routes */}
           <Route
@@ -422,6 +527,38 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/superadmin/approvers">
                 <ApproverOverview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/superadmin/permissions"
+            element={
+              <ProtectedRoute requiredPath="/superadmin/permissions">
+                <PermissionsMatrix />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/superadmin/leave-policies"
+            element={
+              <ProtectedRoute requiredPath="/superadmin/leave-policies">
+                <LeavePolicyConfig />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/superadmin/holidays"
+            element={
+              <ProtectedRoute requiredPath="/superadmin/holidays">
+                <HolidayManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/superadmin/holiday-config"
+            element={
+              <ProtectedRoute requiredPath="/superadmin/holiday-config">
+                <HolidayConfiguration />
               </ProtectedRoute>
             }
           />

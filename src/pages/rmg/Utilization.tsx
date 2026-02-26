@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Activity, RefreshCw, Loader2, BarChart3, Users, TrendingUp, DollarSign, Clock, UserCheck, Eye, Pencil, MoreHorizontal } from 'lucide-react';
+import { Activity, RefreshCw, Loader2, BarChart3, Users, TrendingUp, DollarSign, Clock, UserCheck, Eye, Pencil, MoreHorizontal, Filter } from 'lucide-react';
 import { rmgAnalyticsService, type ResourceUtilizationData } from '@/services/rmgAnalyticsService';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +52,7 @@ import {
 export function Utilization() {
   const [data, setData] = useState<ResourceUtilizationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState('');
   const [fromDate, setFromDate] = useState<string | undefined>(undefined);
   const [toDate, setToDate] = useState<string | undefined>(undefined);
@@ -184,68 +185,76 @@ export function Utilization() {
             </div>
           </div>
         </div>
-        <Button variant="outline" onClick={handleRefresh}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
+            <Filter className="h-4 w-4 mr-2" />
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </Button>
+          <Button variant="outline" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Search</label>
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, ID, etc." />
+      {showFilters && (
+        <Card className="mb-6">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Filters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Search</label>
+                <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, ID, etc." />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Date Range</label>
+                <DateRangePicker fromDate={fromDate} toDate={toDate} onFromDateChange={setFromDate} onToDateChange={setToDate} />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Department</label>
+                <Select value={department} onValueChange={setDepartment}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {departmentOptions.map(opt => (
+                      <SelectItem key={opt} value={opt}>{opt === 'all' ? 'All Departments' : opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Designation</label>
+                <Select value={designation} onValueChange={setDesignation}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {designationOptions.map(opt => (
+                      <SelectItem key={opt} value={opt}>{opt === 'all' ? 'All Designations' : opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Project Name</label>
+                <Select value={project} onValueChange={setProject}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem key="all" value="all">All Projects</SelectItem>
+                    {projectOptions.filter(opt => opt !== 'all').map(opt => (
+                      <SelectItem key={opt.id} value={opt.id}>{opt.id} - {opt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Date Range</label>
-              <DateRangePicker fromDate={fromDate} toDate={toDate} onFromDateChange={setFromDate} onToDateChange={setToDate} />
+            <div className="flex justify-end mt-4 gap-2">
+              <Button onClick={handleApplyFilters} variant="default">Apply Filters</Button>
+              <Button onClick={handleClearFilters} variant="outline">Clear Filters</Button>
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Department</label>
-              <Select value={department} onValueChange={setDepartment}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {departmentOptions.map(opt => (
-                    <SelectItem key={opt} value={opt}>{opt === 'all' ? 'All Departments' : opt}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Designation</label>
-              <Select value={designation} onValueChange={setDesignation}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {designationOptions.map(opt => (
-                    <SelectItem key={opt} value={opt}>{opt === 'all' ? 'All Designations' : opt}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Project Name</label>
-              <Select value={project} onValueChange={setProject}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem key="all" value="all">All Projects</SelectItem>
-                  {projectOptions.filter(opt => opt !== 'all').map(opt => (
-                    <SelectItem key={opt.id} value={opt.id}>{opt.id} - {opt.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex justify-end mt-4 gap-2">
-            <Button onClick={handleApplyFilters} variant="default">Apply Filters</Button>
-            <Button onClick={handleClearFilters} variant="outline">Clear Filters</Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mb-6">

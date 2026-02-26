@@ -185,9 +185,10 @@ export function AddResourceToFLDrawer({
   const fetchResourceCountsForFLs = async (fls: FinancialLine[]) => {
     try {
       const countPromises = fls.map(async (fl) => {
-        const response = await fetch(`/api/fl-resources?financialLineId=${fl._id}`);
+        const response = await fetch(`/api/flresources?financialLineId=${fl._id}`);
         if (response.ok) {
-          const resourceData = await response.json();
+          const responseData = await response.json();
+          const resourceData = responseData.data || responseData; // Handle both formats
           const count = resourceData.length || 0;
           const resourceName = count > 0 && resourceData[0] ? resourceData[0].resourceName : undefined;
           return { flId: fl._id, count, resourceName };
@@ -210,9 +211,10 @@ export function AddResourceToFLDrawer({
   const fetchEmployeeAllocation = async (employeeId: string) => {
     setLoadingAllocation(true);
     try {
-      const response = await fetch(`/api/fl-resources/by-employee/${employeeId}`);
+      const response = await fetch(`/api/flresources/by-employee/${employeeId}`);
       if (response.ok) {
-        const flResources = await response.json();
+        const responseData = await response.json();
+        const flResources = responseData.data || responseData; // Handle both formats
         
         if (flResources.length === 0) {
           setEmployeeAllocation(null);
@@ -277,9 +279,10 @@ export function AddResourceToFLDrawer({
     if (!flToCheck) return;
     
     try {
-      const response = await fetch(`/api/fl-resources?financialLineId=${flToCheck}`);
+      const response = await fetch(`/api/flresources?financialLineId=${flToCheck}`);
       if (response.ok) {
-        const data = await response.json();
+        const responseData = await response.json();
+        const data = responseData.data || responseData; // Handle both formats
         const resourceCount = data.length || 0;
         setExistingResourcesCount(resourceCount);
         
@@ -483,7 +486,7 @@ export function AddResourceToFLDrawer({
         status: 'Active' as const,
       };
 
-      const response = await fetch('/api/fl-resources', {
+      const response = await fetch('/api/flresources', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

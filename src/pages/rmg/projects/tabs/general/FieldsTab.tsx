@@ -23,9 +23,10 @@ export function FieldsTab({ project }: FieldsTabProps) {
 
       try {
         // Fetch FL Resources to calculate team size
-        const flResourcesResponse = await fetch(`/api/fl-resources?projectId=${projectId}`);
+        const flResourcesResponse = await fetch(`/api/flresources?projectId=${projectId}`);
         if (flResourcesResponse.ok) {
-          const flResources = await flResourcesResponse.json();
+          const responseData = await flResourcesResponse.json();
+          const flResources = responseData.data || responseData; // Handle both formats
           
           // Count unique employees (filter by unique employeeId)
           const uniqueEmployees = new Set(
@@ -36,27 +37,34 @@ export function FieldsTab({ project }: FieldsTabProps) {
           setCalculatedTeamSize(uniqueEmployees.size);
         }
 
-        // Fetch Financial Lines to calculate total budget
+        // Fetch Customer POs to calculate total budget
+        const poResponse = await fetch(`/api/customer-pos?projectId=${projectId}`);
+        if (poResponse.ok) {
+          const poData = await poResponse.json();
+          const customerPOs = Array.isArray(poData) ? poData : (poData.data || []);
+          
+          // Sum all PO amounts to get total budget
+          const totalBudget = customerPOs.reduce((sum: number, po: any) => {
+            return sum + (po.poAmount || 0);
+          }, 0);
+          setCalculatedBudget(totalBudget);
+        }
+
+        // Fetch Financial Lines to calculate budget consumed from FL funding allocations
         const flResponse = await fetch(`/api/financial-lines?projectId=${projectId}`);
         if (flResponse.ok) {
           const flData = await flResponse.json();
           const financialLines = Array.isArray(flData) ? flData : (flData.data || []);
           
-          // Sum all FL budgets (using expectedRevenue or revenueAmount)
-          const totalBudget = financialLines.reduce((sum: number, fl: any) => {
-            return sum + (fl.expectedRevenue || fl.revenueAmount || 0);
-          }, 0);
-          setCalculatedBudget(totalBudget);
-          
-          // Calculate budget consumed from actual revenue in revenuePlanning
-          const totalActualRevenue = financialLines.reduce((sum: number, fl: any) => {
-            const revenuePlanning = fl.revenuePlanning || [];
-            const flActualRevenue = revenuePlanning.reduce((flSum: number, month: any) => {
-              return flSum + (month.actualRevenue || 0);
+          // Calculate budget consumed from FL funding allocations
+          const totalConsumed = financialLines.reduce((sum: number, fl: any) => {
+            const funding = fl.funding || [];
+            const flConsumed = funding.reduce((flSum: number, allocation: any) => {
+              return flSum + (allocation.fundingAmountPoCurrency || 0);
             }, 0);
-            return sum + flActualRevenue;
+            return sum + flConsumed;
           }, 0);
-          setBudgetConsumed(totalActualRevenue);
+          setBudgetConsumed(totalConsumed);
         }
       } catch (error) {
         console.error('Error calculating team size and budget:', error);
@@ -258,7 +266,7 @@ export function FieldsTab({ project }: FieldsTabProps) {
                     <>
                       {project.projectCurrency} {calculatedBudget.toLocaleString()}
                       <span className="text-xs text-gray-500 ml-1">
-                        (Sum of FLs)
+                        (Sum of Customer POs)
                       </span>
                     </>
                   ) : (
@@ -278,13 +286,13 @@ export function FieldsTab({ project }: FieldsTabProps) {
                       {project.projectCurrency} {budgetConsumed.toLocaleString()}
                       {calculatedBudget && calculatedBudget > 0 && (
                         <span className="text-xs text-gray-500 ml-1">
-                          ({((budgetConsumed / calculatedBudget) * 100).toFixed(1)}%)
+                          ({((budgetConsumed / calculatedBudget) * 100).toFixed(1)}% of PO Budget)
                         </span>
                       )}
                     </>
                   )}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">(Actual Revenue)</p>
+                <p className="text-xs text-gray-500 mt-0.5">(Allocated from Customer POs)</p>
               </div>
             </div>
             <div className="p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-all">

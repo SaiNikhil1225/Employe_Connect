@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   User,
   Users,
+  UsersRound,
   Calendar,
   Clock,
   DollarSign,
@@ -36,6 +37,9 @@ import {
   Building,
   Briefcase,
   Settings,
+  Award,
+  GraduationCap,
+  Megaphone,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -51,6 +55,7 @@ const iconMap: Record<string, LucideIcon> = {
   LayoutDashboard,
   User,
   Users,
+  UsersRound,
   Calendar,
   Clock,
   DollarSign,
@@ -75,6 +80,9 @@ const iconMap: Record<string, LucideIcon> = {
   Building,
   Briefcase,
   Settings,
+  Award,
+  GraduationCap,
+  Megaphone,
 };
 
 interface MenuSection {

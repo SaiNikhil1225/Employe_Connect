@@ -23,9 +23,13 @@ export interface Project {
   region: ProjectRegion;
   projectManager?: ProjectManager;
   deliveryManager?: ProjectManager;
+  dealOwner?: ProjectManager;
   industry?: string;
+  regionHead?: string;
+  leadSource?: string;
   clientType?: string;
   revenueType?: string;
+  projectWonThroughRFP?: boolean;
   projectStartDate: Date | string;
   projectEndDate: Date | string;
   projectCurrency: ProjectCurrency;

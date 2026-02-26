@@ -2,9 +2,19 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShieldAlert } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 
 export function NotAuthorized() {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  
+  const handleGoHome = () => {
+    if (user?.role === 'HR') {
+      navigate('/hr/workforce-summary');
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -26,8 +36,8 @@ export function NotAuthorized() {
             <Button onClick={() => navigate(-1)} variant="outline">
               Go Back
             </Button>
-            <Button onClick={() => navigate('/dashboard')}>
-              Go to Dashboard
+            <Button onClick={handleGoHome}>
+              Go to Home
             </Button>
           </div>
         </CardContent>

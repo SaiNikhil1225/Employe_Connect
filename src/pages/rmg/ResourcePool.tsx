@@ -34,9 +34,10 @@ export function ResourcePool() {
         const employees = await employeeService.getActive();
 
         // Fetch all active FL Resources
-        const response = await fetch('/api/fl-resources?status=Active');
+        const response = await fetch('/api/flresources?status=Active');
         if (!response.ok) throw new Error('Failed to fetch FL resources');
-        const flResources = await response.json();
+        const responseData = await response.json();
+        const flResources = responseData.data || responseData; // Handle both formats
 
         // Combine employee and FL resource allocation data
         const resourcesData: ResourceWithAllocation[] = employees.map((emp) => {

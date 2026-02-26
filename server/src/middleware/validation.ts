@@ -694,11 +694,17 @@ export const validateContentType = (
     const hasContent = contentLength && parseInt(contentLength, 10) > 0;
     const hasBody = req.body && Object.keys(req.body).length > 0;
     
-    // If there's content but no JSON content type, reject
-    if ((hasContent || hasBody) && (!contentType || !contentType.includes('application/json'))) {
+    // Allow application/json or multipart/form-data
+    const isValidContentType = contentType && (
+      contentType.includes('application/json') || 
+      contentType.includes('multipart/form-data')
+    );
+    
+    // If there's content but no valid content type, reject
+    if ((hasContent || hasBody) && !isValidContentType) {
       const error = new ApiError(
         415,
-        'Content-Type must be application/json',
+        'Content-Type must be application/json or multipart/form-data',
         'INVALID_CONTENT_TYPE'
       );
       return handleError(res, error, 'Invalid Content-Type header');

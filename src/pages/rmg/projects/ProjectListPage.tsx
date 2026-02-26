@@ -8,6 +8,8 @@ import { Plus, Search, FolderKanban, CheckCircle2, TrendingUp, AlertTriangle, Do
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ProjectTable } from './components/ProjectTable';
 import { CreateProjectDialog } from './components/CreateProjectDialog';
+import { EditProjectDialog } from './components/EditProjectDialog';
+import type { Project } from '@/types/project';
 import { KpiCard } from './components/KpiCard';
 import { ColumnToggle, type ColumnVisibility } from './components/ColumnToggle';
 import { MultiSelect, type Option } from '@/components/ui/multi-select';
@@ -20,6 +22,8 @@ import type { DateRange } from 'react-day-picker';
 export function ProjectListPage() {
   const { projects, isLoading, fetchProjects } = useProjectStore();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
   const [filters, setFilters] = useState<ProjectFilters>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -180,6 +184,11 @@ export function ProjectListPage() {
     } else {
       clearAllFilters();
     }
+  };
+
+  const handleEditProject = (project: Project) => {
+    setProjectToEdit(project);
+    setIsEditDialogOpen(true);
   };
 
   const activeFilterCount = 
@@ -442,6 +451,7 @@ export function ProjectListPage() {
                 projects={projects} 
                 isLoading={isLoading}
                 onCreateProject={() => setIsCreateDialogOpen(true)}
+                onEditProject={handleEditProject}
                 columnVisibility={columnVisibility}
               />
             </CardContent>
@@ -451,6 +461,18 @@ export function ProjectListPage() {
       <CreateProjectDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+      />
+
+      {/* Edit Project Dialog */}
+      <EditProjectDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setProjectToEdit(null);
+          }
+        }}
+        project={projectToEdit}
       />
     </div>
   );

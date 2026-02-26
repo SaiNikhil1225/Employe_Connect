@@ -285,7 +285,7 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
               
               {/* Auto-Filled Fields Section - Read Only */}
               <div className="bg-gradient-to-br from-blue-50 to-transparent p-6 rounded-lg border border-blue-200">
-                <h3 className="text-lg font-semibold text-brand-navy mb-2">Auto-Generated & Project Details</h3>
+                <h3 className="text-lg font-semibold text-brand-navy mb-2">Project Details</h3>
                 <p className="text-xs text-brand-slate mb-4">These fields are automatically filled and cannot be edited</p>
                 
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
@@ -302,9 +302,6 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
                           className="bg-gray-50 border-brand-light-gray cursor-not-allowed"
                         />
                       </FormControl>
-                      <FormDescription className="text-brand-slate text-xs">
-                        Auto-generated contract number
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -323,9 +320,6 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
                           className="bg-gray-50 border-brand-light-gray cursor-not-allowed"
                         />
                       </FormControl>
-                      <FormDescription className="text-brand-slate text-xs">
-                        Auto-filled from current project
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -344,9 +338,6 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
                           className="bg-gray-50 border-brand-light-gray cursor-not-allowed"
                         />
                       </FormControl>
-                      <FormDescription className="text-brand-slate text-xs">
-                        Auto-filled from project's customer
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -365,9 +356,6 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
                           className="bg-gray-50 border-brand-light-gray cursor-not-allowed"
                         />
                       </FormControl>
-                      <FormDescription className="text-brand-slate text-xs">
-                        Auto-filled from project's Legal Entity
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -160,9 +161,29 @@ export function ResourceTable({ resources, isLoading, onView, onEdit, onRemove, 
     columns.push({
       accessorKey: 'allocatedPercent',
       header: 'Allocated (%)',
-      cell: ({ row }) => (
-        <span className="text-sm font-medium whitespace-nowrap">{row.original.allocatedPercent || 0}%</span>
-      ),
+      cell: ({ row }) => {
+        const percent = row.original.allocatedPercent || 0;
+        
+        // Determine color based on allocation percentage
+        const getProgressColor = (value: number) => {
+          if (value >= 80) return 'bg-orange-500'; // High allocation
+          if (value >= 50) return 'bg-green-500'; // Good allocation
+          return 'bg-blue-500'; // Neutral/Low allocation
+        };
+        
+        return (
+          <div className="flex items-center gap-2 min-w-[120px]">
+            <Progress 
+              value={percent} 
+              className="h-2 flex-1"
+              indicatorClassName={getProgressColor(percent)}
+            />
+            <span className="text-sm font-medium whitespace-nowrap w-10 text-right">
+              {percent}%
+            </span>
+          </div>
+        );
+      },
     });
   }
 

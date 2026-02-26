@@ -32,18 +32,24 @@ export const useHolidayStore = create<HolidayState>((set, get) => ({
 
         try {
           const data = await holidayService.getAll();
-          const holidays = data.map(item => ({
-            id: item._id || item.id || '',
-            date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            name: item.name,
-            type: item.type,
-            backgroundImage: item.backgroundImage || ''
-          }));
+      const holidays = data.map(item => {
+        // Extract type name if it's an object (populated), otherwise use the string
+        const typeName = typeof item.typeId === 'object' && item.typeId && 'name' in item.typeId 
+          ? item.typeId.name 
+          : 'Holiday';
+        
+        return {
+          id: item._id || '',
+          date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          name: item.name,
+          type: typeName,
+          backgroundImage: item.imageUrl || ''
+        };
+      });
+
           set({ holidays, isLoading: false });
         } catch (error) {
-          // Failed to fetch holidays, continue with empty array
-          set({
-            holidays: [],
+          set({ 
             error: 'Failed to load holidays. Please check your connection.',
             isLoading: false
           });
@@ -55,12 +61,19 @@ export const useHolidayStore = create<HolidayState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
           const newHoliday = await holidayService.create(holiday);
+          // Extract type name if it's an object (populated), otherwise use the string
+          const typeName = typeof newHoliday.typeId === 'object' && newHoliday.typeId && 'name' in newHoliday.typeId 
+            ? newHoliday.typeId.name 
+            : 'Holiday';
+          
           const transformed: Holiday = {
             id: newHoliday._id || `temp-${Date.now()}`,
             date: new Date(newHoliday.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
             name: newHoliday.name,
-            type: newHoliday.type
+            type: typeName,
+            backgroundImage: newHoliday.imageUrl || ''
           };
+
           set(state => ({
             holidays: [...state.holidays, transformed],
             isLoading: false

@@ -31,6 +31,7 @@ import { SinglePersonPicker } from '@/components/ui/single-person-picker';
 import { RotateCcw, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Stepper } from '@/components/ui/stepper';
+import { toast } from 'sonner';
 
 // Dropdown options
 const LEGAL_ENTITIES = [
@@ -64,10 +65,14 @@ const REGION_HEADS = [
 // Validation schema
 const projectSchema = z.object({
   projectId: z.string().optional(),
-  customerId: z.string({ message: 'Customer is required. Please select a customer from Account Name.' }).min(1, 'Customer is required'),
+  customerId: z.string().default('').refine((val) => val.length > 0, { 
+    message: 'Customer is required. Please select a customer from Account Name.' 
+  }),
   projectName: z.string({ message: 'Project name is required' }).min(1, 'Project name is required').max(100, 'Max 100 characters'),
   projectDescription: z.string().optional().or(z.literal('')),
-  accountName: z.string({ message: 'Account name is required' }).min(1, 'Account name is required'),
+  accountName: z.string().default('').refine((val) => val.length > 0, { 
+    message: 'Account name is required' 
+  }),
   hubspotDealId: z.string().optional().or(z.literal('')),
   legalEntity: z.string({ message: 'Legal entity is required' }).min(1, 'Legal entity is required'),
   projectManager: z.string({ message: 'Project manager is required' }).min(1, 'Project manager is required'),
@@ -85,6 +90,8 @@ const projectSchema = z.object({
   projectStartDate: z.string({ message: 'Start date is required' }).min(1, 'Start date is required'),
   projectEndDate: z.string({ message: 'End date is required' }).min(1, 'End date is required'),
   projectCurrency: z.string({ message: 'Currency is required' }).min(1, 'Currency is required'),
+  status: z.string().optional(), // Add status field
+  estimatedValue: z.number().optional(), // Add estimatedValue field
 });
 
 interface ProjectFormProps {
@@ -120,29 +127,32 @@ export function ProjectForm({
   const form = useForm({
     resolver: zodResolver(projectSchema),
     defaultValues: {
-      projectId: '',
-      customerId: '',
-      projectName: '',
-      projectDescription: '',
-      accountName: '',
-      hubspotDealId: '',
-      legalEntity: 'Acuvate Software Pvt Ltd - India',
-      projectManager: '',
-      deliveryManager: '',
-      dealOwner: '',
-      billingType: '',
-      practiceUnit: undefined,
-      region: undefined,
-      industry: '',
-      regionHead: '',
-      leadSource: '',
-      revenueType: '',
-      clientType: '',
-      projectWonThroughRFP: false,
-      projectStartDate: '',
-      projectEndDate: '',
-      projectCurrency: '',
-      ...defaultValues,
+      projectId: defaultValues?.projectId || '',
+      customerId: typeof defaultValues?.customerId === 'object' && defaultValues?.customerId !== null
+        ? String((defaultValues.customerId as any)?._id || (defaultValues.customerId as any)?.id || defaultValues.customerId)
+        : (defaultValues?.customerId || ''),
+      projectName: defaultValues?.projectName || '',
+      projectDescription: defaultValues?.projectDescription || '',
+      accountName: defaultValues?.accountName || '',
+      hubspotDealId: defaultValues?.hubspotDealId || '',
+      legalEntity: defaultValues?.legalEntity || 'Acuvate Software Pvt Ltd - India',
+      projectManager: defaultValues?.projectManager || '',
+      deliveryManager: defaultValues?.deliveryManager || '',
+      dealOwner: defaultValues?.dealOwner || '',
+      billingType: defaultValues?.billingType || '',
+      practiceUnit: defaultValues?.practiceUnit,
+      region: defaultValues?.region,
+      industry: defaultValues?.industry || '',
+      regionHead: defaultValues?.regionHead || '',
+      leadSource: defaultValues?.leadSource || '',
+      revenueType: defaultValues?.revenueType || '',
+      clientType: defaultValues?.clientType || '',
+      projectWonThroughRFP: defaultValues?.projectWonThroughRFP || false,
+      projectStartDate: defaultValues?.projectStartDate || '',
+      projectEndDate: defaultValues?.projectEndDate || '',
+      projectCurrency: defaultValues?.projectCurrency || '',
+      status: defaultValues?.status || 'Draft',
+      estimatedValue: defaultValues?.estimatedValue || 0,
     },
   });
 
@@ -150,6 +160,37 @@ export function ProjectForm({
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
+
+  // Set isCustomerSelected to true in edit mode if customer data exists
+  useEffect(() => {
+    if (isEditMode && defaultValues?.customerId && defaultValues?.accountName && customers.length > 0) {
+      // Wait a bit to ensure form is fully reset
+      const timer = setTimeout(() => {
+        setIsCustomerSelected(true);
+        // Convert customerId to string for comparison (in case it's an object)
+        const customerIdStr = typeof defaultValues.customerId === 'object' && defaultValues.customerId !== null
+          ? String((defaultValues.customerId as any)?._id || (defaultValues.customerId as any)?.id || defaultValues.customerId)
+          : String(defaultValues.customerId);
+        
+        // Also set the selected customer object
+        const customer = customers.find(c => {
+          const cIdStr = String(c._id || c.id);
+          return cIdStr === customerIdStr;
+        });
+        setSelectedCustomer(customer || null);
+        console.log('✅ Edit mode: Customer selected state set to true', {
+          customerId: defaultValues.customerId,
+          customerIdStr,
+          'customerId type': typeof defaultValues.customerId,
+          accountName: defaultValues.accountName,
+          customerFound: !!customer,
+          customerObject: customer
+        });
+      }, 150);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isEditMode, defaultValues?.customerId, defaultValues?.accountName, customers]);
 
   // Fetch configuration values on mount
   useEffect(() => {
@@ -196,9 +237,85 @@ export function ProjectForm({
     }
   }, [isEditMode, defaultValues?.projectId, form]);
 
-  // Auto-populate fields when customer is selected
+  // Reset form with defaultValues when editing a different project
   useEffect(() => {
-    if (selectedCustomer) {
+    if (isEditMode && defaultValues && defaultValues.projectId) {
+      console.log('📝 ProjectForm: Resetting form with defaultValues:', {
+        projectId: defaultValues.projectId,
+        customerId: defaultValues.customerId,
+        accountName: defaultValues.accountName,
+        projectName: defaultValues.projectName,
+        'customerId type': typeof defaultValues.customerId,
+        'accountName type': typeof defaultValues.accountName,
+        dealOwner: defaultValues.dealOwner,
+        regionHead: defaultValues.regionHead,
+        leadSource: defaultValues.leadSource,
+        projectManager: defaultValues.projectManager,
+        deliveryManager: defaultValues.deliveryManager,
+      });
+      
+      // Ensure customerId and accountName are never undefined
+      const safeDefaults = {
+        projectId: defaultValues.projectId || '',
+        customerId: typeof defaultValues.customerId === 'object' && defaultValues.customerId !== null
+          ? String((defaultValues.customerId as any)?._id || (defaultValues.customerId as any)?.id || defaultValues.customerId)
+          : (defaultValues.customerId || ''),
+        projectName: defaultValues.projectName || '',
+        projectDescription: defaultValues.projectDescription || '',
+        accountName: defaultValues.accountName || '',
+        hubspotDealId: defaultValues.hubspotDealId || '',
+        legalEntity: defaultValues.legalEntity || 'Acuvate Software Pvt Ltd - India',
+        projectManager: defaultValues.projectManager || '',
+        deliveryManager: defaultValues.deliveryManager || '',
+        dealOwner: defaultValues.dealOwner || '',
+        billingType: defaultValues.billingType || '',
+        practiceUnit: defaultValues.practiceUnit,
+        region: defaultValues.region,
+        industry: defaultValues.industry || '',
+        regionHead: defaultValues.regionHead || '',
+        leadSource: defaultValues.leadSource || '',
+        revenueType: defaultValues.revenueType || '',
+        clientType: defaultValues.clientType || '',
+        projectWonThroughRFP: defaultValues.projectWonThroughRFP || false,
+        projectStartDate: defaultValues.projectStartDate || '',
+        projectEndDate: defaultValues.projectEndDate || '',
+        projectCurrency: defaultValues.projectCurrency || '',
+        status: defaultValues.status || 'Draft',
+        estimatedValue: defaultValues.estimatedValue || 0,
+      };
+      
+      form.reset(safeDefaults);
+      
+      // Force set customerId if it exists to ensure validation passes
+      if (defaultValues.customerId) {
+        setTimeout(() => {
+          form.setValue('customerId', defaultValues.customerId, { shouldValidate: false });
+          form.setValue('accountName', defaultValues.accountName || '', { shouldValidate: false });
+          console.log('🔧 Force set customerId:', defaultValues.customerId);
+        }, 0);
+      }
+      
+      // Log form values after reset
+      setTimeout(() => {
+        const formValues = form.getValues();
+        console.log('✅ Form values after reset:', {
+          customerId: formValues.customerId,
+          accountName: formValues.accountName,
+          projectName: formValues.projectName,
+          'customerId type': typeof formValues.customerId,
+          dealOwner: formValues.dealOwner,
+          regionHead: formValues.regionHead,
+          leadSource: formValues.leadSource,
+          projectManager: formValues.projectManager,
+          deliveryManager: formValues.deliveryManager,
+        });
+      }, 100);
+    }
+  }, [isEditMode, defaultValues?.projectId, form]);
+
+  // Auto-populate fields when customer is selected (only in create mode)
+  useEffect(() => {
+    if (selectedCustomer && !isEditMode) {
       form.setValue('industry', selectedCustomer.industry || '');
       
       // Set region with proper type assertion
@@ -214,7 +331,26 @@ export function ProjectForm({
         form.setValue('hubspotDealId', selectedCustomer.hubspotRecordId);
       }
     }
-  }, [selectedCustomer, form]);
+  }, [selectedCustomer, form, isEditMode]);
+
+  // Monitor critical field values (debug)
+  useEffect(() => {
+    if (isEditMode) {
+      const subscription = form.watch((value, { name }) => {
+        if (name === 'dealOwner' || name === 'regionHead' || name === 'leadSource') {
+          console.log(`🔄 Field Change Detected: ${name}`, {
+            newValue: value[name],
+            allValues: {
+              dealOwner: value.dealOwner,
+              regionHead: value.regionHead,
+              leadSource: value.leadSource,
+            }
+          });
+        }
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [isEditMode, form]);
 
   // Handle customer selection
   const handleCustomerChange = (customerName: string) => {
@@ -223,15 +359,25 @@ export function ProjectForm({
     setSelectedCustomer(customer || null);
     setIsCustomerSelected(!!customer);
     
-    // Set customerId from the selected customer
+    // Set customerId from the selected customer - ensure it's a string
     if (customer && customer._id) {
-      form.setValue('customerId', customer._id);
+      const customerIdStr = typeof customer._id === 'object' 
+        ? String((customer._id as any)._id || (customer._id as any).id || customer._id)
+        : String(customer._id);
+      form.setValue('customerId', customerIdStr);
     }
   };
 
   const handleSubmit = async (data: ProjectFormData) => {
-    await onSubmit(data);
-    form.reset();
+    console.log('🔥 Form handleSubmit called with data:', data);
+    try {
+      await onSubmit(data);
+      console.log('✅ onSubmit completed successfully');
+      form.reset();
+    } catch (error) {
+      console.error('❌ Error in handleSubmit:', error);
+      throw error;
+    }
   };
 
   const steps = [
@@ -239,7 +385,47 @@ export function ProjectForm({
     { id: 2, title: 'Schedule & Status', description: 'Timeline and status' },
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (currentStep === 1) {
+      // Validate step 1 fields before proceeding
+      const step1Fields = [
+        'projectId', 'customerId', 'projectName', 'accountName', 
+        'legalEntity', 'projectManager', 'deliveryManager', 'dealOwner', 
+        'billingType', 'practiceUnit', 'region', 'industry'
+      ];
+      
+      console.log('🔍 Validating step 1 fields...');
+      const currentFormValues = form.getValues();
+      console.log('Current form values:', {
+        customerId: currentFormValues.customerId,
+        accountName: currentFormValues.accountName,
+        projectName: currentFormValues.projectName,
+        'customerId type': typeof currentFormValues.customerId,
+        'customerId value': JSON.stringify(currentFormValues.customerId),
+        'customerId length': currentFormValues.customerId?.length,
+      });
+      
+      const isValid = await form.trigger(step1Fields as any);
+      
+      if (!isValid) {
+        const errors = form.formState.errors;
+        console.error('❌ Step 1 validation failed:', errors);
+        console.log('Failed fields:', Object.keys(errors));
+        
+        // Find first error
+        const firstError = Object.entries(errors)[0];
+        if (firstError) {
+          const [fieldName, error] = firstError;
+          const errorMessage = (error as any)?.message || 'This field is required';
+          console.error(`First error - ${fieldName}:`, error);
+          toast.error(`${fieldName}: ${errorMessage}`);
+        }
+        return;
+      }
+      
+      console.log('✅ Step 1 validation passed');
+    }
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -253,7 +439,26 @@ export function ProjectForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full">
+      <form onSubmit={form.handleSubmit(handleSubmit, (errors) => {
+        console.error('❌ Form validation errors:', errors);
+        // Find first error and show it to the user
+        const firstError = Object.entries(errors)[0];
+        if (firstError) {
+          const [fieldName, error] = firstError;
+          console.error(`First error field: ${fieldName}`, error);
+          toast.error(`Validation Error: ${error.message || 'Please fix form errors before submitting'}`);
+          
+          // Navigate to step 1 if the error is in basic details
+          const step1Fields = ['projectId', 'customerId', 'projectName', 'projectDescription', 'accountName', 
+                               'hubspotDealId', 'legalEntity', 'projectManager', 'deliveryManager', 'dealOwner', 
+                               'billingType', 'practiceUnit', 'region', 'industry'];
+          if (step1Fields.includes(fieldName)) {
+            setCurrentStep(1);
+          }
+        } else {
+          toast.error('Please fix form errors before submitting');
+        }
+      })} className="flex flex-col h-full">
         {/* Step Indicator */}
         <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
           <Stepper steps={steps} currentStep={currentStep} />
@@ -404,7 +609,6 @@ export function ProjectForm({
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="Select project manager"
-                        disabled={isEditMode}
                       />
                     </FormControl>
                     <FormMessage />
@@ -424,7 +628,6 @@ export function ProjectForm({
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="Select delivery manager"
-                        disabled={isEditMode}
                       />
                     </FormControl>
                     <FormMessage />
@@ -436,20 +639,27 @@ export function ProjectForm({
               <FormField
                 control={form.control}
                 name="dealOwner"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Deal Owner *</FormLabel>
-                    <FormControl>
-                      <SinglePersonPicker
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Select deal owner"
-                        disabled={isEditMode}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  if (isEditMode) {
+                    console.log('🟢 Deal Owner Field:', {
+                      value: field.value,
+                      type: typeof field.value,
+                    });
+                  }
+                  return (
+                    <FormItem>
+                      <FormLabel>Deal Owner *</FormLabel>
+                      <FormControl>
+                        <SinglePersonPicker
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select deal owner"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               {/* Billing Type */}
@@ -566,58 +776,77 @@ export function ProjectForm({
               <FormField
                 control={form.control}
                 name="regionHead"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Region Head *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || isCustomerSelected}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select region head" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {REGION_HEADS.map((head) => (
-                          <SelectItem key={head} value={head}>
-                            {head}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  if (isEditMode) {
+                    console.log('🔵 Region Head Field:', {
+                      value: field.value,
+                      availableOptions: REGION_HEADS,
+                      isInOptions: REGION_HEADS.includes(field.value || ''),
+                    });
+                  }
+                  return (
+                    <FormItem>
+                      <FormLabel>Region Head *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isCustomerSelected}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select region head" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {REGION_HEADS.map((head) => (
+                            <SelectItem key={head} value={head}>
+                              {head}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               {/* Lead Source */}
               <FormField
                 control={form.control}
                 name="leadSource"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Lead Source *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={configLoading ? "Loading..." : leadSources.length === 0 ? "No active values configured" : "Select lead source"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {leadSources.length === 0 ? (
-                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                            No active lead sources configured
-                          </div>
-                        ) : (
-                          leadSources.map((source) => (
-                            <SelectItem key={source._id} value={source.name}>
-                              {source.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  if (isEditMode && !configLoading) {
+                    console.log('🟣 Lead Source Field:', {
+                      value: field.value,
+                      configLoading,
+                      availableOptions: leadSources.map(s => s.name),
+                      isInOptions: leadSources.some(s => s.name === field.value),
+                    });
+                  }
+                  return (
+                    <FormItem>
+                      <FormLabel>Lead Source *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={configLoading}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={configLoading ? "Loading..." : leadSources.length === 0 ? "No active values configured" : "Select lead source"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {leadSources.length === 0 ? (
+                            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                              No active lead sources configured
+                            </div>
+                          ) : (
+                            leadSources.map((source) => (
+                              <SelectItem key={source._id} value={source.name}>
+                                {source.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               {/* Revenue Type */}
@@ -730,7 +959,6 @@ export function ProjectForm({
                               value={field.value}
                               onChange={field.onChange}
                               placeholder="Select start date"
-                              disabled={isEditMode}
                             />
                           </FormControl>
                           <FormMessage />
@@ -750,7 +978,6 @@ export function ProjectForm({
                               value={field.value}
                               onChange={field.onChange}
                               placeholder="Select end date"
-                              disabled={isEditMode}
                             />
                           </FormControl>
                           <FormMessage />
@@ -783,6 +1010,31 @@ export function ProjectForm({
                                   </SelectItem>
                                 ))
                               )}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Status */}
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Project Status</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Draft">Draft</SelectItem>
+                              <SelectItem value="Active">Active</SelectItem>
+                              <SelectItem value="On Hold">On Hold</SelectItem>
+                              <SelectItem value="Closed">Closed</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />

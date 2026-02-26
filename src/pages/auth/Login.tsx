@@ -33,7 +33,13 @@ export function Login() {
 
       // Store user in auth state (token is already stored in authService)
       login(response.user);
-      navigate('/dashboard');
+      
+      // Redirect based on user role
+      if (response.user.role === 'HR') {
+        navigate('/hr/workforce-summary');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       if (error instanceof AxiosError) {
         // Handle specific HTTP error codes

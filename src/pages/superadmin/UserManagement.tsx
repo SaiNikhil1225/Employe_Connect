@@ -40,6 +40,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -270,15 +278,17 @@ export function UserManagement() {
   };
 
   return (
-    <div className="page-container">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <Users className="h-7 w-7 text-primary" />
-            User Management
-          </h1>
-          <p className="page-description">Manage users, roles, and permissions</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Users className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">User Management</h1>
+            <p className="text-muted-foreground">Manage users, roles, and permissions</p>
+          </div>
         </div>
         <Button onClick={() => handleOpenForm()}>
           <Plus className="h-4 w-4 mr-2" />
@@ -464,19 +474,25 @@ export function UserManagement() {
         </CardContent>
       </Card>
 
-      {/* User Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {editingUser ? 'Edit User' : 'Add New User'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingUser ? 'Update user details and role' : 'Create a new user account'}
-            </DialogDescription>
-          </DialogHeader>
+      {/* User Form Sheet */}
+      <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <SheetContent className="flex flex-col h-full overflow-hidden w-full sm:max-w-lg p-0">
+          {/* Fixed Header */}
+          <div className="flex-shrink-0 border-b border-border bg-background p-6">
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                {editingUser ? 'Edit User' : 'Add New User'}
+              </SheetTitle>
+              <SheetDescription>
+                {editingUser ? 'Update user details and role' : 'Create a new user account'}
+              </SheetDescription>
+            </SheetHeader>
+          </div>
 
-          <div className="space-y-4 py-4">
+          {/* Scrollable Body */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2 col-span-2">
                 <Label>Full Name *</Label>
@@ -556,25 +572,29 @@ export function UserManagement() {
                 />
               </div>
             </div>
+            </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save User'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {/* Fixed Footer */}
+          <div className="flex-shrink-0 border-t border-border bg-background p-6">
+            <SheetFooter className="flex gap-2 sm:justify-end">
+              <Button variant="outline" onClick={() => setIsFormOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save User'
+                )}
+              </Button>
+            </SheetFooter>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* View User Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>

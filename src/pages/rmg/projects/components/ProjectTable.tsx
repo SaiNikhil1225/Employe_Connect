@@ -45,10 +45,11 @@ interface ProjectTableProps {
   projects: Project[];
   isLoading: boolean;
   onCreateProject?: () => void;
+  onEditProject?: (project: Project) => void;
   columnVisibility?: ColumnVisibility;
 }
 
-export function ProjectTable({ projects, isLoading, onCreateProject, columnVisibility }: ProjectTableProps) {
+export function ProjectTable({ projects, isLoading, onCreateProject, onEditProject, columnVisibility }: ProjectTableProps) {
   const navigate = useNavigate();
   const { deleteProject } = useProjectStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -527,7 +528,7 @@ export function ProjectTable({ projects, isLoading, onCreateProject, columnVisib
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEditProject?.(project)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
