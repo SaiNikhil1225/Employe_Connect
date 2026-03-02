@@ -1,85 +1,7 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Download, FileText, Loader2, Wallet } from 'lucide-react';
-import { payrollService, type Payroll as PayrollType } from '@/services/payrollService';
-import { useAuthStore } from '@/store/authStore';
-import { toast } from 'sonner';
+import { Wallet, Construction } from 'lucide-react';
 
 export function Payroll() {
-  const { user } = useAuthStore();
-  const [currentPayroll, setCurrentPayroll] = useState<PayrollType | null>(null);
-  const [payrollHistory, setPayrollHistory] = useState<PayrollType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchPayrollData = async () => {
-      if (!user?.employeeId) {
-        setError('Employee ID not found');
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Fetch current month payroll
-        try {
-          const current = await payrollService.getCurrentPayroll(user.employeeId);
-          setCurrentPayroll(current);
-        } catch {
-          // No current month payroll found - this is expected for some months
-          setCurrentPayroll(null);
-        }
-
-        // Fetch all payroll history
-        const history = await payrollService.getByEmployeeId(user.employeeId);
-        setPayrollHistory(history);
-      } catch (err) {
-        console.error('Failed to fetch payroll data:', err);
-        setError('Failed to load payroll data');
-        toast.error('Failed to load payroll data. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPayrollData();
-  }, [user?.employeeId]);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (error || !currentPayroll) {
-    return (
-      <div className="page-container">
-        <div className="page-header">
-          <div className="page-header-content">
-            <h1 className="page-title">
-              <Wallet className="h-7 w-7 text-primary" />
-              My Payroll
-            </h1>
-            <p className="page-description">View your salary and payslips</p>
-          </div>
-        </div>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
-              {error || 'No payroll data available for the current month'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="page-container">
       <div className="page-header">
@@ -90,14 +12,38 @@ export function Payroll() {
           </h1>
           <p className="page-description">View your salary and payslips</p>
         </div>
-        <Button>
-          <Download className="mr-2 h-4 w-4" />
-          Download Payslip
-        </Button>
       </div>
 
       <Card>
         <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wallet className="h-5 w-5" />
+            Payroll Information
+          </CardTitle>
+          <CardDescription>
+            Access your salary details and payslips
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="min-h-[500px] flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Construction className="h-16 w-16 mx-auto text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold">Coming Soon</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                This feature is currently under development.
+                <br />
+                View your salary breakdown, download payslips, and tax documents.
+              </p>
+              <p className="text-xs text-muted-foreground mt-4 italic">
+                Work in progress...
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
           <CardTitle>Current Month - {currentPayroll.month} {currentPayroll.year}</CardTitle>
           <CardDescription>Your salary breakdown</CardDescription>
         </CardHeader>
