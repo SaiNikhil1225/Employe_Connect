@@ -257,24 +257,39 @@ export const navigationConfig: RoutePermission[] = [
     icon: 'CheckSquare',
     roles: ['L1_APPROVER', 'L2_APPROVER', 'L3_APPROVER'],
   },
-  // Employee Routes
+  // Employee Routes - Me Section
   {
-    path: '/my-team',
-    label: 'My Team',
-    icon: 'Users',
-    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN', 'IT_EMPLOYEE'],
-  },
-  {
-    path: '/employee/my-attendance',
-    label: 'My Attendance',
-    icon: 'Clock',
+    path: '/me',
+    label: 'Me',
+    icon: 'User',
     roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN'],
-  },
-  {
-    path: '/leave',
-    label: 'Leave & Remote Work',
-    icon: 'Clock',
-    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN'],
+    children: [
+      {
+        path: '/leave',
+        label: 'Leave',
+        icon: 'Calendar',
+      },
+      {
+        path: '/employee/my-attendance',
+        label: 'Attendance',
+        icon: 'Clock',
+      },
+      {
+        path: '/performance',
+        label: 'Performance',
+        icon: 'TrendingUp',
+      },
+      {
+        path: '/rmg/timesheet',
+        label: 'Timesheet',
+        icon: 'Clock',
+      },
+      {
+        path: '/rmg/employee-hours-report',
+        label: 'Productivity',
+        icon: 'BarChart3',
+      },
+    ],
   },
   {
     path: '/payroll',
@@ -282,11 +297,24 @@ export const navigationConfig: RoutePermission[] = [
     icon: 'DollarSign',
     roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN'],
   },
+  // Organization Section
   {
-    path: '/performance',
-    label: 'Performance',
-    icon: 'TrendingUp',
-    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN'],
+    path: '/organization',
+    label: 'Organization',
+    icon: 'Building2',
+    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN', 'IT_EMPLOYEE'],
+    children: [
+      {
+        path: '/my-team',
+        label: 'My Team',
+        icon: 'Users',
+      },
+      {
+        path: '/employees-directory',
+        label: 'Employee Directory',
+        icon: 'Users',
+      },
+    ],
   },
   {
     path: '/documents',
@@ -369,13 +397,6 @@ export const navigationConfig: RoutePermission[] = [
     label: 'Analytics',
     icon: 'BarChart',
     roles: ['FACILITIES_ADMIN'],
-  },
-  // Common Routes (All Roles)
-  {
-    path: '/employees-directory',
-    label: 'Employees',
-    icon: 'Users',
-    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN'],
   },
   // HR Routes
   {
@@ -474,18 +495,6 @@ export const navigationConfig: RoutePermission[] = [
     label: 'UDA Configuration',
     icon: 'Settings2',
     roles: ['RMG'],
-  },
-  {
-    path: '/rmg/timesheet',
-    label: 'Timesheet',
-    icon: 'Clock',
-    roles: ['EMPLOYEE', 'MANAGER', 'RMG'],
-  },
-  {
-    path: '/rmg/employee-hours-report',
-    label: 'Productivity & Hours Dashboard',
-    icon: 'BarChart3',
-    roles: ['EMPLOYEE', 'MANAGER', 'RMG'],
   },
 ];
 

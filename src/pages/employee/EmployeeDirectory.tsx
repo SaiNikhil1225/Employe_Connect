@@ -8,8 +8,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable, type DataTableColumn, type DataTableAction } from '@/components/ui/data-table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Search, Users, Filter, Columns3
+  Search, Users, Filter, Columns3, Network
 } from 'lucide-react';
 import { useEmployeeStore } from '@/store/employeeStore';
 import type { Employee } from '@/services/employeeService';
@@ -38,6 +39,7 @@ export function EmployeeDirectory() {
   const [showFiltersPopover, setShowFiltersPopover] = useState(false);
   const [currentTime] = useState(() => Date.now());
   const [allocations, setAllocations] = useState<Map<string, number>>(new Map());
+  const [activeTab, setActiveTab] = useState('directory');
   
   // Check if we're in RMG module
   const isRMGModule = location.pathname.includes('/rmg/');
@@ -271,7 +273,20 @@ export function EmployeeDirectory() {
         </div>
       </div>
 
-      <Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+          <TabsTrigger value="directory" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Employee Directory
+          </TabsTrigger>
+          <TabsTrigger value="org-tree" className="flex items-center gap-2">
+            <Network className="h-4 w-4" />
+            Organization Tree
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="directory" className="mt-0">
+          <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -572,6 +587,35 @@ export function EmployeeDirectory() {
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="org-tree" className="mt-0">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Network className="h-5 w-5" />
+                Organization Tree
+              </CardTitle>
+              <CardDescription>
+                View the hierarchical structure of your organization
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="min-h-[500px] flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <Network className="h-16 w-16 mx-auto text-muted-foreground" />
+                <div>
+                  <h3 className="text-lg font-semibold">Organization Tree View</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Feature coming soon. This will display the organizational hierarchy
+                    <br />
+                    showing reporting relationships and team structures.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
