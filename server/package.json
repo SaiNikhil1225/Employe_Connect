@@ -12,6 +12,8 @@
     "seed:approvers": "ts-node src/seedApprovers.ts",
     "seed:config": "ts-node src/seedConfigMaster.ts",
     "seed:users": "ts-node src/seedAllUsers.ts",
+    "seed:attendance": "ts-node src/seedAttendanceLogs.ts",
+    "clear:attendance": "ts-node src/clearAttendanceLogs.ts",
     "migrate:unified-employee": "ts-node src/migrateToUnifiedEmployee.ts",
     "fix-employees": "ts-node src/fixEmployees.ts",
     "setup:timesheet-indexes": "ts-node src/scripts/createTimesheetIndexes.ts"
@@ -29,6 +31,7 @@
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "csurf": "^1.11.0",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.3.1",
     "exceljs": "^4.4.0",
     "express": "^4.21.2",

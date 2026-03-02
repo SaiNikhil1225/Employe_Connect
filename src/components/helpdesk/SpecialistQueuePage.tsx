@@ -225,7 +225,6 @@ export function SpecialistQueuePage({
       // Also support legacy statuses: 'Open' and 'In Progress' from old system
       const validStatuses: TicketStatus[] = [
         'In Queue', 'Assigned', 'In Progress', 'Paused', 'On Hold',
-        'Work Completed', 'Completed - Awaiting IT Closure',
         'Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Cancelled'
       ];
       const legacyStatuses = ['Open', 'open']; // Legacy ticket statuses
@@ -265,14 +264,14 @@ export function SpecialistQueuePage({
   // Completed tickets assigned to the current specialist only (not all completed tickets)
   const myCompletedTickets = useMemo(() => {
     return myAssignedTickets.filter(t =>
-      ['Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Work Completed', 'Completed - Awaiting IT Closure', 'Cancelled'].includes(t.status)
+      ['Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Cancelled'].includes(t.status)
     );
   }, [myAssignedTickets]);
 
   const unassignedTickets = useMemo(() => {
     return queueTickets.filter((ticket) => {
       // Exclude cancelled, closed, and completed tickets from available queue
-      const terminalStatuses = ['Cancelled', 'Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Work Completed', 'Completed - Awaiting IT Closure', 'Rejected'];
+      const terminalStatuses = ['Cancelled', 'Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Rejected'];
       if (terminalStatuses.includes(ticket.status)) return false;
 
       // A ticket is "available" if:
@@ -345,10 +344,19 @@ export function SpecialistQueuePage({
         await onUpdateProgress(ticket.id, 'On Hold', progressNotes || undefined);
       } else if (action === 'complete') {
         if (!resolutionNotes.trim()) {
-          alert('Resolution notes are required');
+          toast.error('Resolution notes are required');
           return;
         }
-        await onCompleteWork(ticket.id, resolutionNotes);
+        if (resolutionNotes.trim().length < 10) {
+          toast.error('Resolution notes must be at least 10 characters');
+          return;
+        }
+        if (resolutionNotes.trim().length > 5000) {
+          toast.error('Resolution notes must not exceed 5000 characters');
+          return;
+        }
+        // Trim the notes before sending to match backend validation
+        await onCompleteWork(ticket.id, resolutionNotes.trim());
       }
 
       setProgressDialog(null);
@@ -463,7 +471,7 @@ export function SpecialistQueuePage({
     const status = ticket.status;
     
     // Closed/Completed statuses
-    if (status === 'Closed' || status === 'Auto-Closed' || status === 'Confirmed' || status === 'Work Completed' || status === 'Completed' || status === 'Completed - Awaiting IT Closure') {
+    if (status === 'Closed' || status === 'Auto-Closed' || status === 'Confirmed' || status === 'Completed') {
       return 100;
     }
     
@@ -1250,15 +1258,26 @@ export function SpecialistQueuePage({
                     </Label>
                     <Textarea
                       id="resolutionNotes"
-                      placeholder="Describe how the issue was resolved..."
+                      placeholder="Describe how the issue was resolved... (minimum 10 characters)"
                       value={resolutionNotes}
                       onChange={(e) => setResolutionNotes(e.target.value)}
                       rows={5}
-                      className={cn(!resolutionNotes.trim() && 'border-red-300 dark:border-red-700')}
+                      className={cn(
+                        resolutionNotes.trim() && resolutionNotes.trim().length < 10 && 'border-red-300 dark:border-red-700'
+                      )}
                     />
-                    {!resolutionNotes.trim() && (
-                      <p className="text-xs text-red-500">Resolution notes are required when completing work</p>
-                    )}
+                    <div className="flex justify-between items-center text-xs">
+                      <div>
+                        {!resolutionNotes.trim() ? (
+                          <p className="text-red-500">Resolution notes are required (minimum 10 characters)</p>
+                        ) : resolutionNotes.trim().length < 10 ? (
+                          <p className="text-red-500">{10 - resolutionNotes.trim().length} more character(s) needed</p>
+                        ) : (
+                          <p className="text-green-600 dark:text-green-400">Valid</p>
+                        )}
+                      </div>
+                      <p className="text-gray-500">{resolutionNotes.length} / 5000</p>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1282,7 +1301,7 @@ export function SpecialistQueuePage({
                 </Button>
                 <Button
                   onClick={handleProgressAction}
-                  disabled={isSubmitting || (progressDialog.action === 'complete' && !resolutionNotes.trim())}
+                  disabled={isSubmitting || (progressDialog.action === 'complete' && resolutionNotes.trim().length < 10)}
                   className={cn(
                     progressDialog.action === 'start' && 'bg-green-600 hover:bg-green-700',
                     progressDialog.action === 'complete' && 'bg-teal-600 hover:bg-teal-700'

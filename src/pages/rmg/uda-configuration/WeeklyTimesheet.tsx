@@ -71,6 +71,8 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetCloseButton,
 } from "@/components/ui/sheet";
 import { useUDAConfigurationStore } from "@/store/udaConfigurationStore";
 import { useFinancialLineStore } from "@/store/financialLineStore";
@@ -3621,9 +3623,9 @@ const WeeklyTimesheet: React.FC = () => {
           <TabsContent value={viewMode} className="space-y-6 mt-6">
             {/* Color Guide Drawer */}
             <Sheet open={isColorGuideOpen} onOpenChange={setIsColorGuideOpen}>
-              <SheetContent className="sm:max-w-[500px] overflow-y-auto">
-                <SheetHeader className="border-b pb-6 mb-6">
-                  <div className="flex items-center gap-4">
+              <SheetContent className="sm:max-w-[500px] flex flex-col p-0">
+                <SheetHeader>
+                  <div className="flex items-center gap-4 flex-1">
                     <div className="grid grid-cols-2 gap-1 w-12 h-12 p-2 bg-slate-100 rounded-xl">
                       <div className="bg-indigo-400 rounded-sm"></div>
                       <div className="bg-emerald-400 rounded-sm"></div>
@@ -3639,9 +3641,10 @@ const WeeklyTimesheet: React.FC = () => {
                       </SheetDescription>
                     </div>
                   </div>
+                  <SheetCloseButton />
                 </SheetHeader>
 
-                <div className="space-y-4">
+                <SheetBody className="space-y-4">
                   {/* Filled Entry */}
                   <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border-2 border-slate-100 hover:border-indigo-200 transition-all">
                     <div className="w-16 h-12 bg-indigo-50 border-2 border-indigo-400 rounded-lg flex items-center justify-center shadow-sm">
@@ -3787,9 +3790,8 @@ const WeeklyTimesheet: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
+                  <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
                   <div className="flex items-start gap-3">
                     <div className="h-8 w-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-white text-lg">💡</span>
@@ -3815,6 +3817,7 @@ const WeeklyTimesheet: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                </SheetBody>
               </SheetContent>
             </Sheet>
 

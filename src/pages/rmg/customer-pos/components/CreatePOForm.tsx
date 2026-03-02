@@ -26,6 +26,9 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetFooter,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Upload, FileText } from 'lucide-react';
@@ -266,19 +269,20 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col h-full overflow-hidden !w-[75vw] max-w-none">
-        {/* Fixed Header */}
-        <SheetHeader className="flex-shrink-0 pb-6 border-b border-brand-light-gray">
-          <SheetTitle className="text-2xl font-bold text-brand-navy">Create Customer PO</SheetTitle>
-          <SheetDescription className="text-brand-slate">
-            Fill in the purchase order details to create a new customer PO.
-          </SheetDescription>
+      <SheetContent className="flex flex-col h-full overflow-hidden !w-[75vw] max-w-none p-0">
+        <SheetHeader>
+          <div className="flex-1">
+            <SheetTitle className="text-2xl font-bold text-brand-navy">Create Customer PO</SheetTitle>
+            <SheetDescription className="text-brand-slate">
+              Fill in the purchase order details to create a new customer PO.
+            </SheetDescription>
+          </div>
+          <SheetCloseButton />
         </SheetHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col flex-1 overflow-hidden">
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto space-y-6 mt-6 pr-2">
+            <SheetBody className="space-y-6">
               {/* Hidden fields for IDs */}
               <input type="hidden" {...form.register('projectId')} />
               <input type="hidden" {...form.register('customerId')} />
@@ -611,10 +615,9 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
                 )}
               />
             </div>
-            </div>
+            </SheetBody>
 
-            {/* Actions */}
-            <div className="flex-shrink-0 flex justify-end gap-3 pt-4 mt-6 border-t border-brand-light-gray">
+            <SheetFooter>
               <Button 
                 type="button" 
                 variant="outline" 
@@ -629,7 +632,7 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
               >
                 Complete
               </Button>
-            </div>
+            </SheetFooter>
           </form>
         </Form>
       </SheetContent>

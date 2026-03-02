@@ -54,9 +54,10 @@ type CustomerPOFormValues = z.infer<typeof customerPOSchema>;
 interface CustomerPOFormProps {
   po?: CustomerPO;
   onSubmit: (data: CustomerPOFormValues) => Promise<void>;
+  onCancel?: () => void;
 }
 
-export function CustomerPOForm({ po, onSubmit }: CustomerPOFormProps) {
+export function CustomerPOForm({ po, onSubmit, onCancel }: CustomerPOFormProps) {
   const { customers = [], fetchCustomers } = useCustomerStore();
   const { projects = [], fetchProjects } = useProjectStore();
 
@@ -359,7 +360,12 @@ export function CustomerPOForm({ po, onSubmit }: CustomerPOFormProps) {
           )}
         />
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-3 pt-4 border-t mt-6">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
           <Button type="submit">
             {po ? 'Update' : 'Create'} PO
           </Button>

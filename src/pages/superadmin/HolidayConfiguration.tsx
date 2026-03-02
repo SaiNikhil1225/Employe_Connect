@@ -26,13 +26,14 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetBody,
+    SheetFooter,
+    SheetCloseButton,
+} from '@/components/ui/sheet';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -534,21 +535,22 @@ export function HolidayConfiguration() {
                     </CardContent>
                 </Card >
 
-                {/* Add/Edit Dialog */}
-                < Dialog open={isFormOpen} onOpenChange={setIsFormOpen} >
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{getDialogTitle()}</DialogTitle>
-                            <DialogDescription>
-                                Add a new configuration entry
-                            </DialogDescription>
-                        </DialogHeader>
+                {/* Add/Edit Sheet */}
+                <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
+                    <SheetContent className="w-full sm:max-w-2xl flex flex-col p-0">
+                        <SheetHeader>
+                            <SheetTitle className="flex items-center gap-2">
+                                {activeTab === 'types' ? <Tag className="h-5 w-5 text-primary" /> : <Users className="h-5 w-5 text-primary" />}
+                                {getDialogTitle()}
+                            </SheetTitle>
+                            <SheetCloseButton />
+                        </SheetHeader>
 
-                        <div className="py-4">
+                        <SheetBody>
                             {renderFormContent()}
-                        </div>
+                        </SheetBody>
 
-                        <DialogFooter>
+                        <SheetFooter>
                             <Button variant="outline" onClick={() => setIsFormOpen(false)}>
                                 Cancel
                             </Button>
@@ -562,9 +564,9 @@ export function HolidayConfiguration() {
                                     'Save'
                                 )}
                             </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog >
+                        </SheetFooter>
+                    </SheetContent>
+                </Sheet>
 
                 {/* Delete Confirmation Dialog */}
                 <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>

@@ -6,6 +6,8 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import {
   AlertDialog,
@@ -22,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ITEmployeeSelect } from './ITEmployeeSelect';
 import { helpdeskService } from '@/services/helpdeskService';
-import { Info, X } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 interface ReassignDrawerProps {
   open: boolean;
@@ -111,26 +113,20 @@ export function ReassignDrawer({
   return (
     <>
       <Sheet open={open} onOpenChange={(isOpen) => !isOpen && !showConfirmation && onClose()}>
-        <SheetContent className="sm:max-w-[600px] overflow-y-auto">
+        <SheetContent className="sm:max-w-[600px] p-0">
+          {/* Fixed Header */}
           <SheetHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex-1">
               <SheetTitle>Reassign Ticket {ticketNumber}</SheetTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                disabled={isReassigning}
-                className="h-8 w-8"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <SheetDescription>
+                Reassign this ticket to a different specialist. Both the current and new assignee will be notified.
+              </SheetDescription>
             </div>
-            <SheetDescription>
-              Reassign this ticket to a different specialist. Both the current and new assignee will be notified.
-            </SheetDescription>
+            <SheetCloseButton />
           </SheetHeader>
 
-          <div className="space-y-4 py-6">
+          {/* Scrollable Body */}
+          <SheetBody className="space-y-4">
             {/* Current Assignee Info */}
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
               <div className="flex items-start gap-2">
@@ -194,9 +190,10 @@ export function ReassignDrawer({
                 </div>
               </div>
             </div>
-          </div>
+          </SheetBody>
 
-          <SheetFooter className="gap-2">
+          {/* Fixed Footer */}
+          <SheetFooter>
             <Button
               variant="outline"
               onClick={onClose}

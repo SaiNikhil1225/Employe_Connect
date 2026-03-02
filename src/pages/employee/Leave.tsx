@@ -28,6 +28,9 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetFooter,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -1313,19 +1316,19 @@ export function Leave() {
       {/* View Leave Details Sheet */}
       <Sheet open={!!viewLeave} onOpenChange={(open) => !open && setViewLeave(null)}>
         <SheetContent className="w-full sm:max-w-xl flex flex-col p-0">
-          {/* Fixed Header */}
-          <div className="flex-shrink-0 px-6 py-4 border-b bg-background">
-            <SheetHeader>
+          <SheetHeader>
+            <div className="flex-1">
               <SheetTitle className="flex items-center gap-2 text-xl">
                 <Palmtree className="h-5 w-5 text-primary" />
                 Leave Details
               </SheetTitle>
-            </SheetHeader>
-          </div>
+            </div>
+            <SheetCloseButton />
+          </SheetHeader>
           
           {/* Scrollable Body */}
           {viewLeave && (
-            <div className="flex-1 overflow-y-auto px-6 py-6">
+            <SheetBody>
               <div className="space-y-6">
                 {/* Date & Duration Cards */}
                 <div className="grid grid-cols-2 gap-4">
@@ -1496,39 +1499,37 @@ export function Leave() {
                   </div>
                 </div>
               </div>
-            </div>
+            </SheetBody>
           )}
 
           {/* Fixed Footer - Action Buttons */}
           {viewLeave && (viewLeave.status === 'pending' || viewLeave.status === 'approved') && (
-            <div className="flex-shrink-0 px-6 py-4 border-t bg-background">
-              <div className="flex gap-3">
-                {viewLeave.status === 'pending' && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setEditLeave(viewLeave);
-                      setViewLeave(null);
-                    }}
-                    className="flex-1 h-11"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                )}
+            <SheetFooter>
+              {viewLeave.status === 'pending' && (
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   onClick={() => {
-                    handleCancelLeave(viewLeave.id || viewLeave._id || '');
+                    setEditLeave(viewLeave);
                     setViewLeave(null);
                   }}
-                  className="flex-1 h-11 font-semibold shadow-lg shadow-red-500/25"
+                  className="flex-1 h-11"
                 >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel Leave
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
                 </Button>
-              </div>
-            </div>
+              )}
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  handleCancelLeave(viewLeave.id || viewLeave._id || '');
+                  setViewLeave(null);
+                }}
+                className="flex-1 h-11 font-semibold shadow-lg shadow-red-500/25"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel Leave
+              </Button>
+            </SheetFooter>
           )}
         </SheetContent>
       </Sheet>

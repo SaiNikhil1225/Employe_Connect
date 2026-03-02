@@ -46,15 +46,9 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -476,10 +470,9 @@ export function UserManagement() {
 
       {/* User Form Sheet */}
       <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <SheetContent className="flex flex-col h-full overflow-hidden w-full sm:max-w-lg p-0">
-          {/* Fixed Header */}
-          <div className="flex-shrink-0 border-b border-border bg-background p-6">
-            <SheetHeader>
+        <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
+          <SheetHeader>
+            <div className="flex-1">
               <SheetTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 {editingUser ? 'Edit User' : 'Add New User'}
@@ -487,11 +480,11 @@ export function UserManagement() {
               <SheetDescription>
                 {editingUser ? 'Update user details and role' : 'Create a new user account'}
               </SheetDescription>
-            </SheetHeader>
-          </div>
+            </div>
+            <SheetCloseButton />
+          </SheetHeader>
 
-          {/* Scrollable Body */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <SheetBody>
             <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2 col-span-2">
@@ -573,38 +566,39 @@ export function UserManagement() {
               </div>
             </div>
             </div>
-          </div>
+          </SheetBody>
 
-          {/* Fixed Footer */}
-          <div className="flex-shrink-0 border-t border-border bg-background p-6">
-            <SheetFooter className="flex gap-2 sm:justify-end">
-              <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save User'
-                )}
-              </Button>
-            </SheetFooter>
-          </div>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setIsFormOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save User'
+              )}
+            </Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
 
-      {/* View User Dialog */}
-      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>User Details</DialogTitle>
-          </DialogHeader>
+      {/* View User Sheet */}
+      <Sheet open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              User Details
+            </SheetTitle>
+            <SheetCloseButton />
+          </SheetHeader>
 
           {viewingUser && (
-            <div className="space-y-4 py-4">
+            <SheetBody className="space-y-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
                   <AvatarFallback className="bg-primary/10 text-primary text-xl">
@@ -661,10 +655,10 @@ export function UserManagement() {
                   </div>
                 </div>
               )}
-            </div>
+            </SheetBody>
           )}
 
-          <DialogFooter>
+          <SheetFooter>
             <Button variant="outline" onClick={() => setIsViewOpen(false)}>
               Close
             </Button>
@@ -675,9 +669,9 @@ export function UserManagement() {
               <Edit className="h-4 w-4 mr-2" />
               Edit User
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Delete Confirmation */}
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>

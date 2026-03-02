@@ -6,6 +6,9 @@ import {
     SheetHeader,
     SheetTitle,
     SheetDescription,
+    SheetBody,
+    SheetFooter,
+    SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -406,10 +409,9 @@ export function BulkUploadHolidaysDrawer({
 
     return (
         <Sheet open={open} onOpenChange={handleClose}>
-            <SheetContent className="flex flex-col h-full overflow-hidden w-full sm:max-w-2xl p-0">
-                {/* Fixed Header */}
-                <div className="flex-shrink-0 border-b border-border bg-background p-6">
-                    <SheetHeader>
+            <SheetContent className="flex flex-col h-full w-full sm:max-w-2xl p-0">
+                <SheetHeader>
+                    <div className="flex-1">
                         <SheetTitle className="flex items-center gap-2">
                             <FileUp className="h-5 w-5" />
                             Bulk Upload Holidays
@@ -417,11 +419,11 @@ export function BulkUploadHolidaysDrawer({
                         <SheetDescription>
                             Upload multiple holidays at once using Excel or CSV file
                         </SheetDescription>
-                    </SheetHeader>
-                </div>
+                    </div>
+                    <SheetCloseButton />
+                </SheetHeader>
 
-                {/* Scrollable Body */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <SheetBody>
                     <div className="space-y-6">
                     {/* Download Template */}
                     <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
@@ -549,38 +551,35 @@ export function BulkUploadHolidaysDrawer({
                         </Alert>
                     )}
                     </div>
-                </div>
+                </SheetBody>
 
-                {/* Fixed Footer */}
-                <div className="flex-shrink-0 border-t border-border bg-background p-6">
-                    <div className="flex gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={handleClose}
-                            disabled={isUploading}
-                            className="flex-1"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleUpload}
-                            disabled={isProcessing || isUploading || parsedData.length === 0 || validationErrors.length > 0}
-                            className="flex-1"
-                        >
-                            {isUploading ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Uploading...
-                                </>
-                            ) : (
-                                <>
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Upload {parsedData.length} Holiday{parsedData.length !== 1 ? 's' : ''}
-                                </>
-                            )}
-                        </Button>
-                    </div>
-                </div>
+                <SheetFooter>
+                    <Button
+                        variant="outline"
+                        onClick={handleClose}
+                        disabled={isUploading}
+                        className="flex-1"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleUpload}
+                        disabled={isProcessing || isUploading || parsedData.length === 0 || validationErrors.length > 0}
+                        className="flex-1"
+                    >
+                        {isUploading ? (
+                            <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Uploading...
+                            </>
+                        ) : (
+                            <>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Upload {parsedData.length} Holiday{parsedData.length !== 1 ? 's' : ''}
+                            </>
+                        )}
+                    </Button>
+                </SheetFooter>
             </SheetContent>
         </Sheet>
     );

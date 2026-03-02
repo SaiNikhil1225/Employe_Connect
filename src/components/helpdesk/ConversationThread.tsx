@@ -48,7 +48,7 @@ export const ConversationThread = React.memo<ConversationThreadProps>(({
     } finally {
       setIsSending(false);
     }
-  };
+  }, [newMessage, isSending, onSendMessage]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

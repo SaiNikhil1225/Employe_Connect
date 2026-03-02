@@ -6,6 +6,9 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetFooter,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -117,19 +120,25 @@ const ConfigFormSheet: React.FC<ConfigFormSheetProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-[480px]">
+      <SheetContent className="sm:max-w-[480px] p-0">
+        {/* Fixed Header */}
         <SheetHeader>
-          <SheetTitle>
-            {config ? 'Edit' : 'Add New'} {label}
-          </SheetTitle>
-          <SheetDescription>
-            {config
-              ? `Update the details for this ${label.toLowerCase()}.`
-              : `Create a new ${label.toLowerCase()} configuration.`}
-          </SheetDescription>
+          <div className="flex-1">
+            <SheetTitle>
+              {config ? 'Edit' : 'Add New'} {label}
+            </SheetTitle>
+            <SheetDescription>
+              {config
+                ? `Update the details for this ${label.toLowerCase()}.`
+                : `Create a new ${label.toLowerCase()} configuration.`}
+            </SheetDescription>
+          </div>
+          <SheetCloseButton />
         </SheetHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-6">
+        {/* Scrollable Body */}
+        <SheetBody>
+          <form id="config-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Name Field */}
           <div className="space-y-2">
             <Label htmlFor="name">
@@ -181,22 +190,23 @@ const ConfigFormSheet: React.FC<ConfigFormSheetProps> = ({
               Inactive items will not appear in dropdowns
             </p>
           </div>
+          </form>
+        </SheetBody>
 
-          {/* Form Actions */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : config ? 'Update' : 'Create'}
-            </Button>
-          </div>
-        </form>
+        {/* Fixed Footer */}
+        <SheetFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" form="config-form" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : config ? 'Update' : 'Create'}
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

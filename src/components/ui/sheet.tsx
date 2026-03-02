@@ -36,21 +36,39 @@ const SheetContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+        "fixed z-50 gap-4 bg-background shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
         "inset-y-0 right-0 h-full border-l border-input data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
+        "flex flex-col",
         className
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-muted data-[state=open]:text-muted-foreground">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </SheetPortal>
 ))
 SheetContent.displayName = DialogPrimitive.Content.displayName
+
+/**
+ * SheetCloseButton - Standardized close button for sheet headers
+ */
+const SheetCloseButton = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Close>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Close>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Close
+    ref={ref}
+    className={cn(
+      "rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:pointer-events-none",
+      className
+    )}
+    {...props}
+  >
+    <X className="h-5 w-5" />
+    <span className="sr-only">Close</span>
+  </DialogPrimitive.Close>
+))
+SheetCloseButton.displayName = "SheetCloseButton"
 
 const SheetHeader = ({
   className,
@@ -58,7 +76,7 @@ const SheetHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-2 text-left",
+      "flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-input bg-background",
       className
     )}
     {...props}
@@ -72,13 +90,27 @@ const SheetFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      "flex-shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-input bg-background",
       className
     )}
     {...props}
   />
 )
 SheetFooter.displayName = "SheetFooter"
+
+/**
+ * SheetBody - Scrollable body component for sheets with fixed header/footer
+ */
+const SheetBody = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn("flex-1 overflow-y-auto px-6 py-4", className)}
+    {...props}
+  />
+)
+SheetBody.displayName = "SheetBody"
 
 const SheetTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
@@ -110,8 +142,10 @@ export {
   SheetOverlay,
   SheetTrigger,
   SheetClose,
+  SheetCloseButton,
   SheetContent,
   SheetHeader,
+  SheetBody,
   SheetFooter,
   SheetTitle,
   SheetDescription,

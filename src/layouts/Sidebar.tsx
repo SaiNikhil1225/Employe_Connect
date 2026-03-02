@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import { useProfile } from '@/contexts/ProfileContext';
 import { getNavigationForRole } from '@/router/roleConfig';
 import { profileService } from '@/services/profileService';
 import { cn } from '@/lib/utils';
+import { type UserRole } from '@/types';
 import acuvateLogo from '@/assets/acuvateLogo_light.png';
 import acuvateIcon from '@/assets/acu_v_icon.png';
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   LayoutDashboard,
   User,
   Users,
   UsersRound,
   Calendar,
+  CalendarDays,
   Clock,
   DollarSign,
   TrendingUp,
@@ -40,6 +45,9 @@ import {
   Award,
   GraduationCap,
   Megaphone,
+  FolderCog,
+  Headset,
+  Globe,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -57,6 +65,7 @@ const iconMap: Record<string, LucideIcon> = {
   Users,
   UsersRound,
   Calendar,
+  CalendarDays,
   Clock,
   DollarSign,
   TrendingUp,
@@ -83,23 +92,67 @@ const iconMap: Record<string, LucideIcon> = {
   Award,
   GraduationCap,
   Megaphone,
+  FolderCog,
+  Headset,
+  Globe,
 };
+
+interface MenuItem {
+  path: string;
+  label: string;
+  icon: string;
+  action?: () => void;
+  children?: MenuItem[];
+}
 
 interface MenuSection {
   title?: string;
-  items: Array<{
-    path: string;
-    label: string;
-    icon: string;
-    action?: () => void;
-  }>;
+  items: MenuItem[];
 }
 
 export function Sidebar() {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
+  const { activeProfile } = useProfile();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+
+  const toggleSubmenu = (label: string) => {
+    setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  // Map activeProfile to UserRole for navigation
+  const getEffectiveRole = (): UserRole => {
+    // Map profile values to actual UserRole values
+    switch (activeProfile) {
+      case 'HR_USER':
+        return 'EMPLOYEE'; // HR User sees employee-level navigation
+      case 'HR_ADMIN':
+        return 'HR'; // HR Admin sees full HR navigation
+      case 'RMG_USER':
+        return 'EMPLOYEE'; // RMG User sees employee-level navigation
+      case 'RMG_ADMIN':
+        return 'RMG'; // RMG Admin sees full RMG navigation
+      case 'SUPER_ADMIN':
+        return 'SUPER_ADMIN';
+      case 'MANAGER':
+        return 'MANAGER';
+      case 'IT_ADMIN':
+        return 'IT_ADMIN';
+      case 'IT_EMPLOYEE':
+        return 'IT_EMPLOYEE';
+      case 'L1_APPROVER':
+        return 'L1_APPROVER';
+      case 'L2_APPROVER':
+        return 'L2_APPROVER';
+      case 'L3_APPROVER':
+        return 'L3_APPROVER';
+      case 'EMPLOYEE':
+      default:
+        return user?.role || 'EMPLOYEE'; // Use actual role as fallback
+    }
+  };
 
   // Fetch user profile photo
   useEffect(() => {
@@ -121,12 +174,13 @@ export function Sidebar() {
 
   if (!user) return null;
 
-  const navigation = getNavigationForRole(user.role);
+  const effectiveRole = getEffectiveRole();
+  const navigation = getNavigationForRole(effectiveRole);
 
   // Filter navigation based on department for EMPLOYEE role
   const filteredNavigation = navigation.filter(item => {
-    // If user is EMPLOYEE, only show department-specific ticket pages
-    if (user.role === 'EMPLOYEE') {
+    // If user is EMPLOYEE or viewing as employee, only show department-specific ticket pages
+    if (effectiveRole === 'EMPLOYEE') {
       if (item.path === '/financeadmin/tickets') {
         return user.department === 'Finance' || user.businessUnit === 'Finance';
       }
@@ -148,6 +202,11 @@ export function Sidebar() {
         path: item.path,
         label: item.label,
         icon: item.icon || 'CircleDot',
+        children: item.children?.map(child => ({
+          path: child.path,
+          label: child.label,
+          icon: child.icon || 'CircleDot',
+        })),
       })),
     },
   ];
@@ -201,15 +260,115 @@ export function Sidebar() {
               <ul className="space-y-1" role="list">
                 {section.items.map((item) => {
                   const Icon = getIcon(item.icon);
-                  const isActive = location.pathname === item.path;
+                  const isActive = location.pathname === item.path || item.children?.some(c => location.pathname === c.path);
+                  const hasChildren = item.children && item.children.length > 0;
+                  const isExpanded = expandedMenus[item.label];
 
                   const handleClick = (e: React.MouseEvent) => {
-                    if (item.action) {
+                    if (hasChildren) {
+                      e.preventDefault();
+                      toggleSubmenu(item.label);
+                    } else if (item.action) {
                       e.preventDefault();
                       item.action();
                     }
                   };
 
+                  // Parent item with children - render as button/expandable
+                  if (hasChildren) {
+                    const parentContent = (
+                      <button
+                        onClick={handleClick}
+                        aria-label={item.label}
+                        aria-expanded={isExpanded}
+                        className={cn(
+                          "flex gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative w-full",
+                          isCollapsed ? "items-center justify-center px-2" : "items-center justify-between",
+                          isActive
+                            ? "bg-brand-green/20 text-brand-green"
+                            : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon 
+                            className={cn(
+                              "h-5 w-5 flex-shrink-0 transition-transform duration-200",
+                              isActive && "scale-110"
+                            )} 
+                            aria-hidden="true" 
+                          />
+                          {!isCollapsed && (
+                            <span className="font-medium text-sm leading-tight">
+                              {item.label}
+                            </span>
+                          )}
+                        </div>
+                        {!isCollapsed && (
+                          isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )
+                        )}
+                      </button>
+                    );
+
+                    return (
+                      <li key={item.label}>
+                        {isCollapsed ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {parentContent}
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="bg-slate-800 text-white border-slate-700">
+                              <div className="space-y-1">
+                                <p className="font-medium">{item.label}</p>
+                                {item.children?.map(child => (
+                                  <Link
+                                    key={child.path}
+                                    to={child.path}
+                                    className="block text-sm text-gray-300 hover:text-white py-0.5"
+                                  >
+                                    {child.label}
+                                  </Link>
+                                ))}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <>
+                            {parentContent}
+                            {isExpanded && (
+                              <ul className="mt-1 ml-4 space-y-1 border-l border-gray-700 pl-3">
+                                {item.children?.map(child => {
+                                  const ChildIcon = getIcon(child.icon);
+                                  const isChildActive = location.pathname === child.path;
+                                  return (
+                                    <li key={child.path}>
+                                      <Link
+                                        to={child.path}
+                                        className={cn(
+                                          "flex gap-2 px-2 py-2 rounded-lg text-sm transition-all duration-200",
+                                          isChildActive
+                                            ? "bg-brand-green/20 text-brand-green"
+                                            : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                                        )}
+                                      >
+                                        <ChildIcon className="h-4 w-4 flex-shrink-0" />
+                                        <span>{child.label}</span>
+                                      </Link>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            )}
+                          </>
+                        )}
+                      </li>
+                    );
+                  }
+
+                  // Regular item without children
                   const linkContent = (
                     <Link
                       to={item.path}
@@ -217,8 +376,8 @@ export function Sidebar() {
                       aria-label={item.label}
                       aria-current={isActive ? 'page' : undefined}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
-                        isCollapsed && "justify-center px-2",
+                        "flex gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+                        isCollapsed ? "items-center justify-center px-2" : "items-start",
                         isActive
                           ? "bg-brand-green/20 text-brand-green"
                           : "text-gray-300 hover:bg-gray-800 hover:text-white"
@@ -226,7 +385,7 @@ export function Sidebar() {
                     >
                       <Icon 
                         className={cn(
-                          "h-5 w-5 flex-shrink-0 transition-transform duration-200",
+                          "h-5 w-5 flex-shrink-0 transition-transform duration-200 mt-0.5",
                           isActive && "scale-110"
                         )} 
                         aria-hidden="true" 
@@ -234,7 +393,7 @@ export function Sidebar() {
 
                       {!isCollapsed && (
                         <span className={cn(
-                          "font-medium text-sm whitespace-nowrap transition-opacity duration-300",
+                          "font-medium text-sm transition-opacity duration-300 leading-tight",
                           isCollapsed ? "opacity-0" : "opacity-100"
                         )}>
                           {item.label}

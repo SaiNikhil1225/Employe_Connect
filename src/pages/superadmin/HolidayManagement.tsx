@@ -45,12 +45,14 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from '@/components/ui/dialog';
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetBody,
+    SheetFooter,
+    SheetCloseButton,
+} from '@/components/ui/sheet';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -685,15 +687,19 @@ export function HolidayManagement() {
                     }}
                 />
 
-                {/* View Holiday Dialog */}
-                <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-                    <DialogContent className="max-w-lg">
-                        <DialogHeader>
-                            <DialogTitle>Holiday Details</DialogTitle>
-                        </DialogHeader>
+                {/* View Holiday Sheet */}
+                <Sheet open={isViewOpen} onOpenChange={setIsViewOpen}>
+                    <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
+                        <SheetHeader>
+                            <SheetTitle className="flex items-center gap-2">
+                                <Calendar className="h-5 w-5 text-primary" />
+                                Holiday Details
+                            </SheetTitle>
+                            <SheetCloseButton />
+                        </SheetHeader>
 
                         {viewingHoliday && (
-                            <div className="space-y-4 py-4">
+                            <SheetBody className="space-y-4">
                                 {viewingHoliday.imageUrl && (
                                     <img
                                         src={viewingHoliday.imageUrl}
@@ -728,10 +734,10 @@ export function HolidayManagement() {
                                         {typeof viewingHoliday.typeId === 'object' && viewingHoliday.typeId ? viewingHoliday.typeId.name : '-'}
                                     </p>
                                 </div>
-                            </div>
+                            </SheetBody>
                         )}
 
-                        <DialogFooter>
+                        <SheetFooter>
                             <Button variant="outline" onClick={() => setIsViewOpen(false)}>
                                 Close
                             </Button>
@@ -745,9 +751,9 @@ export function HolidayManagement() {
                                     Edit Holiday
                                 </Button>
                             )}
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                        </SheetFooter>
+                    </SheetContent>
+                </Sheet>
 
                 {/* Delete Confirmation */}
                 <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>

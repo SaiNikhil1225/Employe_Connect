@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 
 interface FinancesTabProps {
   onUpdate?: (data: any) => Promise<void>;
+  canEdit?: boolean;
   // Salary
   salary?: string;
   salaryPaymentMode?: string;
@@ -51,6 +52,7 @@ interface FinancesTabProps {
 }
 
 export default function FinancesTab({
+  canEdit = true, // Default to true for backward compatibility
   salary,
   salaryPaymentMode,
   accountNumber = '****',
@@ -180,7 +182,7 @@ export default function FinancesTab({
               <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-500" />
               Bank Account Details
             </div>
-            {editingSection !== 'bank' && (
+            {canEdit && editingSection !== 'bank' && (
               <Button onClick={() => setEditingSection('bank')} variant="ghost" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>
@@ -283,7 +285,7 @@ export default function FinancesTab({
               <Building2 className="h-5 w-5 text-indigo-600" />
               Provident Fund (PF) Details
             </div>
-            {editingSection !== 'pf' && (
+            {canEdit && editingSection !== 'pf' && (
               <Button onClick={() => setEditingSection('pf')} variant="ghost" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>
@@ -400,7 +402,7 @@ export default function FinancesTab({
               <Building2 className="h-5 w-5 text-purple-600" />
               ESI Details
             </div>
-            {editingSection !== 'esi' && (
+            {canEdit && editingSection !== 'esi' && (
               <Button onClick={() => setEditingSection('esi')} variant="ghost" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>
@@ -517,7 +519,7 @@ export default function FinancesTab({
               <Building2 className="h-5 w-5 text-orange-600" />
               Aadhaar Details
             </div>
-            {editingSection !== 'aadhaar' && (
+            {canEdit && editingSection !== 'aadhaar' && (
               <Button onClick={() => setEditingSection('aadhaar')} variant="ghost" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>
@@ -635,7 +637,7 @@ export default function FinancesTab({
               <Building2 className="h-5 w-5 text-red-600" />
               PAN Card Details
             </div>
-            {editingSection !== 'pan' && (
+            {canEdit && editingSection !== 'pan' && (
               <Button onClick={() => setEditingSection('pan')} variant="ghost" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>

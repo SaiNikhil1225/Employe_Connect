@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetBody, SheetCloseButton } from '@/components/ui/sheet';
 import { Users, CalendarDays, Plane, LogIn, LogOut, Megaphone, Cake, Gift, UserPlus, Heart, MessageCircle, Send, Clock, Pin, Bookmark, Timer, Zap, AlertCircle, CheckCircle2, Calendar, Flame, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Sparkles, Tag, BadgeCheck, Eye, Share2, BarChart3, Mail } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -1467,17 +1467,21 @@ export function EmployeeDashboard() {
 
       {/* Reactions Drawer */}
       <Sheet open={reactionDialogOpen} onOpenChange={setReactionDialogOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader className="pb-4 border-b">
-            <SheetTitle className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-red-500" />
-              Reactions
-            </SheetTitle>
-            <SheetDescription>
-              {selectedAnnouncementReactions?.title || 'See who reacted to this post'}
-            </SheetDescription>
+        <SheetContent className="w-full sm:max-w-md flex flex-col p-0">
+          <SheetHeader>
+            <div className="flex-1">
+              <SheetTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-red-500" />
+                Reactions
+              </SheetTitle>
+              <SheetDescription>
+                {selectedAnnouncementReactions?.title || 'See who reacted to this post'}
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
           
+          <SheetBody>
           {getSelectedAnnouncementReactions().length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Heart className="h-16 w-16 mx-auto mb-3 opacity-20" />
@@ -1560,6 +1564,7 @@ export function EmployeeDashboard() {
               </Tabs>
             </div>
           )}
+          </SheetBody>
         </SheetContent>
       </Sheet>
     </div>

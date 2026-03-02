@@ -236,4 +236,14 @@ export const employeeService = {
     );
     return response.data.data;
   },
+
+  // Get employee allocations for RMG module
+  getAllocations: async (): Promise<Array<{ employeeId: string; allocation: number }>> => {
+    const response = await apiClient.get<{ 
+      success: boolean; 
+      data: Array<{ employeeId: string; allocation: number }>;
+      timestamp: string;
+    }>('/employees/allocations/summary');
+    return response.data.data;
+  },
 };

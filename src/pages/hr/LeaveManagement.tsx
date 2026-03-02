@@ -15,13 +15,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetBody,
+  SheetFooter,
+  SheetCloseButton,
+} from '@/components/ui/sheet';
 import {
   Table,
   TableBody,
@@ -339,16 +340,17 @@ export function LeaveManagement() {
         </CardContent>
       </Card>
 
-      {/* Apply Leave Dialog */}
-      <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Apply for Leave</DialogTitle>
-            <DialogDescription>
-              Submit a new leave request for manager approval
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
+      {/* Apply Leave Sheet */}
+      <Sheet open={showApplyDialog} onOpenChange={setShowApplyDialog}>
+        <SheetContent className="w-full sm:max-w-xl flex flex-col p-0">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Apply for Leave
+            </SheetTitle>
+            <SheetCloseButton />
+          </SheetHeader>
+          <SheetBody className="space-y-4">
             <div>
               <Label htmlFor="leave-type">
                 Leave Type <span className="text-red-500">*</span>
@@ -414,8 +416,8 @@ export function LeaveManagement() {
                 className="mt-2"
               />
             </div>
-          </div>
-          <DialogFooter>
+          </SheetBody>
+          <SheetFooter>
             <Button
               variant="outline"
               onClick={() => {
@@ -436,21 +438,22 @@ export function LeaveManagement() {
             >
               Submit Request
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-      {/* View Request Dialog */}
-      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Leave Request Details</DialogTitle>
-            <DialogDescription>
-              Complete information about your leave request
-            </DialogDescription>
-          </DialogHeader>
+      {/* View Request Sheet */}
+      <Sheet open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <SheetContent className="w-full sm:max-w-2xl flex flex-col p-0">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" />
+              Leave Request Details
+            </SheetTitle>
+            <SheetCloseButton />
+          </SheetHeader>
           {selectedRequest && (
-            <div className="space-y-4">
+            <SheetBody className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Leave Type</Label>
@@ -523,10 +526,10 @@ export function LeaveManagement() {
                   )}
                 </div>
               )}
-            </div>
+            </SheetBody>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

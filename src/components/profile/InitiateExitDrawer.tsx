@@ -3,8 +3,11 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
-  SheetTitle,
+  SheetBody,
   SheetFooter,
+  SheetTitle,
+  SheetDescription,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -161,17 +164,21 @@ export default function InitiateExitDrawer({
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent className="sm:max-w-2xl overflow-y-auto">
-        <SheetHeader className="pb-4 border-b">
-          <SheetTitle className="text-lg font-semibold text-gray-900">
-            Initiate Exit Process
-          </SheetTitle>
-          <p className="text-sm text-gray-600">
-            Employee: <span className="font-medium text-gray-900">{employeeName}</span>
-          </p>
+      <SheetContent className="sm:max-w-2xl p-0">
+        <SheetHeader>
+          <div className="flex-1">
+            <SheetTitle className="text-lg font-semibold text-gray-900">
+              Initiate Exit Process
+            </SheetTitle>
+            <SheetDescription className="text-sm text-gray-600">
+              Employee: <span className="font-medium text-gray-900">{employeeName}</span>
+            </SheetDescription>
+          </div>
+          <SheetCloseButton />
         </SheetHeader>
 
-        <div className="space-y-5 py-5">
+        <SheetBody>
+          <div className="space-y-5">
           {/* Exit Reason Selection */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
@@ -448,26 +455,25 @@ export default function InitiateExitDrawer({
               This will initiate an approval workflow. The employee will be notified once approved.
             </p>
           </div>
-        </div>
-
-        <SheetFooter className="border-t pt-4">
-          <div className="flex justify-end gap-2 w-full">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="h-9"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="h-9 bg-indigo-600 hover:bg-indigo-700"
-            >
-              {isSubmitting ? 'Processing...' : 'Initiate Exit'}
-            </Button>
           </div>
+        </SheetBody>
+
+        <SheetFooter>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={isSubmitting}
+            className="h-9"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="h-9 bg-indigo-600 hover:bg-indigo-700"
+          >
+            {isSubmitting ? 'Processing...' : 'Initiate Exit'}
+          </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

@@ -2,6 +2,10 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetBody,
+  SheetFooter,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -540,9 +544,9 @@ export function ApplyLeaveDrawer({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl flex flex-col p-0">
-        {/* Sticky Header */}
-        <div className="flex-shrink-0 px-6 py-4 border-b bg-primary/5">
-          <div className="flex items-center gap-3">
+        {/* Fixed Header */}
+        <SheetHeader className="bg-primary/5">
+          <div className="flex items-center gap-3 flex-1">
             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Palmtree className="h-5 w-5 text-primary" />
             </div>
@@ -555,10 +559,12 @@ export function ApplyLeaveDrawer({
               </p>
             </div>
           </div>
-        </div>
+          <SheetCloseButton />
+        </SheetHeader>
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-6">
+        <SheetBody className="p-0">
+          <form onSubmit={handleSubmit} className="px-6 py-6">
           <div className="space-y-6">
             
             {/* Section: Leave Period */}
@@ -1047,32 +1053,29 @@ export function ApplyLeaveDrawer({
             )}
           </div>
         </form>
+        </SheetBody>
 
-        {/* Sticky Footer */}
-        <div className="flex-shrink-0 px-6 py-4 border-t bg-background shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="flex-1 h-11"
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isLoading || leaveDays === 0}
-              onClick={handleSubmit}
-              className="flex-1 h-11 shadow-lg shadow-primary/25"
-            >
-              {isLoading 
-                ? (editData ? 'Updating...' : 'Submitting...') 
-                : (editData ? 'Update Request' : '🚀 Submit Request')
-              }
-            </Button>
-          </div>
-        </div>
+        {/* Fixed Footer */}
+        <SheetFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isLoading || leaveDays === 0}
+            onClick={handleSubmit}
+          >
+            {isLoading 
+              ? (editData ? 'Updating...' : 'Submitting...') 
+              : (editData ? 'Update Request' : '🚀 Submit Request')
+            }
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetBody, SheetCloseButton } from '@/components/ui/sheet';
 import { Calendar, Clock, TrendingUp, FileText, Users, CalendarDays, Plane, LogIn, LogOut, Megaphone, Cake, Gift, UserPlus, Heart, MessageCircle, Send, Plus, Flame, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Sparkles, Tag, BadgeCheck, Eye, Share2, Pin, BarChart3, CheckCircle2, Pencil, AlertCircle } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -323,7 +323,8 @@ export function HRDashboard() {
     setExpandedPosts(prev => ({ ...prev, [postId]: !prev[postId] }));
   };
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | undefined | null) => {
+    if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
@@ -1318,17 +1319,21 @@ export function HRDashboard() {
 
       {/* Reactions Drawer */}
       <Sheet open={reactionDialogOpen} onOpenChange={setReactionDialogOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader className="pb-4 border-b">
-            <SheetTitle className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-red-500" />
-              Reactions
-            </SheetTitle>
-            <SheetDescription>
-              {selectedAnnouncementReactions?.title || 'See who reacted to this post'}
-            </SheetDescription>
+        <SheetContent className="w-full sm:max-w-md flex flex-col p-0">
+          <SheetHeader>
+            <div className="flex-1">
+              <SheetTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-red-500" />
+                Reactions
+              </SheetTitle>
+              <SheetDescription>
+                {selectedAnnouncementReactions?.title || 'See who reacted to this post'}
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
           
+          <SheetBody>
           {getSelectedAnnouncementReactions().length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Heart className="h-16 w-16 mx-auto mb-3 opacity-20" />
@@ -1361,8 +1366,8 @@ export function HRDashboard() {
                 <TabsContent value="all" className="mt-4 space-y-2">
                   {getSelectedAnnouncementReactions().map((reaction, idx) => (
                     <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarGradient(reaction.userName)} flex items-center justify-center text-white text-sm font-semibold`}>
-                        {reaction.userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarGradient(reaction.userName || 'User')} flex items-center justify-center text-white text-sm font-semibold`}>
+                        {getInitials(reaction.userName)}
                       </div>
                       <div className="flex-1">
                         <p className="font-medium text-sm">{reaction.userName}</p>
@@ -1391,7 +1396,7 @@ export function HRDashboard() {
                     {group.users.map((userReaction, idx) => (
                       <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                         <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarGradient(userReaction.userName)} flex items-center justify-center text-white text-sm font-semibold`}>
-                          {userReaction.userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                          {getInitials(userReaction.userName)}
                         </div>
                         <div className="flex-1">
                           <p className="font-medium text-sm">{userReaction.userName}</p>
@@ -1411,24 +1416,29 @@ export function HRDashboard() {
               </Tabs>
             </div>
           )}
+          </SheetBody>
         </SheetContent>
       </Sheet>
 
       {/* Poll Voters Drawer - HR can see who voted for each option */}
       <Sheet open={pollVotersDrawerOpen} onOpenChange={setPollVotersDrawerOpen}>
-        <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
+        <SheetContent className="w-[400px] sm:w-[540px] flex flex-col p-0">
           <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-purple-600" />
-              Poll Voters
-            </SheetTitle>
-            <SheetDescription>
-              {selectedPollData?.pollTitle}
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-purple-600" />
+                Poll Voters
+              </SheetTitle>
+              <SheetDescription>
+                {selectedPollData?.pollTitle}
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
           
+          <SheetBody>
           {selectedPollData && (
-            <div className="mt-6">
+            <div>
               {/* Poll Summary */}
               <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
                 <div className="flex items-center justify-between">
@@ -1494,7 +1504,7 @@ export function HRDashboard() {
                                 className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                               >
                                 <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarGradient(voterName)} flex items-center justify-center text-white text-sm font-semibold`}>
-                                  {voterName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                  {getInitials(voterName)}
                                 </div>
                                 <div className="flex-1">
                                   <p className="font-medium text-sm">{voterName}</p>
@@ -1512,6 +1522,7 @@ export function HRDashboard() {
               )}
             </div>
           )}
+          </SheetBody>
         </SheetContent>
       </Sheet>
     </div>

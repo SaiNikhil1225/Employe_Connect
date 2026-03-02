@@ -1,4 +1,4 @@
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetCloseButton } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -842,10 +842,13 @@ export function AddEditEmployeeModal({ open, onClose, employee, onSuccess }: Add
         {/* Header - Fixed */}
         <div className="px-6 pt-6 pb-4 border-b bg-background">
           <SheetHeader>
-            <SheetTitle className="text-2xl">{employee ? 'Edit Employee' : 'Add New Employee'}</SheetTitle>
-            <SheetDescription>
-              {employee ? 'Update employee information' : 'Complete all steps to onboard a new employee'}
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle className="text-2xl">{employee ? 'Edit Employee' : 'Add New Employee'}</SheetTitle>
+              <SheetDescription>
+                {employee ? 'Update employee information' : 'Complete all steps to onboard a new employee'}
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
         </div>
 
@@ -1882,17 +1885,20 @@ export function AddEditEmployeeModal({ open, onClose, employee, onSuccess }: Add
     <Sheet open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader className="space-y-2 pb-4 border-b">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg">
-            <CheckCircle2 className="h-9 w-9 text-white" />
+          <div className="flex-1">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg">
+              <CheckCircle2 className="h-9 w-9 text-white" />
+            </div>
+            <div className="space-y-0.5">
+              <SheetTitle className="text-center text-xl font-bold text-gray-900">
+                Employee Created!
+              </SheetTitle>
+              <SheetDescription className="text-center text-xs text-gray-500">
+                New employee added successfully
+              </SheetDescription>
+            </div>
           </div>
-          <div className="space-y-0.5">
-            <SheetTitle className="text-center text-xl font-bold text-gray-900">
-              Employee Created!
-            </SheetTitle>
-            <SheetDescription className="text-center text-xs text-gray-500">
-              New employee added successfully
-            </SheetDescription>
-          </div>
+          <SheetCloseButton />
         </SheetHeader>
         
         {createdEmployeeData && (
@@ -1951,6 +1957,7 @@ export function AddEditEmployeeModal({ open, onClose, employee, onSuccess }: Add
                   if (createdEmployeeData?.employeeId) {
                     setShowSuccessDialog(false);
                     onClose();
+                    sessionStorage.setItem('profileReferrer', '/hr/employee-management');
                     navigate(`/employee/profile/${createdEmployeeData.employeeId}`);
                   } else {
                     toast.error('Employee ID not available');

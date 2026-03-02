@@ -9,7 +9,9 @@ import {
   SheetContent,
   SheetDescription,
   SheetHeader,
+  SheetBody,
   SheetTitle,
+  SheetCloseButton,
 } from "@/components/ui/sheet";
 import { UDAConfigurationForm } from "./UDAConfigurationForm";
 import { toast } from "sonner";
@@ -54,37 +56,43 @@ export function CreateUDAConfigurationDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-[540px]">
+      <SheetContent className="sm:max-w-[540px] p-0">
         <SheetHeader>
-          <SheetTitle>
-            {configuration ? "Edit" : "Create New"} UDA Configuration
-          </SheetTitle>
-          <SheetDescription>
-            {configuration
-              ? "Update the UDA configuration details below."
-              : "Add a new User Defined Attribute for timesheet management."}{" "}
-            Fields marked with * are required.
-          </SheetDescription>
+          <div className="flex-1">
+            <SheetTitle>
+              {configuration ? "Edit" : "Create New"} UDA Configuration
+            </SheetTitle>
+            <SheetDescription>
+              {configuration
+                ? "Update the UDA configuration details below."
+                : "Add a new User Defined Attribute for timesheet management."}{" "}
+              Fields marked with * are required.
+            </SheetDescription>
+          </div>
+          <SheetCloseButton />
         </SheetHeader>
-        <UDAConfigurationForm
-          onSubmit={handleSubmit}
-          defaultValues={
-            configuration
-              ? {
-                  udaNumber: configuration.udaNumber,
-                  name: configuration.name,
-                  description: configuration.description,
-                  parentUDA: configuration.parentUDA || "",
-                  type: configuration.type,
-                  billable: configuration.billable,
-                  projectRequired: configuration.projectRequired,
-                  active: configuration.active,
-                }
-              : undefined
-          }
-          isLoading={isLoading}
-          submitLabel={configuration ? "Update UDA" : "Create UDA"}
-        />
+        <SheetBody>
+          <UDAConfigurationForm
+            onSubmit={handleSubmit}
+            defaultValues={
+              configuration
+                ? {
+                    udaNumber: configuration.udaNumber,
+                    name: configuration.name,
+                    description: configuration.description,
+                    parentUDA: configuration.parentUDA || "",
+                    type: configuration.type,
+                    billable: configuration.billable,
+                    projectRequired: configuration.projectRequired,
+                    active: configuration.active,
+                  }
+                : undefined
+            }
+            isLoading={isLoading}
+            submitLabel={configuration ? "Update UDA" : "Create UDA"}
+            onCancel={() => onOpenChange(false)}
+          />
+        </SheetBody>
       </SheetContent>
     </Sheet>
   );

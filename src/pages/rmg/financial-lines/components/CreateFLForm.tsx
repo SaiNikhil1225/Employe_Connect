@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter, SheetCloseButton } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Stepper } from '@/components/ui/stepper';
@@ -264,24 +264,24 @@ export function CreateFLForm({ open, onOpenChange, onSuccess, defaultProjectId, 
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-7xl flex flex-col h-full p-0">
         {/* Fixed Header with Stepper */}
-        <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <div className="p-6 pb-4">
-            <SheetHeader className="mb-4">
+        <SheetHeader className="flex-col items-start gap-4 pb-6">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex-1">
               <SheetTitle className="text-xl font-semibold text-brand-navy dark:text-gray-100">
                 {isEditMode ? 'Edit' : 'Create'} Financial Line (FL)
               </SheetTitle>
-            </SheetHeader>
+            </div>
+            <SheetCloseButton />
           </div>
             
           {/* Enhanced Stepper */}
-          <div className="px-6 pb-6">
+          <div className="w-full">
             <Stepper steps={visibleSteps} currentStep={currentStep} />
           </div>
-        </div>
+        </SheetHeader>
 
         {/* Scrollable Step Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
+        <SheetBody className="p-6">
               {currentStep === 1 && (
                 <FLStep1Form
                   data={step1Data}
@@ -335,11 +335,10 @@ export function CreateFLForm({ open, onOpenChange, onSuccess, defaultProjectId, 
                   onComplete={(data) => handleCompleteSubmit(undefined, data)}
                 />
               )}
-          </div>
-        </div>
+        </SheetBody>
 
-        {/* Navigation Buttons - Sticky at bottom */}
-        <div className="border-t border-gray-200 bg-white p-4 flex items-center justify-between shadow-lg">
+        {/* Navigation Buttons - Fixed Footer */}
+        <SheetFooter className="justify-between">
           <div>
             {currentStep > 1 && (
               <Button variant="outline" onClick={handleBack} disabled={isSubmitting}>
@@ -365,7 +364,7 @@ export function CreateFLForm({ open, onOpenChange, onSuccess, defaultProjectId, 
               </Button>
             )}
           </div>
-        </div>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

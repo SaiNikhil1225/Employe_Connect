@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { DataTable, type DataTableColumn, type DataTableAction } from '@/components/ui/data-table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetCloseButton } from '@/components/ui/sheet';
 import { Calendar, Clock, TrendingUp, FileText, Users, CalendarDays, Plane, LogIn, LogOut, Megaphone, Cake, Gift, UserPlus, Heart, MessageCircle, Send, Plus, Flame, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Sparkles, Tag, BadgeCheck, Eye, Share2, Pin, BarChart3, CheckCircle2, Pencil, AlertCircle, Trash2, MoreVertical, Palmtree, Award, Baby, Briefcase, Circle, Upload, Search, Filter, Download, X, ArrowUpDown, ArrowUp, ArrowDown, Minus, ExternalLink, Edit3, Columns3 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useProfile } from '@/contexts/ProfileContext';
@@ -1216,6 +1216,7 @@ export function WorkforceSummary() {
 
   // View employee profile
   const handleViewEmployee = (employeeId: string) => {
+    sessionStorage.setItem('profileReferrer', '/hr/workforce');
     navigate(`/employee/profile/${employeeId}`);
   };
 
@@ -1840,13 +1841,16 @@ export function WorkforceSummary() {
       <Sheet open={reactionDialogOpen} onOpenChange={setReactionDialogOpen}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader className="pb-4 border-b">
-            <SheetTitle className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-red-500" />
-              Reactions
-            </SheetTitle>
-            <SheetDescription>
-              {selectedAnnouncementReactions?.title || 'See who reacted to this post'}
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-red-500" />
+                Reactions
+              </SheetTitle>
+              <SheetDescription>
+                {selectedAnnouncementReactions?.title || 'See who reacted to this post'}
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
           
           {getSelectedAnnouncementReactions().length === 0 ? (
@@ -1938,13 +1942,16 @@ export function WorkforceSummary() {
       <Sheet open={pollVotersDrawerOpen} onOpenChange={setPollVotersDrawerOpen}>
         <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-purple-600" />
-              Poll Voters
-            </SheetTitle>
-            <SheetDescription>
-              {selectedPollData?.pollTitle}
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-purple-600" />
+                Poll Voters
+              </SheetTitle>
+              <SheetDescription>
+                {selectedPollData?.pollTitle}
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
           
           {selectedPollData && (
@@ -2068,13 +2075,16 @@ export function WorkforceSummary() {
       <Sheet open={showExportColumnsDialog} onOpenChange={setShowExportColumnsDialog}>
         <SheetContent className="w-[500px] sm:w-[600px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Download className="h-5 w-5" />
-              Select Columns to Export
-            </SheetTitle>
-            <SheetDescription>
-              Choose which columns you want to include in the export file. Selected: {selectedExportColumns.length} of {availableColumns.length}
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle className="flex items-center gap-2">
+                <Download className="h-5 w-5" />
+                Select Columns to Export
+              </SheetTitle>
+              <SheetDescription>
+                Choose which columns you want to include in the export file. Selected: {selectedExportColumns.length} of {availableColumns.length}
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
           
           <div className="space-y-4 mt-6">

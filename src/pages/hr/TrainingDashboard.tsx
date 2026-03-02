@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { DataTable } from '@/components/ui/data-table';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetCloseButton } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -1893,10 +1893,13 @@ export function TrainingDashboard() {
       >
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{isEditMode ? 'Edit Training Program' : 'Add New Training Program'}</SheetTitle>
-            <SheetDescription>
-              {isEditMode ? 'Update training program details' : 'Create a new training program for employees'}
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle>{isEditMode ? 'Edit Training Program' : 'Add New Training Program'}</SheetTitle>
+              <SheetDescription>
+                {isEditMode ? 'Update training program details' : 'Create a new training program for employees'}
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
           
           <form onSubmit={handleSubmitTraining} className="space-y-6 mt-6">
@@ -2200,10 +2203,13 @@ export function TrainingDashboard() {
       <Sheet open={showAssignSheet} onOpenChange={setShowAssignSheet}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Assign Employees to Training</SheetTitle>
-            <SheetDescription>
-              Select employees to enroll in "{selectedTrainingForAssign?.trainingName}"
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle>Assign Employees to Training</SheetTitle>
+              <SheetDescription>
+                Select employees to enroll in "{selectedTrainingForAssign?.trainingName}"
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
 
           <div className="space-y-4 mt-6">
@@ -2360,10 +2366,13 @@ export function TrainingDashboard() {
       <Sheet open={showProgressSheet} onOpenChange={setShowProgressSheet}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Update Training Progress</SheetTitle>
-            <SheetDescription>
-              Track completion and certification status
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle>Update Training Progress</SheetTitle>
+              <SheetDescription>
+                Track completion and certification status
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
 
           <div className="space-y-6 mt-6">

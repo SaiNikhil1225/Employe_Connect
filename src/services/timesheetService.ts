@@ -87,6 +87,17 @@ const timesheetService = {
         return response.data;
     },
 
+    // Submit timesheet for specific days only (daily submission)
+    submitTimesheetDaily: async (params: {
+        employeeId: string;
+        employeeName: string;
+        dates: string[]; // Array of date strings in YYYY-MM-DD format
+        rows: TimesheetRow[];
+    }): Promise<{ success: boolean; message: string; datesSubmitted: string[]; entriesProcessed: number }> => {
+        const response = await apiClient.post('/timesheet-entries/submit-daily', params);
+        return response.data;
+    },
+
     // Approve timesheet
     approveTimesheet: async (id: string, approvedBy: string): Promise<Timesheet> => {
         const response = await apiClient.put(`/timesheets/approve/${id}`, { approvedBy });

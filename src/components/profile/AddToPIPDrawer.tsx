@@ -3,8 +3,11 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
-  SheetTitle,
+  SheetBody,
   SheetFooter,
+  SheetTitle,
+  SheetDescription,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -194,14 +197,19 @@ export default function AddToPIPDrawer({
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent className="sm:max-w-3xl overflow-y-auto">
-        <SheetHeader className="pb-4 border-b">
-          <SheetTitle className="text-2xl font-semibold text-gray-900">
-            Start Performance Improvement Plan
-          </SheetTitle>
+      <SheetContent className="sm:max-w-3xl p-0">
+        <SheetHeader>
+          <div className="flex-1">
+            <SheetTitle className="text-2xl font-semibold text-gray-900">
+              Start Performance Improvement Plan
+            </SheetTitle>
+            <SheetDescription className="sr-only">Start a Performance Improvement Plan for {employeeName}</SheetDescription>
+          </div>
+          <SheetCloseButton />
         </SheetHeader>
 
-        <div className="space-y-6 py-6">
+        <SheetBody>
+          <div className="space-y-6">
           {/* Employee Selection */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold text-gray-700">Employee</Label>
@@ -429,33 +437,32 @@ export default function AddToPIPDrawer({
               The employee will receive notification about the PIP and must acknowledge before it officially starts.
             </p>
           </div>
-        </div>
-
-        <SheetFooter className="border-t pt-4">
-          <div className="flex justify-end gap-3 w-full">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="h-10 min-w-24"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="h-10 min-w-24 bg-blue-600 hover:bg-blue-700"
-            >
-              {isSubmitting ? (
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  <span>Starting...</span>
-                </div>
-              ) : (
-                'Start'
-              )}
-            </Button>
           </div>
+        </SheetBody>
+
+        <SheetFooter>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={isSubmitting}
+            className="h-10 min-w-24"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="h-10 min-w-24 bg-blue-600 hover:bg-blue-700"
+          >
+            {isSubmitting ? (
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <span>Starting...</span>
+              </div>
+            ) : (
+              'Start'
+            )}
+          </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

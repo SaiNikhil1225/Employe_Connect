@@ -249,8 +249,8 @@ export const helpdeskValidation = {
         'open', 'pending', 'in-progress', 'resolved', 'closed', 'cancelled',
         'Pending Level-1 Approval', 'Pending Level-2 Approval', 'Pending Level-3 Approval',
         'Approved', 'Rejected', 'Cancelled', 'Routed', 'In Queue', 'Assigned',
-        'In Progress', 'Paused', 'On Hold', 'Work Completed', 'Completed',
-        'Completed - Awaiting IT Closure', 'Confirmed', 'Closed', 'Auto-Closed'
+        'In Progress', 'Paused', 'On Hold', 'Completed',
+        'Confirmed', 'Closed', 'Auto-Closed'
       ])
       .withMessage('Invalid status'),
     handleValidationErrors,

@@ -11,12 +11,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetBody,
+  SheetFooter,
+  SheetCloseButton,
+} from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -251,13 +253,17 @@ export default function DocumentsTab({ employeeId, documents, onUpdate }: Docume
         </CardContent>
       </Card>
 
-      {/* Upload Dialog */}
-      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Upload Document</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+      {/* Upload Sheet */}
+      <Sheet open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <SheetContent className="w-full sm:max-w-md flex flex-col p-0">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5 text-primary" />
+              Upload Document
+            </SheetTitle>
+            <SheetCloseButton />
+          </SheetHeader>
+          <SheetBody className="space-y-4">
             {/* Document Type */}
             <div>
               <Label htmlFor="documentType">Document Type *</Label>
@@ -356,17 +362,17 @@ export default function DocumentsTab({ employeeId, documents, onUpdate }: Docume
                 )}
               </div>
             </div>
-          </div>
-          <DialogFooter>
+          </SheetBody>
+          <SheetFooter>
             <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleUpload} disabled={uploading || !uploadData.file}>
               {uploading ? 'Uploading...' : 'Upload'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

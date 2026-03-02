@@ -13,12 +13,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetBody,
+  SheetFooter,
+  SheetCloseButton,
+} from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -205,15 +207,17 @@ export default function AssetsTab({ employeeId, assets, onUpdate }: AssetsTabPro
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
+      {/* Add/Edit Sheet */}
+      <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <SheetContent className="w-full sm:max-w-2xl flex flex-col p-0">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Laptop className="h-5 w-5 text-primary" />
               {editingIndex !== null ? 'Edit Asset' : 'Assign Asset'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+            </SheetTitle>
+            <SheetCloseButton />
+          </SheetHeader>
+          <SheetBody className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="assetType">Asset Type *</Label>
@@ -300,8 +304,8 @@ export default function AssetsTab({ employeeId, assets, onUpdate }: AssetsTabPro
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <DialogFooter>
+          </SheetBody>
+          <SheetFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
@@ -313,9 +317,9 @@ export default function AssetsTab({ employeeId, assets, onUpdate }: AssetsTabPro
             >
               {saving ? 'Saving...' : 'Save'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

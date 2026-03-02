@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { FLStep1Data, FLStep2Data, FLStep3Data, RevenuePlanning } from '@/types/financialLine';
-import { format, startOfMonth, addMonths, isBefore, isSameMonth } from 'date-fns';
-import { Info } from 'lucide-react';
+import { format, startOfMonth, addMonths, isBefore, isSameMonth, eachDayOfInterval, isWeekend, startOfDay, endOfMonth } from 'date-fns';
+import { Info, SplitSquareHorizontal } from 'lucide-react';
 
 interface FLStep3PlanningProps {
   data: Partial<FLStep3Data>;
@@ -17,6 +18,7 @@ interface FLStep3PlanningProps {
 
 export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNext, onBack }: FLStep3PlanningProps) {
   const [monthlyData, setMonthlyData] = useState<RevenuePlanning[]>(data.revenuePlanning || []);
+  const [totalUnitsToSplit, setTotalUnitsToSplit] = useState<number>(0);
   const { toast } = useToast();
 
   // Generate months between schedule start and finish
@@ -77,6 +79,91 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
     }
   };
 
+  // Calculate working days in a month (excluding weekends)
+  const getWorkingDaysInMonth = (monthStr: string): number => {
+    const monthDate = new Date(monthStr + '-01');
+    const monthStart = startOfMonth(monthDate);
+    const monthEnd = endOfMonth(monthDate);
+    
+    // For partial months at start/end of project, use actual dates
+    const projectStart = new Date(step1Data.scheduleStart);
+    const projectEnd = new Date(step1Data.scheduleFinish);
+    
+    const effectiveStart = isBefore(monthStart, projectStart) ? startOfDay(projectStart) : monthStart;
+    const effectiveEnd = isBefore(monthEnd, projectEnd) ? monthEnd : startOfDay(projectEnd);
+    
+    // Generate all days in the effective range
+    const allDays = eachDayOfInterval({ start: effectiveStart, end: effectiveEnd });
+    
+    // Filter out weekends
+    const workingDays = allDays.filter(day => !isWeekend(day));
+    
+    return workingDays.length;
+  };
+
+  // Split total units proportionally based on working days per month
+  const handleSplitRevenue = () => {
+    if (totalUnitsToSplit <= 0) {
+      toast({
+        title: 'Validation Error',
+        description: `Please enter total ${getUnitLabelShort()} to split.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (monthlyData.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'No months available for splitting.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Calculate working days for each month
+    const monthsWithWorkingDays = monthlyData.map(month => ({
+      ...month,
+      workingDays: getWorkingDaysInMonth(month.month),
+    }));
+
+    // Calculate total working days across all months
+    const totalWorkingDays = monthsWithWorkingDays.reduce((sum, m) => sum + m.workingDays, 0);
+
+    if (totalWorkingDays === 0) {
+      toast({
+        title: 'Error',
+        description: 'No working days found in the selected period.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Split units proportionally based on working days
+    // Formula: plannedUnits for month = (totalUnits * workingDaysInMonth) / totalWorkingDays
+    const updatedMonthlyData = monthsWithWorkingDays.map(month => {
+      const proportion = month.workingDays / totalWorkingDays;
+      const plannedUnits = parseFloat((totalUnitsToSplit * proportion).toFixed(2));
+      const plannedRevenue = plannedUnits * step1Data.billingRate;
+      
+      return {
+        ...month,
+        plannedUnits,
+        plannedRevenue,
+      };
+    });
+
+    // Remove the workingDays property before setting state
+    const cleanedData = updatedMonthlyData.map(({ workingDays, ...rest }) => rest) as RevenuePlanning[];
+    
+    setMonthlyData(cleanedData);
+    
+    toast({
+      title: 'Success',
+      description: `${totalUnitsToSplit} ${getUnitLabelShort()} split across ${monthlyData.length} months based on working days.`,
+    });
+  };
+
   const handleNext = () => {
     const totalPlanned = calculateTotalPlannedRevenue();
     
@@ -134,6 +221,44 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
           </p>
         </div>
       </div>
+
+      {/* Split Revenue Section */}
+      <Card className="border-amber-200 bg-amber-50">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+            <div className="flex-1 space-y-2">
+              <label className="text-sm font-medium text-amber-900">
+                Auto-Split by Working Days
+              </label>
+              <p className="text-xs text-amber-700">
+                Enter total {getUnitLabelShort()} to split proportionally based on working days per month (excluding weekends).
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={totalUnitsToSplit || ''}
+                  onChange={(e) => setTotalUnitsToSplit(parseFloat(e.target.value) || 0)}
+                  placeholder={`Total ${getUnitLabelShort()} to split...`}
+                  className="max-w-[200px] bg-white"
+                />
+                <Button 
+                  onClick={handleSplitRevenue}
+                  variant="outline"
+                  className="gap-2 border-amber-400 bg-amber-100 hover:bg-amber-200 text-amber-900"
+                >
+                  <SplitSquareHorizontal className="h-4 w-4" />
+                  Split Revenue
+                </Button>
+              </div>
+            </div>
+            <div className="text-xs text-amber-700 bg-amber-100 rounded-lg p-3 max-w-sm">
+              <strong>Formula:</strong> Each month's {getUnitLabelShort()} = Total × (Working Days in Month ÷ Total Working Days)
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

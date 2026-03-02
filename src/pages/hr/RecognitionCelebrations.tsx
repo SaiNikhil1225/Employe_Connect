@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetBody, SheetCloseButton } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -999,14 +999,17 @@ export function RecognitionCelebrations() {
 
       {/* Add Celebration Drawer */}
       <Sheet open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <SheetContent className="w-[600px] sm:w-[600px] overflow-y-auto">
+        <SheetContent className="w-[600px] sm:w-[600px] flex flex-col p-0">
           <SheetHeader>
-            <SheetTitle>Add New Celebration Event</SheetTitle>
-            <SheetDescription>
-              Create a new celebration or recognition event for an employee
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle>Add New Celebration Event</SheetTitle>
+              <SheetDescription>
+                Create a new celebration or recognition event for an employee
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
-          <div className="grid gap-4 py-6">
+          <SheetBody>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Employee ID <span className="text-red-500">*</span></Label>
@@ -1141,8 +1144,8 @@ export function RecognitionCelebrations() {
               />
               <Label>Send email notification</Label>
             </div>
-          </div>
-          <SheetFooter className="mt-6">
+          </SheetBody>
+          <SheetFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
             <Button onClick={handleCreateCelebration}>Create Event</Button>
           </SheetFooter>

@@ -91,10 +91,10 @@ TimesheetEntrySchema.index({ projectId: 1, date: 1 });
 TimesheetEntrySchema.index({ approvalStatus: 1, submittedAt: 1 });
 TimesheetEntrySchema.index({ billable: 1, date: 1 });
 
-// Unique constraint: Prevent duplicate entries for same employee-date-project-uda
+// Note: Removed unique constraint to allow multiple entries per day for different projects/categories
+// This enables employees to split their time across multiple tasks on the same day
 TimesheetEntrySchema.index(
-    { employeeId: 1, date: 1, projectId: 1, udaId: 1 },
-    { unique: true }
+    { employeeId: 1, date: 1, projectId: 1, udaId: 1 }
 );
 
 export default mongoose.model<ITimesheetEntry>('TimesheetEntry', TimesheetEntrySchema);

@@ -13,12 +13,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetBody,
+  SheetFooter,
+  SheetCloseButton,
+} from '@/components/ui/sheet';
 import { Award, Plus, Pencil, Trash2, AlertCircle } from 'lucide-react';
 import { employeeManagementService } from '@/services/employeeManagementService';
 import { toast } from 'sonner';
@@ -246,15 +248,17 @@ export default function CertificationsTab({
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
+      {/* Add/Edit Sheet */}
+      <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <SheetContent className="w-full sm:max-w-2xl flex flex-col p-0">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-primary" />
               {editingIndex !== null ? 'Edit Certification' : 'Add Certification'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+            </SheetTitle>
+            <SheetCloseButton />
+          </SheetHeader>
+          <SheetBody className="space-y-4">
             <div>
               <Label htmlFor="name">Certification Name *</Label>
               <Input
@@ -325,8 +329,8 @@ export default function CertificationsTab({
                 placeholder="https://... (optional)"
               />
             </div>
-          </div>
-          <DialogFooter>
+          </SheetBody>
+          <SheetFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
@@ -341,9 +345,9 @@ export default function CertificationsTab({
             >
               {saving ? 'Saving...' : 'Save'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

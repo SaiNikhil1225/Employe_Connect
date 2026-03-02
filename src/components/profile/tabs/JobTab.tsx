@@ -43,6 +43,9 @@ interface JobTabProps {
   // Organization
   organization?: any;
   
+  // Permission control
+  canEdit?: boolean;
+  
   // Update handler
   onUpdate?: (data: any) => Promise<void>;
 }
@@ -53,6 +56,7 @@ export default function JobTab({
   reportingManager, reportingManagerId, dottedLineManager, dottedLineManagerId,
   joiningDate, contractEndDate, probationEndDate,
   employeeTime, organization,
+  canEdit = true, // Default to true for backward compatibility
   onUpdate,
 }: JobTabProps) {
   const [activeTab, setActiveTab] = useState('details');
@@ -144,7 +148,7 @@ export default function JobTab({
                   <Briefcase className="h-5 w-5 text-blue-600" />
                   Job Information
                 </div>
-                {editingSection !== 'jobInfo' && (
+                {canEdit && editingSection !== 'jobInfo' && (
                   <Button onClick={() => setEditingSection('jobInfo')} variant="ghost" size="sm">
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -228,7 +232,7 @@ export default function JobTab({
                   <Users className="h-5 w-5 text-purple-600" />
                   Reporting Structure
                 </div>
-                {editingSection !== 'reporting' && (
+                {canEdit && editingSection !== 'reporting' && (
                   <Button onClick={() => setEditingSection('reporting')} variant="ghost" size="sm">
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -329,7 +333,7 @@ export default function JobTab({
                   <Building2 className="h-5 w-5 text-green-600" />
                   Department Information
                 </div>
-                {editingSection !== 'department' && (
+                {canEdit && editingSection !== 'department' && (
                   <Button onClick={() => setEditingSection('department')} variant="ghost" size="sm">
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -429,7 +433,7 @@ export default function JobTab({
                   <Award className="h-5 w-5 text-indigo-600" />
                   Employment Type
                 </div>
-                {editingSection !== 'employmentType' && (
+                {canEdit && editingSection !== 'employmentType' && (
                   <Button onClick={() => setEditingSection('employmentType')} variant="ghost" size="sm">
                     <Edit2 className="h-4 w-4" />
                   </Button>

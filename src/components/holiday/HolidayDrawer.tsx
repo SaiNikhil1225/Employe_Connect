@@ -6,6 +6,8 @@ import {
     SheetTitle,
     SheetDescription,
     SheetFooter,
+    SheetBody,
+    SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -198,8 +200,8 @@ export function HolidayDrawer({
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent className="flex flex-col h-full overflow-hidden w-full sm:max-w-xl p-0">
                 {/* Fixed Header */}
-                <div className="flex-shrink-0 border-b border-border bg-background p-6">
-                    <SheetHeader>
+                <SheetHeader>
+                    <div className="flex-1">
                         <SheetTitle className="flex items-center gap-2">
                             <Calendar className="h-5 w-5" />
                             {holiday ? 'Edit Holiday' : 'Add New Holiday'}
@@ -207,11 +209,12 @@ export function HolidayDrawer({
                         <SheetDescription>
                             {holiday ? 'Update holiday details' : 'Create a new holiday entry'}
                         </SheetDescription>
-                    </SheetHeader>
-                </div>
+                    </div>
+                    <SheetCloseButton />
+                </SheetHeader>
 
                 {/* Scrollable Body */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <SheetBody>
                     <div className="space-y-6">
                     {/* Holiday Name */}
                     <div className="space-y-2">
@@ -343,30 +346,28 @@ export function HolidayDrawer({
                         />
                     </div>
                     </div>
-                </div>
+                </SheetBody>
 
                 {/* Fixed Footer */}
-                <div className="flex-shrink-0 border-t border-border bg-background p-6">
-                    <SheetFooter className="flex gap-2 sm:justify-end">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange(false)}
-                            disabled={saving}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={() => handleSave(false)}
-                            disabled={saving}
-                            className="flex items-center gap-2"
-                        >
-                            <Save className="h-4 w-4" />
-                            {saving ? 'Saving...' : 'Save'}
-                        </Button>
-                    </SheetFooter>
-                </div>
+                <SheetFooter>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                        disabled={saving}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={() => handleSave(false)}
+                        disabled={saving}
+                        className="flex items-center gap-2"
+                    >
+                        <Save className="h-4 w-4" />
+                        {saving ? 'Saving...' : 'Save'}
+                    </Button>
+                </SheetFooter>
             </SheetContent>
         </Sheet>
     );

@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/store/authStore';
+import { useProfile } from '@/contexts/ProfileContext';
 import { EmployeeDashboard } from '@/pages/employee/EmployeeDashboard';
 import { HRDashboard } from '@/pages/hr/HRDashboard';
 import { RMGDashboard } from '@/pages/rmg/RMGDashboard';
@@ -87,7 +88,7 @@ const getQuickActions = (role: string, navigate: (path: string) => void) => {
     EMPLOYEE: [
       { label: 'Apply Leave', icon: Calendar, path: '/leave', color: 'bg-blue-500 hover:bg-blue-600' },
       { label: 'Raise Ticket', icon: Ticket, path: '/helpdesk', color: 'bg-green-500 hover:bg-green-600' },
-      { label: 'View Attendance', icon: Clock, path: '/attendance', color: 'bg-purple-500 hover:bg-purple-600' }
+      { label: 'View Attendance', icon: Clock, path: '/employee/my-attendance', color: 'bg-purple-500 hover:bg-purple-600' }
     ],
     MANAGER: [
       { label: 'Team Approvals', icon: FileText, path: '/approvals', color: 'bg-purple-500 hover:bg-purple-600' },
@@ -121,6 +122,7 @@ const getQuickActions = (role: string, navigate: (path: string) => void) => {
 
 export function Dashboard() {
   const user = useAuthStore((state) => state.user);
+  const { activeProfile } = useProfile();
   const navigate = useNavigate();
   const greeting = getGreeting();
   const { getTodayRecord } = useAttendanceStore();
@@ -135,14 +137,39 @@ export function Dashboard() {
 
   if (!user) return null;
 
-  const config = roleConfig[user.role as keyof typeof roleConfig] || roleConfig.EMPLOYEE;
+  // Map activeProfile to effective role for dashboard rendering
+  const getEffectiveRole = () => {
+    switch (activeProfile) {
+      case 'HR_USER':
+        return 'EMPLOYEE'; // HR User sees employee dashboard
+      case 'HR_ADMIN':
+        return 'HR'; // HR Admin sees HR dashboard
+      case 'RMG_USER':
+        return 'EMPLOYEE'; // RMG User sees employee dashboard
+      case 'RMG_ADMIN':
+        return 'RMG'; // RMG Admin sees RMG dashboard
+      case 'SUPER_ADMIN':
+        return 'SUPER_ADMIN';
+      case 'MANAGER':
+        return 'MANAGER';
+      case 'IT_ADMIN':
+        return 'IT_ADMIN';
+      case 'EMPLOYEE':
+        return 'EMPLOYEE';
+      default:
+        return user.role; // Use actual role as fallback
+    }
+  };
+
+  const effectiveRole = getEffectiveRole();
+  const config = roleConfig[effectiveRole as keyof typeof roleConfig] || roleConfig.EMPLOYEE;
   const RoleIcon = config.icon;
-  const quickActions = getQuickActions(user.role, navigate);
+  const quickActions = getQuickActions(effectiveRole, navigate);
   const todayRecord = getTodayRecord(user?.employeeId || '');
 
-  // Different dashboard content based on role
+  // Different dashboard content based on effective role
   const getDashboardContent = () => {
-    switch (user.role) {
+    switch (effectiveRole) {
       case 'EMPLOYEE':
       case 'MANAGER':
       case 'IT_ADMIN':
@@ -194,7 +221,7 @@ export function Dashboard() {
 
             {/* Right Section: Quick Stats */}
             <div className="flex gap-3">
-              {user.role === 'EMPLOYEE' && (
+              {effectiveRole === 'EMPLOYEE' && (
                 <>
                   <Card className="border-0 shadow-sm">
                     <CardContent className="p-4">

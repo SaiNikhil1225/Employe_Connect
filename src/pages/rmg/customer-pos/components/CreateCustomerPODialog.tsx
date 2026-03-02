@@ -3,7 +3,9 @@ import {
   SheetContent,
   SheetDescription,
   SheetHeader,
+  SheetBody,
   SheetTitle,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { CustomerPOForm } from './CustomerPOForm';
 import { useCustomerPOStore } from '@/store/customerPOStore';
@@ -54,16 +56,21 @@ export function CreateCustomerPODialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto">
+      <SheetContent className="p-0">
         <SheetHeader>
-          <SheetTitle>{po ? 'Edit' : 'Create'} Customer PO</SheetTitle>
-          <SheetDescription>
-            {po
-              ? 'Update the customer purchase order details below.'
-              : 'Fill in the details to create a new customer purchase order.'}
-          </SheetDescription>
+          <div className="flex-1">
+            <SheetTitle>{po ? 'Edit' : 'Create'} Customer PO</SheetTitle>
+            <SheetDescription>
+              {po
+                ? 'Update the customer purchase order details below.'
+                : 'Fill in the details to create a new customer purchase order.'}
+            </SheetDescription>
+          </div>
+          <SheetCloseButton />
         </SheetHeader>
-        <CustomerPOForm po={po} onSubmit={handleSubmit} />
+        <SheetBody>
+          <CustomerPOForm po={po} onSubmit={handleSubmit} onCancel={() => onOpenChange(false)} />
+        </SheetBody>
       </SheetContent>
     </Sheet>
   );

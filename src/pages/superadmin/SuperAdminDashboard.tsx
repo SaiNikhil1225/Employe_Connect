@@ -1,28 +1,32 @@
 /**
  * Super Admin Dashboard
- * Main dashboard showing system overview, stats, and quick actions
+ * Interactive dashboard with system overview, analytics, and key metrics
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Ticket,
   Clock,
   FolderOpen,
-  ArrowRight,
   ShieldCheck,
-  Database,
-  Activity,
   AlertTriangle,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  TrendingUp,
+  Activity,
+  Package,
+  BarChart3,
+  PieChart,
+  ArrowRight,
+  LayoutDashboard
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { AnnouncementsFeed } from '@/components/dashboard/AnnouncementsFeed';
+
 import { getDashboardStats, getSystemHealth } from '@/services/superAdminService';
 import type { DashboardStats, SystemHealth } from '@/types/superAdmin';
 
@@ -53,11 +57,36 @@ export function SuperAdminDashboard() {
 
   useEffect(() => {
     fetchData();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  // Calculate derived metrics
+  const metrics = useMemo(() => {
+    if (!stats) return null;
+
+    const totalPending = stats.pendingApprovals.total;
+    const userGrowthRate = stats.newUsersThisWeek > 0 ?
+      Math.round((stats.newUsersThisWeek / stats.totalUsers) * 100) : 0;
+    const criticalTicketRate = stats.openTickets > 0 ?
+      Math.round((stats.criticalTickets / stats.openTickets) * 100) : 0;
+
+    return {
+      totalPending,
+      userGrowthRate,
+      criticalTicketRate,
+      approvalDistribution: {
+        l1Percent: totalPending > 0 ? Math.round((stats.pendingApprovals.l1 / totalPending) * 100) : 0,
+        l2Percent: totalPending > 0 ? Math.round((stats.pendingApprovals.l2 / totalPending) * 100) : 0,
+        l3Percent: totalPending > 0 ? Math.round((stats.pendingApprovals.l3 / totalPending) * 100) : 0,
+      }
+    };
+  }, [stats]);
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-2">
           <RefreshCw className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading dashboard...</p>
@@ -66,16 +95,17 @@ export function SuperAdminDashboard() {
     );
   }
 
-  if (error) {
+  if (error || !stats || !metrics) {
     return (
-      <div className="p-6">
+      <div className="space-y-6">
         <Card className="border-destructive">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              <span>{error}</span>
+              <span>{error || 'Failed to load dashboard'}</span>
             </div>
             <Button onClick={fetchData} className="mt-4" variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
               Retry
             </Button>
           </CardContent>
@@ -84,19 +114,17 @@ export function SuperAdminDashboard() {
     );
   }
 
-  const totalPending = stats?.pendingApprovals.total || 0;
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10">
-            <ShieldCheck className="h-6 w-6 text-primary" />
+            <LayoutDashboard className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Super Admin Dashboard</h1>
-            <p className="text-muted-foreground">System overview and management</p>
+            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">System overview and real-time analytics</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={fetchData}>
@@ -105,224 +133,241 @@ export function SuperAdminDashboard() {
         </Button>
       </div>
 
-      {/* Stats Cards */}
+      {/* Primary KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total Users */}
-        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/superadmin/users')}>
+        {/* Total Users with Growth */}
+        <Card className="hover:shadow-lg transition-all cursor-pointer group border-l-4 border-l-blue-500" onClick={() => navigate('/superadmin/users')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.newUsersThisWeek ? `+${stats.newUsersThisWeek} this week` : 'No new users'}
-            </p>
+            <div className="text-3xl font-bold">{stats.totalUsers}</div>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                <TrendingUp className="h-3 w-3" />
+                +{stats.newUsersThisWeek || 0} this week
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                {metrics.userGrowthRate}% growth
+              </Badge>
+            </div>
+            <Progress value={metrics.userGrowthRate} className="h-1 mt-2" />
           </CardContent>
         </Card>
 
-        {/* Open Tickets */}
-        <Card className="hover:shadow-md transition-shadow">
+        {/* Open Tickets with Priority */}
+        <Card className="hover:shadow-lg transition-all cursor-pointer group border-l-4 border-l-yellow-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
-            <Ticket className="h-4 w-4 text-muted-foreground" />
+            <Ticket className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.openTickets || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.criticalTickets ? (
-                <span className="text-destructive">{stats.criticalTickets} critical</span>
+            <div className="text-3xl font-bold">{stats.openTickets}</div>
+            <div className="flex items-center gap-2 mt-2">
+              {stats.criticalTickets > 0 ? (
+                <div className="flex items-center gap-1 text-xs text-destructive">
+                  <AlertTriangle className="h-3 w-3" />
+                  {stats.criticalTickets} critical
+                </div>
               ) : (
-                'No critical tickets'
+                <div className="flex items-center gap-1 text-xs text-green-600">
+                  <CheckCircle2 className="h-3 w-3" />
+                  No critical issues
+                </div>
               )}
-            </p>
+              <Badge variant={stats.criticalTickets > 0 ? "destructive" : "secondary"} className="text-xs">
+                {metrics.criticalTicketRate}% critical
+              </Badge>
+            </div>
+            <Progress
+              value={metrics.criticalTicketRate}
+              className={`h-1 mt-2 ${stats.criticalTickets > 0 ? '[&>*]:bg-destructive' : ''}`}
+            />
           </CardContent>
         </Card>
 
-        {/* Pending Approvals */}
-        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/superadmin/approvers')}>
+        {/* Pending Approvals with Breakdown */}
+        <Card className="hover:shadow-lg transition-all cursor-pointer group border-l-4 border-l-purple-500" onClick={() => navigate('/superadmin/approvers')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalPending}</div>
-            <div className="flex gap-2 mt-1">
-              <Badge variant="outline" className="text-xs">L1: {stats?.pendingApprovals.l1 || 0}</Badge>
-              <Badge variant="outline" className="text-xs">L2: {stats?.pendingApprovals.l2 || 0}</Badge>
-              <Badge variant="outline" className="text-xs">L3: {stats?.pendingApprovals.l3 || 0}</Badge>
+            <div className="text-3xl font-bold">{metrics.totalPending}</div>
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              <Badge variant="outline" className="text-xs gap-1">
+                <div className="h-2 w-2 rounded-full bg-blue-500" />
+                L1: {stats.pendingApprovals.l1}
+              </Badge>
+              <Badge variant="outline" className="text-xs gap-1">
+                <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                L2: {stats.pendingApprovals.l2}
+              </Badge>
+              <Badge variant="outline" className="text-xs gap-1">
+                <div className="h-2 w-2 rounded-full bg-red-500" />
+                L3: {stats.pendingApprovals.l3}
+              </Badge>
+            </div>
+            <div className="flex gap-1 mt-2">
+              <div className="h-1 bg-blue-500 rounded" style={{ width: `${metrics.approvalDistribution.l1Percent}%` }} />
+              <div className="h-1 bg-yellow-500 rounded" style={{ width: `${metrics.approvalDistribution.l2Percent}%` }} />
+              <div className="h-1 bg-red-500 rounded" style={{ width: `${metrics.approvalDistribution.l3Percent}%` }} />
             </div>
           </CardContent>
         </Card>
 
-        {/* Categories */}
-        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/superadmin/categories')}>
+        {/* Active Categories */}
+        <Card className="hover:shadow-lg transition-all cursor-pointer group border-l-4 border-l-green-500" onClick={() => navigate('/superadmin/categories')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Categories</CardTitle>
-            <FolderOpen className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active Categories</CardTitle>
+            <FolderOpen className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.categoriesCount || 0}</div>
-            <div className="flex gap-2 mt-1 flex-wrap">
-              {stats?.categoriesByType && Object.entries(stats.categoriesByType).map(([type, count]) => (
+            <div className="text-3xl font-bold">{stats.categoriesCount}</div>
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              {stats.categoriesByType && Object.entries(stats.categoriesByType).slice(0, 3).map(([type, count]) => (
                 <Badge key={type} variant="secondary" className="text-xs">
                   {type}: {count}
                 </Badge>
               ))}
             </div>
+            <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+              <Package className="h-3 w-3" />
+              Across {Object.keys(stats.categoriesByType || {}).length} config items
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Grid */}
+      {/* Two Column Layout */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Quick Actions */}
-        <Card>
+        {/* Approval Pipeline Visualization */}
+        <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
-            <CardDescription>Manage your system</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Approval Pipeline
+                </CardTitle>
+                <CardDescription>Distribution across approval levels</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/superadmin/approvers')}>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full justify-between"
-              onClick={() => navigate('/superadmin/users')}
-            >
-              <span className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Manage Users
-              </span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-between"
-              onClick={() => navigate('/superadmin/categories')}
-            >
-              <span className="flex items-center gap-2">
-                <FolderOpen className="h-4 w-4" />
-                Manage Categories
-              </span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-between"
-              onClick={() => navigate('/superadmin/approvers')}
-            >
-              <span className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Manage Approvers
-              </span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+          <CardContent>
+            <div className="space-y-4">
+              {/* L1 */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500" />
+                    L1 Approval
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">{stats.pendingApprovals.l1}</span>
+                    <Badge variant="outline" className="text-xs">{metrics.approvalDistribution.l1Percent}%</Badge>
+                  </div>
+                </div>
+                <Progress value={metrics.approvalDistribution.l1Percent} max={100} className="h-2" />
+              </div>
+
+              {/* L2 */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                    L2 Approval
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">{stats.pendingApprovals.l2}</span>
+                    <Badge variant="outline" className="text-xs">{metrics.approvalDistribution.l2Percent}%</Badge>
+                  </div>
+                </div>
+                <Progress value={metrics.approvalDistribution.l2Percent} max={100} className="h-2 [&>*]:bg-yellow-500" />
+              </div>
+
+              {/* L3 */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    L3 Approval
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">{stats.pendingApprovals.l3}</span>
+                    <Badge variant="outline" className="text-xs">{metrics.approvalDistribution.l3Percent}%</Badge>
+                  </div>
+                </div>
+                <Progress value={metrics.approvalDistribution.l3Percent} max={100} className="h-2 [&>*]:bg-red-500" />
+              </div>
+            </div>
+
+            {metrics.totalPending === 0 && (
+              <div className="mt-6 text-center py-8 text-muted-foreground">
+                <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-green-500" />
+                <p className="text-sm font-medium">All caught up!</p>
+                <p className="text-xs">No pending approvals at this time</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* System Health */}
-        <Card>
+        {/* Category Distribution */}
+        <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle className="text-lg">System Health</CardTitle>
-            <CardDescription>Current system status</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <PieChart className="h-5 w-5" />
+                  Category Distribution
+                </CardTitle>
+                <CardDescription>Active categories by config item</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/superadmin/categories')}>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Database className="h-4 w-4 text-muted-foreground" />
-                Database
-              </span>
-              <Badge variant={health?.database === 'connected' ? 'default' : 'destructive'} className="bg-primary">
-                {health?.database === 'connected' ? (
-                  <span className="flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Connected
-                  </span>
-                ) : (
-                  'Disconnected'
-                )}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-muted-foreground" />
-                API
-              </span>
-              <Badge variant={health?.api === 'running' ? 'default' : 'destructive'} className="bg-primary">
-                {health?.api === 'running' ? (
-                  <span className="flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Running
-                  </span>
-                ) : (
-                  'Down'
-                )}
-              </Badge>
-            </div>
-            <div className="text-xs text-muted-foreground mt-4">
-              Last checked: {health?.timestamp ? new Date(health.timestamp).toLocaleString() : 'N/A'}
+          <CardContent>
+            <div className="space-y-3">
+              {stats.categoriesByType && Object.entries(stats.categoriesByType).map(([type, count]) => {
+                const percentage = Math.round((count / stats.categoriesCount) * 100);
+                const colors: Record<string, string> = {
+                  'IT Support': 'bg-blue-500',
+                  'Finance': 'bg-green-500',
+                  'Facilities': 'bg-yellow-500',
+                  'Location': 'bg-purple-500',
+                  'Department': 'bg-pink-500',
+                  'Designation': 'bg-orange-500'
+                };
+                const color = colors[type] || 'bg-gray-500';
+
+                return (
+                  <div key={type} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded ${color}`} />
+                        {type}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">{count}</span>
+                        <Badge variant="outline" className="text-xs">{percentage}%</Badge>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                      <div className={`h-full ${color} transition-all`} style={{ width: `${percentage}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Approval Pipeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Approval Pipeline Overview</CardTitle>
-          <CardDescription>Current tickets waiting for approval at each level</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-3">
-            {/* L1 */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-primary" />
-                  Level 1 (Team Lead)
-                </span>
-                <span className="text-sm text-muted-foreground">{stats?.pendingApprovals.l1 || 0} pending</span>
-              </div>
-              <Progress
-                value={totalPending > 0 ? ((stats?.pendingApprovals.l1 || 0) / totalPending) * 100 : 0}
-                className="h-2"
-              />
-            </div>
-
-            {/* L2 */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                  Level 2 (Manager)
-                </span>
-                <span className="text-sm text-muted-foreground">{stats?.pendingApprovals.l2 || 0} pending</span>
-              </div>
-              <Progress
-                value={totalPending > 0 ? ((stats?.pendingApprovals.l2 || 0) / totalPending) * 100 : 0}
-                className="h-2"
-              />
-            </div>
-
-            {/* L3 */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-destructive" />
-                  Level 3 (Director)
-                </span>
-                <span className="text-sm text-muted-foreground">{stats?.pendingApprovals.l3 || 0} pending</span>
-              </div>
-              <Progress
-                value={totalPending > 0 ? ((stats?.pendingApprovals.l3 || 0) / totalPending) * 100 : 0}
-                className="h-2"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Announcements & Polls */}
-      <AnnouncementsFeed maxHeight="400px" />
     </div>
   );
 }

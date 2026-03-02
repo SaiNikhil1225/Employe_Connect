@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import Employee from '../models/Employee';
 import { employeeValidation } from '../middleware/validation';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 // Profile routes for employee profiles
@@ -127,8 +128,26 @@ router.get('/:employeeId', async (req: Request, res: Response) => {
 });
 
 // Update profile
-router.put('/:employeeId', employeeValidation.update, async (req: Request, res: Response) => {
+router.put('/:employeeId', authenticateToken, employeeValidation.update, async (req: Request, res: Response) => {
   try {
+    const targetEmployeeId = req.params.employeeId;
+    const requestingUser = req.user;
+
+    if (!requestingUser) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    // Authorization check: User can only update their own profile OR user is HR/SUPER_ADMIN
+    const isOwnProfile = requestingUser.employeeId === targetEmployeeId || requestingUser.id === targetEmployeeId;
+    const isHRAdmin = ['HR', 'SUPER_ADMIN', 'IT_ADMIN'].includes(requestingUser.role);
+
+    if (!isOwnProfile && !isHRAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You do not have permission to edit this profile' 
+      });
+    }
+
     const employee = await Employee.findOneAndUpdate(
       {
         $or: [
@@ -152,10 +171,26 @@ router.put('/:employeeId', employeeValidation.update, async (req: Request, res: 
 });
 
 // Update specific profile section (PATCH)
-router.patch('/:employeeId/:section', async (req: Request, res: Response) => {
+router.patch('/:employeeId/:section', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { employeeId, section } = req.params;
     const updateData = req.body;
+    const requestingUser = req.user;
+
+    if (!requestingUser) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    // Authorization check: User can only update their own profile OR user is HR/SUPER_ADMIN
+    const isOwnProfile = requestingUser.employeeId === employeeId || requestingUser.id === employeeId;
+    const isHRAdmin = ['HR', 'SUPER_ADMIN', 'IT_ADMIN'].includes(requestingUser.role);
+
+    if (!isOwnProfile && !isHRAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You do not have permission to edit this profile' 
+      });
+    }
 
     const employee = await Employee.findOneAndUpdate(
       {

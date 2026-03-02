@@ -13,12 +13,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetBody,
+  SheetFooter,
+  SheetCloseButton,
+} from '@/components/ui/sheet';
 import { GraduationCap, Plus, Pencil, Trash2 } from 'lucide-react';
 import { employeeManagementService } from '@/services/employeeManagementService';
 import { toast } from 'sonner';
@@ -203,15 +205,17 @@ export default function EducationTab({
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
+      {/* Add/Edit Sheet */}
+      <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <SheetContent className="w-full sm:max-w-2xl flex flex-col p-0">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-primary" />
               {editingIndex !== null ? 'Edit Education' : 'Add Education'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+            </SheetTitle>
+            <SheetCloseButton />
+          </SheetHeader>
+          <SheetBody className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="degree">Degree *</Label>
@@ -291,8 +295,8 @@ export default function EducationTab({
                 rows={3}
               />
             </div>
-          </div>
-          <DialogFooter>
+          </SheetBody>
+          <SheetFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
@@ -309,9 +313,9 @@ export default function EducationTab({
             >
               {saving ? 'Saving...' : 'Save'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

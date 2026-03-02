@@ -7,6 +7,8 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { CustomerForm } from './CustomerForm';
 import { toast } from 'sonner';
@@ -54,17 +56,18 @@ export function CreateCustomerDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col h-full overflow-hidden !w-[60vw] max-w-none">
-        {/* Fixed Header */}
-        <SheetHeader className="flex-shrink-0 border-b pb-4">
-          <SheetTitle>{customer ? 'Edit' : 'Create New'} Customer</SheetTitle>
-          <SheetDescription>
-            {customer ? 'Update the customer details below.' : 'Add a new customer to your database.'} Fields marked with * are required.
-          </SheetDescription>
+      <SheetContent className="flex flex-col h-full overflow-hidden !w-[60vw] max-w-none p-0">
+        <SheetHeader>
+          <div className="flex-1">
+            <SheetTitle>{customer ? 'Edit' : 'Create New'} Customer</SheetTitle>
+            <SheetDescription>
+              {customer ? 'Update the customer details below.' : 'Add a new customer to your database.'} Fields marked with * are required.
+            </SheetDescription>
+          </div>
+          <SheetCloseButton />
         </SheetHeader>
         
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto py-4">
+        <SheetBody>
           <CustomerForm
             key={createdCustomer?._id || customer?._id || 'new'}
             onSubmit={handleSubmit}
@@ -80,7 +83,7 @@ export function CreateCustomerDialog({
             isLoading={isLoading}
             submitLabel={customer ? 'Update Customer' : 'Create Customer'}
           />
-        </div>
+        </SheetBody>
       </SheetContent>
     </Sheet>
   );

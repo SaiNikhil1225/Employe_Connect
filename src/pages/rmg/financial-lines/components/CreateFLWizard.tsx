@@ -5,6 +5,8 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Stepper } from '@/components/ui/stepper';
 import { Step1BasicDetailsForm } from './Step1BasicDetailsForm';
@@ -149,27 +151,27 @@ export function CreateFLWizard({ open, onOpenChange, onSuccess, defaultProjectId
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className="flex flex-col h-full overflow-hidden w-full sm:max-w-3xl p-0" side="right">
         {/* Fixed Header with Stepper */}
-        <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <div className="p-6 pb-4">
-            <SheetHeader>
+        <SheetHeader className="flex-col items-start gap-4 pb-6">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex-1">
               <SheetTitle className="text-xl font-semibold text-brand-navy dark:text-gray-100">
                 Create Financial Line
               </SheetTitle>
               <SheetDescription className="text-sm text-brand-slate dark:text-gray-400">
                 Follow the steps to create a new financial line with revenue planning and milestones.
               </SheetDescription>
-            </SheetHeader>
+            </div>
+            <SheetCloseButton />
           </div>
 
           {/* Stepper */}
-          <div className="px-6 pb-6">
+          <div className="w-full">
             <Stepper steps={steps} currentStep={currentStep} />
           </div>
-        </div>
+        </SheetHeader>
 
         {/* Scrollable Step Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
+        <SheetBody className="p-6">
             {currentStep === 1 && (
               <Step1BasicDetailsForm
                 defaultValues={formData}
@@ -206,8 +208,7 @@ export function CreateFLWizard({ open, onOpenChange, onSuccess, defaultProjectId
                 onBack={() => setCurrentStep(3)}
               />
             )}
-          </div>
-        </div>
+        </SheetBody>
       </SheetContent>
     </Sheet>
   );

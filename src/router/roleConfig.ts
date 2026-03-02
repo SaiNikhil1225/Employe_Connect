@@ -5,6 +5,11 @@ export type RoutePermission = {
   label: string;
   icon?: string;
   roles: UserRole[];
+  children?: {
+    path: string;
+    label: string;
+    icon?: string;
+  }[];
 };
 
 export const rolePermissions: Record<UserRole, string[]> = {
@@ -13,6 +18,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/profile',
     '/my-team',
     '/attendance',
+    '/employee/my-attendance',
     '/leave',
     '/payroll',
     '/performance',
@@ -31,6 +37,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/profile',
     '/my-team',
     '/attendance',
+    '/employee/my-attendance',
     '/leave',
     '/payroll',
     '/performance',
@@ -50,6 +57,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/profile',
     '/my-team',
     '/attendance',
+    '/employee/my-attendance',
     '/leave',
     '/payroll',
     '/performance',
@@ -98,6 +106,8 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/superadmin/leave-policies',
     '/superadmin/holidays',
     '/superadmin/holiday-config',
+    '/superadmin/helpdesk-config',
+    '/superadmin/region-regex-config',
     '/profile',
     '/employees-directory',
     // Full access to all routes
@@ -123,11 +133,13 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/rmg/financial-lines',
   ],
   HR: [
+    '/dashboard',
     '/profile',
     '/my-team',
     '/employees-directory',
     '/employees',
     '/attendance-management',
+    '/hr/attendance-overview',
     '/payroll-management',
     '/performance-management',
     '/new-announcement',
@@ -149,6 +161,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/rmg/uda-configuration',
     '/rmg/timesheet',
     '/rmg/employee-hours-report',
+    '/rmg/employees',
   ],
   FINANCE_ADMIN: [
     '/dashboard',
@@ -174,31 +187,37 @@ export const navigationConfig: RoutePermission[] = [
     path: '/dashboard',
     label: 'Dashboard',
     icon: 'LayoutDashboard',
-    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN', 'IT_EMPLOYEE', 'L1_APPROVER', 'L2_APPROVER', 'L3_APPROVER', 'RMG', 'SUPER_ADMIN', 'FINANCE_ADMIN', 'FACILITIES_ADMIN'],
+    roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN', 'IT_EMPLOYEE', 'L1_APPROVER', 'L2_APPROVER', 'L3_APPROVER', 'RMG', 'FINANCE_ADMIN', 'FACILITIES_ADMIN'],
   },
   // Super Admin Routes
   {
     path: '/superadmin/dashboard',
-    label: 'Super Admin',
-    icon: 'ShieldCheck',
+    label: 'Dashboard',
+    icon: 'LayoutDashboard',
     roles: ['SUPER_ADMIN'],
   },
   {
-    path: '/superadmin/categories',
-    label: 'Category Management',
-    icon: 'FolderCog',
+    path: '/superadmin/approval-flow',
+    label: 'Approval Flow',
+    icon: 'GitBranch',
     roles: ['SUPER_ADMIN'],
+    children: [
+      {
+        path: '/superadmin/categories',
+        label: 'Category Management',
+        icon: 'FolderCog',
+      },
+      {
+        path: '/superadmin/helpdesk-config',
+        label: 'Helpdesk Config',
+        icon: 'Headset',
+      },
+    ],
   },
   {
-    path: '/superadmin/approvers',
-    label: 'Approver Management',
-    icon: 'UserCheck',
-    roles: ['SUPER_ADMIN'],
-  },
-  {
-    path: '/superadmin/users',
-    label: 'User Management',
-    icon: 'Users',
+    path: '/superadmin/region-regex-config',
+    label: 'Regex Validation',
+    icon: 'Globe',
     roles: ['SUPER_ADMIN'],
   },
   {
@@ -209,21 +228,27 @@ export const navigationConfig: RoutePermission[] = [
   },
   {
     path: '/superadmin/leave-policies',
-    label: 'Leave Policies',
+    label: 'Leave Policy Config',
     icon: 'Calendar',
     roles: ['SUPER_ADMIN'],
   },
   {
     path: '/superadmin/holidays',
-    label: 'Holiday Management',
+    label: 'Holidays',
     icon: 'CalendarDays',
     roles: ['SUPER_ADMIN'],
-  },
-  {
-    path: '/superadmin/holiday-config',
-    label: 'Holiday Configuration',
-    icon: 'Settings',
-    roles: ['SUPER_ADMIN'],
+    children: [
+      {
+        path: '/superadmin/holidays',
+        label: 'Calendar',
+        icon: 'Calendar',
+      },
+      {
+        path: '/superadmin/holiday-config',
+        label: 'Configuration',
+        icon: 'Settings',
+      },
+    ],
   },
   // Approver Routes
   {
@@ -240,9 +265,9 @@ export const navigationConfig: RoutePermission[] = [
     roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN', 'IT_EMPLOYEE'],
   },
   {
-    path: '/attendance',
+    path: '/employee/my-attendance',
     label: 'My Attendance',
-    icon: 'Calendar',
+    icon: 'Clock',
     roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN'],
   },
   {
@@ -360,6 +385,12 @@ export const navigationConfig: RoutePermission[] = [
     roles: ['HR'],
   },
   {
+    path: '/hr/attendance-overview',
+    label: 'Attendance Overview',
+    icon: 'CalendarCheck',
+    roles: ['HR'],
+  },
+  {
     path: '/hr/leave-attendance-overview',
     label: 'Leave Approvals',
     icon: 'ClipboardList',
@@ -402,12 +433,6 @@ export const navigationConfig: RoutePermission[] = [
     roles: ['HR'],
   },
   {
-    path: '/attendance-management',
-    label: 'Attendance Management',
-    icon: 'CalendarCheck',
-    roles: ['HR'],
-  },
-  {
     path: '/payroll-management',
     label: 'Payroll Management',
     icon: 'Wallet',
@@ -418,6 +443,12 @@ export const navigationConfig: RoutePermission[] = [
     path: '/utilization',
     label: 'Utilization',
     icon: 'Activity',
+    roles: ['RMG'],
+  },
+  {
+    path: '/rmg/employees',
+    label: 'Employees',
+    icon: 'Users',
     roles: ['RMG'],
   },
   {
@@ -452,7 +483,7 @@ export const navigationConfig: RoutePermission[] = [
   },
   {
     path: '/rmg/employee-hours-report',
-    label: 'Employee Hours Report',
+    label: 'Productivity & Hours Dashboard',
     icon: 'BarChart3',
     roles: ['EMPLOYEE', 'MANAGER', 'RMG'],
   },

@@ -9,12 +9,13 @@ import { Dashboard } from '@/pages/Dashboard';
 // Employee Pages
 import { Profile } from '@/pages/employee/Profile';
 import { MyTeam } from '@/pages/employee/MyTeam';
-import { Attendance } from '@/pages/employee/Attendance';
+import MyAttendance from '@/pages/employee/MyAttendance';
 import { Leave } from '@/pages/employee/Leave';
 import { Payroll } from '@/pages/employee/Payroll';
 import { Performance } from '@/pages/employee/Performance';
 import { Documents } from '@/pages/employee/Documents';
 import Helpdesk from '@/pages/employee/Helpdesk';
+import { EmployeeDirectory } from '@/pages/employee/EmployeeDirectory';
 
 // Manager Pages
 import { ManagerDashboard } from '@/pages/manager/ManagerDashboard';
@@ -37,8 +38,7 @@ import { FacilitiesTicketManagement } from '@/pages/facilitiesadmin/FacilitiesTi
 import ApproverPage from '@/pages/approver/ApproverPage';
 
 // HR Pages
-import { EmployeeManagement } from '@/pages/hr/EmployeeManagement';
-import { AttendanceManagement } from '@/pages/hr/AttendanceManagement';
+import AttendanceOverview from '@/pages/hr/AttendanceOverview';
 import { LeaveManagement } from '@/pages/hr/LeaveManagement';
 import { PayrollManagement } from '@/pages/hr/PayrollManagement';
 import { Recruitment } from '@/pages/hr/Recruitment';
@@ -72,9 +72,8 @@ import LeavePolicyConfig from '@/pages/superadmin/LeavePolicyConfig';
 import PermissionsMatrix from '@/pages/superadmin/PermissionsMatrix';
 import { HolidayManagement } from '@/pages/superadmin/HolidayManagement';
 import { HolidayConfiguration } from '@/pages/superadmin/HolidayConfiguration';
-
-// Common Pages
-import { Employees } from '@/pages/Employees';
+import HelpdeskConfig from '@/pages/superadmin/HelpdeskConfig';
+import RegionRegexConfig from '@/pages/superadmin/RegionRegexConfig';
 
 // Wrapper component for viewing other employee profiles
 function ProfileWithParams() {
@@ -156,10 +155,10 @@ export function AppRouter() {
             }
           />
           <Route
-            path="/attendance"
+            path="/employee/my-attendance"
             element={
-              <ProtectedRoute requiredPath="/attendance">
-                <Attendance />
+              <ProtectedRoute requiredPath="/employee/my-attendance">
+                <MyAttendance />
               </ProtectedRoute>
             }
           />
@@ -209,7 +208,7 @@ export function AppRouter() {
             path="/employees-directory"
             element={
               <ProtectedRoute requiredPath="/employees-directory">
-                <Employees />
+                <EmployeeDirectory />
               </ProtectedRoute>
             }
           />
@@ -309,15 +308,15 @@ export function AppRouter() {
             path="/employees"
             element={
               <ProtectedRoute requiredPath="/employees">
-                <EmployeeManagement />
+                <EmployeeDirectory />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/attendance-management"
+            path="/hr/attendance-overview"
             element={
-              <ProtectedRoute requiredPath="/attendance-management">
-                <AttendanceManagement />
+              <ProtectedRoute requiredPath="/hr/attendance-overview">
+                <AttendanceOverview />
               </ProtectedRoute>
             }
           />
@@ -432,6 +431,14 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/utilization">
                 <Utilization />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rmg/employees"
+            element={
+              <ProtectedRoute requiredPath="/rmg/employees">
+                <EmployeeDirectory />
               </ProtectedRoute>
             }
           />
@@ -559,6 +566,22 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/superadmin/holiday-config">
                 <HolidayConfiguration />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/superadmin/helpdesk-config"
+            element={
+              <ProtectedRoute requiredPath="/superadmin/helpdesk-config">
+                <HelpdeskConfig />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/superadmin/region-regex-config"
+            element={
+              <ProtectedRoute requiredPath="/superadmin/region-regex-config">
+                <RegionRegexConfig />
               </ProtectedRoute>
             }
           />

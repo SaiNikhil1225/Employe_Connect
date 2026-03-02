@@ -13,6 +13,7 @@ import HelpdeskTicket from '../models/HelpdeskTicket';
 import Employee from '../models/Employee';
 import { ModulePermission } from '../models/ModulePermission';
 import { LeavePolicy } from '../models/LeavePolicy';
+import { HRRegionConfig } from '../models/HRRegionConfig';
 
 const router = express.Router();
 
@@ -1310,6 +1311,105 @@ router.delete(
     res.json({
       success: true,
       message: 'Leave policy deleted successfully',
+    });
+  })
+);
+
+// ===========================================
+// HR REGION CONFIG ROUTES
+// ===========================================
+
+/**
+ * GET /superadmin/hr-regions
+ * Get all HR region configs
+ */
+router.get(
+  '/hr-regions',
+  asyncHandler(async (req: Request, res: Response) => {
+    const configs = await HRRegionConfig.find({ isActive: true });
+
+    res.json({
+      success: true,
+      data: configs,
+    });
+  })
+);
+
+/**
+ * GET /superadmin/hr-region/:region
+ * Get HR region config by region
+ */
+router.get(
+  '/hr-region/:region',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { region } = req.params;
+
+    const config = await HRRegionConfig.findOne({ region, isActive: true });
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: 'Region config not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: config,
+    });
+  })
+);
+
+/**
+ * POST /superadmin/hr-region
+ * Create or update HR region config
+ */
+router.post(
+  '/hr-region',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { region, fields, departments, designations } = req.body;
+
+    const config = await HRRegionConfig.findOneAndUpdate(
+      { region },
+      { region, fields, departments, designations, isActive: true },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'HR region config saved successfully',
+      data: config,
+    });
+  })
+);
+
+/**
+ * PUT /superadmin/hr-region/:id
+ * Update HR region config
+ */
+router.put(
+  '/hr-region/:id',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { fields, departments, designations } = req.body;
+
+    const config = await HRRegionConfig.findByIdAndUpdate(
+      id,
+      { fields, departments, designations },
+      { new: true }
+    );
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: 'Region config not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'HR region config updated successfully',
+      data: config,
     });
   })
 );

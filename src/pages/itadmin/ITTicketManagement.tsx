@@ -43,7 +43,7 @@ export function ITTicketManagement() {
     myAssigned: 0,
   });
 
-  // IT_ADMIN users should use the main admin dashboard for assignment
+  // IT_ADMIN users can work as specialists on assigned tickets
   const isITAdmin = user?.role === 'IT_ADMIN';
 
   // Dialog states for management features
@@ -73,29 +73,31 @@ export function ITTicketManagement() {
     );
     
     // Available tickets (unassigned, not cancelled/closed)
-    const terminalStatuses = ['Cancelled', 'Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Work Completed', 'Completed - Awaiting IT Closure', 'Rejected'];
+    const terminalStatuses = ['Cancelled', 'Closed', 'Auto-Closed', 'Confirmed', 'Completed', 'Rejected'];
     const availableTickets = itTickets.filter((t) => 
       !t.assignment?.assignedToId && 
       t.status === 'In Queue' &&
       !terminalStatuses.includes(t.status)
     );
     
+    const assignedTickets = myTickets.filter(
+      (t) => t.status === 'Assigned' || t.status === 'In Progress' || t.status === 'Paused'
+    );
+    
+    const completedTickets = myTickets.filter(
+      (t) =>
+        t.status === 'Completed' ||
+        t.status === 'Confirmed' ||
+        t.status === 'Closed' ||
+        t.status === 'Auto-Closed' ||
+        t.status === 'Cancelled'
+    );
+    
     const newStats = {
       total: itTickets.length, // Keep global count for reference
       inQueue: availableTickets.length, // Available to pick up
-      assigned: myTickets.filter(
-        (t) => t.status === 'Assigned' || t.status === 'In Progress' || t.status === 'Paused'
-      ).length, // My active tickets
-      completed: myTickets.filter(
-        (t) =>
-          t.status === 'Work Completed' ||
-          t.status === 'Completed - Awaiting IT Closure' ||
-          t.status === 'Completed' ||
-          t.status === 'Confirmed' ||
-          t.status === 'Closed' ||
-          t.status === 'Auto-Closed' ||
-          t.status === 'Cancelled'
-      ).length, // My completed tickets
+      assigned: assignedTickets.length, // My active tickets
+      completed: completedTickets.length, // My completed tickets
       myAssigned: myTickets.length, // All my tickets (active + completed)
     };
 
@@ -234,10 +236,24 @@ export function ITTicketManagement() {
       try {
         await helpdeskService.updateProgress(ticketId, progress, notes);
         toast.success('Progress updated successfully');
+        // Small delay to ensure backend has fully updated
+        await new Promise(resolve => setTimeout(resolve, 500));
         await loadTickets();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to update progress:', error);
-        toast.error('Failed to update progress. Please try again.');
+        
+        // Extract validation error details
+        let errorMessage = 'Failed to update progress. Please try again.';
+        if (error?.response?.data?.error?.details) {
+          const details = error.response.data.error.details;
+          errorMessage = details.map((d: any) => `${d.field}: ${d.message}`).join(', ');
+        } else if (error?.response?.data?.error?.message) {
+          errorMessage = error.response.data.error.message;
+        } else if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        
+        toast.error(errorMessage);
         throw error;
       }
     },
@@ -245,15 +261,32 @@ export function ITTicketManagement() {
   );
 
   const handleCompleteWork = async (ticketId: string, resolutionNotes: string) => {
-    if (!user?.name) return;
+    if (!user?.name) {
+      toast.error('User information not available');
+      return;
+    }
 
     try {
       await helpdeskService.completeWork(ticketId, resolutionNotes, user.name);
       toast.success('Work marked as complete');
+      // Small delay to ensure backend has fully updated
+      await new Promise(resolve => setTimeout(resolve, 500));
       await loadTickets();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to complete work:', error);
-      toast.error('Failed to complete work. Please try again.');
+      
+      // Extract validation error details
+      let errorMessage = 'Failed to complete work. Please try again.';
+      if (error?.response?.data?.error?.details) {
+        const details = error.response.data.error.details;
+        errorMessage = details.map((d: any) => `${d.field}: ${d.message}`).join(', ');
+      } else if (error?.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
       throw error;
     }
   };
@@ -426,11 +459,11 @@ export function ITTicketManagement() {
               currentSpecialistName={user?.name || ''}
               onAssignToSelf={async () => {}} // Disabled - only IT Admin can assign
               onAssignToSpecialist={async () => {}} // Disabled - only IT Admin can assign
-              onUpdateProgress={isITAdmin ? async () => {} : handleUpdateProgress}
-              onCompleteWork={isITAdmin ? async () => {} : handleCompleteWork}
+              onUpdateProgress={handleUpdateProgress}
+              onCompleteWork={handleCompleteWork}
               onSendMessage={handleSendMessage}
-              onPauseTicket={isITAdmin ? undefined : handlePauseTicket}
-              onResumeTicket={isITAdmin ? undefined : handleResumeTicket}
+              onPauseTicket={handlePauseTicket}
+              onResumeTicket={handleResumeTicket}
               onCloseTicket={handleCloseTicket}
               isLoading={isLoading}
             />

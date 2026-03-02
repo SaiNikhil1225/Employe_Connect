@@ -227,10 +227,14 @@ export function MyTeam() {
             <Card
               key={member.employeeId}
               className="group relative border border-border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 cursor-pointer focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2"
-              onClick={() => navigate(`/employee/profile/${member.employeeId}`)}
+              onClick={() => {
+                sessionStorage.setItem('profileReferrer', '/employee/my-team');
+                navigate(`/employee/profile/${member.employeeId}`);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
+                  sessionStorage.setItem('profileReferrer', '/employee/my-team');
                   navigate(`/employee/profile/${member.employeeId}`);
                 }
               }}

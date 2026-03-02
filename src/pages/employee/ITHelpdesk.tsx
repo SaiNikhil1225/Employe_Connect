@@ -30,6 +30,8 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import {
   AlertDialog,
@@ -709,21 +711,25 @@ export default function ITHelpdesk() {
 
       {/* Ticket Details Drawer */}
       <Sheet open={showTicketDrawer} onOpenChange={setShowTicketDrawer}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-2xl flex flex-col p-0">
           <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              Ticket Details
-              <span className="font-mono text-sm text-muted-foreground">
-                #{selectedTicket?.id.slice(0, 8)}
-              </span>
-            </SheetTitle>
-            <SheetDescription>
-              View details and communicate with IT support
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle className="flex items-center gap-2">
+                Ticket Details
+                <span className="font-mono text-sm text-muted-foreground">
+                  #{selectedTicket?.id.slice(0, 8)}
+                </span>
+              </SheetTitle>
+              <SheetDescription>
+                View details and communicate with IT support
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
 
+          <SheetBody>
           {selectedTicket && (
-            <div className="mt-6 space-y-6">
+            <div className="space-y-6">
               {/* Ticket Summary Header */}
               <TicketSummaryHeader ticket={selectedTicket} />
 
@@ -850,6 +856,7 @@ export default function ITHelpdesk() {
               </CollapsibleSection>
             </div>
           )}
+          </SheetBody>
         </SheetContent>
       </Sheet>
 

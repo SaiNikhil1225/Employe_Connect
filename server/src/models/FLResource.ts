@@ -5,6 +5,14 @@ interface IMonthAllocation {
   allocation: number;
 }
 
+interface IReleaseHistory {
+  date: Date;
+  type: 'full' | 'partial';
+  previousAllocation: number;
+  newAllocation: number;
+  releasedBy: string;
+}
+
 export interface IFLResource extends Document {
   employeeId?: string;
   resourceName: string;
@@ -18,6 +26,7 @@ export interface IFLResource extends Document {
   billable: boolean;
   percentageBasis: string;
   monthlyAllocations: IMonthAllocation[];
+  releaseHistory: IReleaseHistory[];
   totalAllocation: string;
   financialLineId: mongoose.Types.ObjectId;
   flNo: string;
@@ -31,6 +40,14 @@ export interface IFLResource extends Document {
 const MonthAllocationSchema = new Schema({
   month: { type: String, required: true },
   allocation: { type: Number, required: true, min: 0, max: 100 },
+}, { _id: false });
+
+const ReleaseHistorySchema = new Schema({
+  date: { type: Date, required: true },
+  type: { type: String, enum: ['full', 'partial'], required: true },
+  previousAllocation: { type: Number, required: true },
+  newAllocation: { type: Number, required: true },
+  releasedBy: { type: String, required: false },
 }, { _id: false });
 
 const FLResourceSchema = new Schema<IFLResource>(
@@ -83,6 +100,10 @@ const FLResourceSchema = new Schema<IFLResource>(
     },
     monthlyAllocations: {
       type: [MonthAllocationSchema],
+      default: [],
+    },
+    releaseHistory: {
+      type: [ReleaseHistorySchema],
       default: [],
     },
     totalAllocation: {

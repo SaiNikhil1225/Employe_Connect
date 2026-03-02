@@ -95,6 +95,22 @@ const PROFILE_DEFINITIONS: Record<string, Profile> = {
     badge: 'L3',
     color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
   },
+  RMG_USER: {
+    value: 'RMG_USER',
+    label: 'My Workplace',
+    icon: '👤',
+    description: 'Personal employee view',
+    badge: 'Personal',
+    color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+  },
+  RMG_ADMIN: {
+    value: 'RMG_ADMIN',
+    label: 'RMG Process',
+    icon: '📊',
+    description: 'Full RMG administrative access',
+    badge: 'Full Access',
+    color: 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300',
+  },
 };
 
 // Get available profiles based on user role
@@ -121,6 +137,8 @@ function getAvailableProfilesForRole(role: UserRole): Profile[] {
       return [PROFILE_DEFINITIONS.L2_APPROVER];
     case 'L3_APPROVER':
       return [PROFILE_DEFINITIONS.L3_APPROVER];
+    case 'RMG':
+      return [PROFILE_DEFINITIONS.RMG_USER, PROFILE_DEFINITIONS.RMG_ADMIN];
     case 'EMPLOYEE':
     default:
       return [PROFILE_DEFINITIONS.EMPLOYEE];
@@ -176,8 +194,10 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
     if (stored && getAvailableProfilesForRole(actualRole).some(p => p.value === stored)) {
       return stored;
     }
-    // Default to HR_ADMIN for HR users, otherwise use actual role
-    return actualRole === 'HR' ? 'HR_ADMIN' : actualRole;
+    // Default to HR_ADMIN for HR users, RMG_ADMIN for RMG users, otherwise use actual role
+    if (actualRole === 'HR') return 'HR_ADMIN';
+    if (actualRole === 'RMG') return 'RMG_ADMIN';
+    return actualRole;
   });
 
   // Get available profiles based on actual role
@@ -203,6 +223,10 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
         icon: profileDef.icon,
       });
     }
+
+    // Redirect to dashboard after profile switch to avoid access denied on current page
+    // Use window.location for a clean navigation that re-evaluates permissions
+    window.location.href = '/dashboard';
   };
 
   // Calculate permissions based on active profile

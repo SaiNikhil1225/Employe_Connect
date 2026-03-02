@@ -18,11 +18,11 @@ import {
   CommandInput,
   CommandItem,
 } from '@/components/ui/command';
-import { Plus, FileText, DollarSign, Users, BarChart3, CalendarIcon, X, Check, ChevronsUpDown, FilterX, Filter } from 'lucide-react';
+import { Plus, FileText, DollarSign, Users, BarChart3, CalendarIcon, X, Check, ChevronsUpDown, FilterX, Filter, AlertTriangle, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, addMonths, startOfMonth, isAfter, isSameMonth, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, SheetDescription, SheetCloseButton } from '@/components/ui/sheet';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -98,10 +98,14 @@ export function ProjectDetailPage() {
   const [resourceToDelete, setResourceToDelete] = useState<any | null>(null);
   const [isReleaseResourceOpen, setIsReleaseResourceOpen] = useState(false);
   const [resourceToRelease, setResourceToRelease] = useState<any | null>(null);
+  const [releaseType, setReleaseType] = useState<'full' | 'partial'>('full');
+  const [partialReleasePercent, setPartialReleasePercent] = useState<number>(0);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [isAddResourceDrawerOpen, setIsAddResourceDrawerOpen] = useState(false);
+  const [originalEndDate, setOriginalEndDate] = useState<Date | null>(null);
+  const [extendedMonthAllocations, setExtendedMonthAllocations] = useState<{month: string; allocation: number}[]>([]);
 
   // Advanced Filters - Allocated Resources Tab
   const [showAllocatedFilters, setShowAllocatedFilters] = useState(false);
@@ -109,6 +113,7 @@ export function ProjectDetailPage() {
   const [allocatedDateFrom, setAllocatedDateFrom] = useState<Date | undefined>(undefined);
   const [allocatedDateTo, setAllocatedDateTo] = useState<Date | undefined>(undefined);
   const [allocatedTimeline, setAllocatedTimeline] = useState('all');
+  const [allocatedStatusFilter, setAllocatedStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
   const [allocatedHoursColumns, setAllocatedHoursColumns] = useState<string[]>(['allocated-percent', 'allocated-hour', 'actual', 'approved']);
 
   // Advanced Filters - Allocated Details Tab
@@ -116,7 +121,7 @@ export function ProjectDetailPage() {
   const [detailsResourceSearch, setDetailsResourceSearch] = useState('');
   const [detailsDateFrom, setDetailsDateFrom] = useState<Date | undefined>(undefined);
   const [detailsDateTo, setDetailsDateTo] = useState<Date | undefined>(undefined);
-  const [detailsStatus, setDetailsStatus] = useState('all');
+  const [detailsStatus, setDetailsStatus] = useState<'active' | 'inactive' | 'all'>('active');
 
   // Dynamic calculations
   const [calculatedBudget, setCalculatedBudget] = useState<number>(0);
@@ -302,6 +307,7 @@ export function ProjectDetailPage() {
     setAllocatedDateFrom(undefined);
     setAllocatedDateTo(undefined);
     setAllocatedTimeline('all');
+    setAllocatedStatusFilter('active');
     setAllocatedHoursColumns(['allocated-percent', 'allocated-hour', 'actual', 'approved']);
   };
 
@@ -309,12 +315,12 @@ export function ProjectDetailPage() {
     setDetailsResourceSearch('');
     setDetailsDateFrom(undefined);
     setDetailsDateTo(undefined);
-    setDetailsStatus('all');
+    setDetailsStatus('active');
   };
 
   // Check if any filters are active
-  const hasAllocatedFilters = allocatedResourceSearch || allocatedDateFrom || allocatedDateTo || allocatedTimeline !== 'all';
-  const hasDetailsFilters = detailsResourceSearch || detailsDateFrom || detailsDateTo || detailsStatus !== 'all';
+  const hasAllocatedFilters = allocatedResourceSearch || allocatedDateFrom || allocatedDateTo || allocatedTimeline !== 'all' || allocatedStatusFilter !== 'active';
+  const hasDetailsFilters = detailsResourceSearch || detailsDateFrom || detailsDateTo || detailsStatus !== 'active';
 
   // Convert FL resources to the format expected by ResourceTable
   const convertedResources = flResources.map(resource => ({
@@ -364,17 +370,28 @@ export function ProjectDetailPage() {
     return matchesSearch && matchesType && matchesDateRange;
   });
 
-  // Filter for active resources only (Current team: Active status AND end date is today or in future)
+  // Filter resources based on status filter (Active = end date >= today, Inactive = end date < today)
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Reset time to midnight for date comparison
   
-  const activeResources = allocatedFilteredResources.filter(resource => {
-    const isActiveStatus = resource.status === 'Active';
+  const filteredResourcesByStatus = allocatedFilteredResources.filter(resource => {
     const endDate = resource.endDate ? new Date(resource.endDate) : null;
     const isCurrentAllocation = !endDate || endDate >= today; // No end date or end date is today/future
     
-    return isActiveStatus && isCurrentAllocation;
+    if (allocatedStatusFilter === 'all') {
+      return true; // Show all resources
+    } else if (allocatedStatusFilter === 'active') {
+      // Active = allocation end date >= current date
+      return isCurrentAllocation;
+    } else if (allocatedStatusFilter === 'inactive') {
+      // Inactive = allocation end date < current date
+      return endDate && endDate < today;
+    }
+    return true;
   });
+
+  // For backward compatibility, keep activeResources name for the table
+  const activeResources = filteredResourcesByStatus;
 
   // Filter resources for Allocated Details tab
   const detailsFilteredResources = convertedResources.filter(resource => {
@@ -384,8 +401,18 @@ export function ProjectDetailPage() {
       resource.employeeId.toLowerCase().includes(detailsResourceSearch.toLowerCase()) ||
       resource.email.toLowerCase().includes(detailsResourceSearch.toLowerCase());
     
-    // Status filter
-    const matchesStatus = detailsStatus === 'all' || resource.status.toLowerCase() === detailsStatus.toLowerCase();
+    // Status filter (using date-based logic: Active = end date >= today, Inactive = end date < today)
+    let matchesStatus = true;
+    if (detailsStatus !== 'all') {
+      const resourceEndDate = resource.endDate ? new Date(resource.endDate) : null;
+      const isCurrentAllocation = !resourceEndDate || resourceEndDate >= today;
+      
+      if (detailsStatus === 'active') {
+        matchesStatus = isCurrentAllocation;
+      } else if (detailsStatus === 'inactive') {
+        matchesStatus = resourceEndDate !== null && resourceEndDate < today;
+      }
+    }
     
     // Date range filter
     let matchesDateRange = true;
@@ -414,6 +441,9 @@ export function ProjectDetailPage() {
     const fullResource = flResources.find(r => r._id === resource.id);
     setSelectedResource(resource);
     if (fullResource) {
+      const originalToDate = fullResource.requestedToDate ? new Date(fullResource.requestedToDate) : null;
+      setOriginalEndDate(originalToDate);
+      setExtendedMonthAllocations(fullResource.monthlyAllocations || []);
       setEditFormData({
         employeeId: fullResource.employeeId || '',
         resourceName: fullResource.resourceName || '',
@@ -422,9 +452,10 @@ export function ProjectDetailPage() {
         skills: fullResource.skills || [],
         utilizationPercentage: fullResource.utilizationPercentage || 0,
         requestedFromDate: fullResource.requestedFromDate ? new Date(fullResource.requestedFromDate) : null,
-        requestedToDate: fullResource.requestedToDate ? new Date(fullResource.requestedToDate) : null,
+        requestedToDate: originalToDate,
         billable: fullResource.billable !== undefined ? fullResource.billable : true,
         status: fullResource.status || 'Active',
+        monthlyAllocations: fullResource.monthlyAllocations || [],
       });
     }
     fetchEmployees();
@@ -443,6 +474,46 @@ export function ProjectDetailPage() {
     setEmployeeSearch('');
   };
 
+  // Generate extended months when To Date is extended beyond original
+  const generateExtendedMonths = (newToDate: Date | null, currentAllocations: {month: string; allocation: number}[]) => {
+    if (!newToDate || !originalEndDate) return [];
+    
+    // If new date is not after original, no extended months
+    if (!isAfter(newToDate, originalEndDate)) return [];
+    
+    const extendedMonths: {month: string; allocation: number}[] = [];
+    let current = startOfMonth(addMonths(originalEndDate, 1));
+    
+    while (isBefore(current, newToDate) || isSameMonth(current, newToDate)) {
+      const monthKey = format(current, 'yyyy-MM');
+      const existingAlloc = currentAllocations.find(a => a.month === monthKey);
+      extendedMonths.push({
+        month: monthKey,
+        allocation: existingAlloc ? existingAlloc.allocation : editFormData?.utilizationPercentage || 0,
+      });
+      current = addMonths(current, 1);
+    }
+    
+    return extendedMonths;
+  };
+
+  // Handle To Date change for extension
+  const handleToDateChange = (newDate: Date | undefined) => {
+    if (!newDate) return;
+    
+    const currentAllocations = editFormData?.monthlyAllocations || [];
+    const extended = generateExtendedMonths(newDate, currentAllocations);
+    setExtendedMonthAllocations(extended);
+    setEditFormData({...editFormData, requestedToDate: newDate});
+  };
+
+  // Update extended month allocation %
+  const handleExtendedMonthAllocationChange = (monthKey: string, value: number) => {
+    setExtendedMonthAllocations(prev => 
+      prev.map(m => m.month === monthKey ? {...m, allocation: Math.min(100, Math.max(0, value))} : m)
+    );
+  };
+
   const handleRemoveResource = (resource: any) => {
     setResourceToDelete(resource);
     setIsDeleteResourceOpen(true);
@@ -450,6 +521,10 @@ export function ProjectDetailPage() {
 
   const handleReleaseResource = async (resource: any) => {
     setResourceToRelease(resource);
+    setReleaseType('full');
+    // Find full resource to get current utilization
+    const fullResource = flResources.find(r => r._id === resource.id);
+    setPartialReleasePercent(fullResource?.utilizationPercentage || 0);
     setIsReleaseResourceOpen(true);
   };
 
@@ -464,14 +539,65 @@ export function ProjectDetailPage() {
         setResourceToRelease(null);
         return;
       }
-      // Set end date to today and status to Inactive
+      
       const today = new Date();
-      const updateData = {
-        ...fullResource,
-        requestedToDate: today.toISOString(),
-        status: 'Inactive'
-      };
-      const response = await fetch(`/api/fl-resources/${resourceToRelease.id}`, {
+      let updateData: any;
+      
+      if (releaseType === 'full') {
+        // Full Release: Set end date to today and status to Inactive
+        updateData = {
+          ...fullResource,
+          requestedToDate: today.toISOString(),
+          status: 'Inactive',
+          // Add release history entry
+          releaseHistory: [
+            ...(fullResource.releaseHistory || []),
+            {
+              date: today.toISOString(),
+              type: 'full',
+              previousAllocation: fullResource.utilizationPercentage,
+              newAllocation: 0,
+              releasedBy: 'RMG', // TODO: Get from auth context
+            }
+          ]
+        };
+      } else {
+        // Partial Release: Reduce allocation % and remain active
+        if (partialReleasePercent < 0 || partialReleasePercent >= fullResource.utilizationPercentage) {
+          toast.error('New allocation must be less than current allocation and greater than 0');
+          return;
+        }
+        
+        // Update monthly allocations if present
+        let updatedMonthlyAllocations = fullResource.monthlyAllocations || [];
+        if (updatedMonthlyAllocations.length > 0) {
+          // Calculate the ratio to apply to all months
+          const ratio = partialReleasePercent / (fullResource.utilizationPercentage || 100);
+          updatedMonthlyAllocations = updatedMonthlyAllocations.map((m: any) => ({
+            ...m,
+            allocation: Math.round(m.allocation * ratio)
+          }));
+        }
+        
+        updateData = {
+          ...fullResource,
+          utilizationPercentage: partialReleasePercent,
+          monthlyAllocations: updatedMonthlyAllocations,
+          // Add release history entry
+          releaseHistory: [
+            ...(fullResource.releaseHistory || []),
+            {
+              date: today.toISOString(),
+              type: 'partial',
+              previousAllocation: fullResource.utilizationPercentage,
+              newAllocation: partialReleasePercent,
+              releasedBy: 'RMG', // TODO: Get from auth context
+            }
+          ]
+        };
+      }
+      
+      const response = await fetch(`/api/flresources/${resourceToRelease.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -479,7 +605,7 @@ export function ProjectDetailPage() {
         body: JSON.stringify(updateData),
       });
       if (response.ok) {
-        toast.success('Resource released successfully');
+        toast.success(releaseType === 'full' ? 'Resource released successfully' : `Resource allocation reduced to ${partialReleasePercent}%`);
         fetchFLResources(); // Refresh the list
       } else {
         const errorData = await response.json();
@@ -491,6 +617,8 @@ export function ProjectDetailPage() {
     } finally {
       setIsReleaseResourceOpen(false);
       setResourceToRelease(null);
+      setReleaseType('full');
+      setPartialReleasePercent(0);
     }
   };
 
@@ -725,8 +853,8 @@ export function ProjectDetailPage() {
                           />
                         </div>
 
-                        {/* Date Range, Timeline, Hours */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Date Range, Timeline, Status, Hours */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                           {/* Date From */}
                           <div className="space-y-2">
                           <Label className="text-sm font-medium">From Date</Label>
@@ -795,6 +923,21 @@ export function ProjectDetailPage() {
                               <SelectItem value="last-month">Last Month</SelectItem>
                               <SelectItem value="this-quarter">This Quarter</SelectItem>
                               <SelectItem value="custom">Custom</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Status</Label>
+                          <Select value={allocatedStatusFilter} onValueChange={(value: 'active' | 'inactive' | 'all') => setAllocatedStatusFilter(value)}>
+                            <SelectTrigger className="border-brand-light-gray">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="inactive">Inactive</SelectItem>
+                              <SelectItem value="all">All</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -920,17 +1063,112 @@ export function ProjectDetailPage() {
                     />
                     {/* Release Resource Confirmation Dialog */}
                     <AlertDialog open={isReleaseResourceOpen} onOpenChange={setIsReleaseResourceOpen}>
-                      <AlertDialogContent>
+                      <AlertDialogContent className="max-w-md">
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Release Resource?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to release this resource? This will set the end date to today and mark the resource as inactive.
+                          <AlertDialogTitle>Release Resource</AlertDialogTitle>
+                          <AlertDialogDescription className="text-left">
+                            Choose how you want to release <strong>{resourceToRelease?.name}</strong>:
                           </AlertDialogDescription>
                         </AlertDialogHeader>
+                        
+                        <div className="space-y-4 py-4">
+                          {/* Full Release Option */}
+                          <div 
+                            className={cn(
+                              "p-4 border rounded-lg cursor-pointer transition-colors",
+                              releaseType === 'full' 
+                                ? "border-orange-500 bg-orange-50 dark:bg-orange-950/20" 
+                                : "border-gray-200 hover:border-gray-300"
+                            )}
+                            onClick={() => setReleaseType('full')}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                releaseType === 'full' ? "border-orange-500" : "border-gray-400"
+                              )}>
+                                {releaseType === 'full' && <div className="w-2 h-2 rounded-full bg-orange-500" />}
+                              </div>
+                              <div>
+                                <p className="font-medium">Full Release</p>
+                                <p className="text-sm text-muted-foreground">
+                                  End allocation today and mark as inactive
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Partial Release Option */}
+                          <div 
+                            className={cn(
+                              "p-4 border rounded-lg cursor-pointer transition-colors",
+                              releaseType === 'partial' 
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20" 
+                                : "border-gray-200 hover:border-gray-300"
+                            )}
+                            onClick={() => setReleaseType('partial')}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                releaseType === 'partial' ? "border-blue-500" : "border-gray-400"
+                              )}>
+                                {releaseType === 'partial' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium">Partial Release</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Reduce allocation percentage, keep resource active
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {releaseType === 'partial' && (
+                              <div className="mt-4 pl-7 space-y-2">
+                                <Label htmlFor="partialPercent" className="text-sm">
+                                  New Allocation % (Current: {(() => {
+                                    const fullRes = flResources.find(r => r._id === resourceToRelease?.id);
+                                    return fullRes?.utilizationPercentage || 0;
+                                  })()}%)
+                                </Label>
+                                <Input
+                                  id="partialPercent"
+                                  type="number"
+                                  min="1"
+                                  max={(() => {
+                                    const fullRes = flResources.find(r => r._id === resourceToRelease?.id);
+                                    return (fullRes?.utilizationPercentage || 100) - 1;
+                                  })()}
+                                  value={partialReleasePercent}
+                                  onChange={(e) => setPartialReleasePercent(Math.max(0, parseInt(e.target.value) || 0))}
+                                  className="w-24"
+                                />
+                                {partialReleasePercent > 0 && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Reducing by {(() => {
+                                      const fullRes = flResources.find(r => r._id === resourceToRelease?.id);
+                                      const current = fullRes?.utilizationPercentage || 0;
+                                      return current - partialReleasePercent;
+                                    })()}%
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleReleaseResourceConfirm} className="bg-orange-600 text-white hover:bg-orange-700">
-                            Release
+                          <AlertDialogAction 
+                            onClick={handleReleaseResourceConfirm} 
+                            className={cn(
+                              "text-white",
+                              releaseType === 'full' 
+                                ? "bg-orange-600 hover:bg-orange-700" 
+                                : "bg-blue-600 hover:bg-blue-700"
+                            )}
+                          >
+                            {releaseType === 'full' ? 'Release Now' : 'Reduce Allocation'}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -1033,14 +1271,14 @@ export function ProjectDetailPage() {
                         {/* Status Filter */}
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Status</Label>
-                          <Select value={detailsStatus} onValueChange={setDetailsStatus}>
+                          <Select value={detailsStatus} onValueChange={(value: 'active' | 'inactive' | 'all') => setDetailsStatus(value)}>
                             <SelectTrigger className="border-brand-light-gray">
                               <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="all">All Status</SelectItem>
                               <SelectItem value="active">Active</SelectItem>
                               <SelectItem value="inactive">Inactive</SelectItem>
+                              <SelectItem value="all">All</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1104,13 +1342,17 @@ export function ProjectDetailPage() {
 
       {/* View Resource Sheet */}
       <Sheet open={isViewResourceOpen} onOpenChange={setIsViewResourceOpen}>
-        <SheetContent className="overflow-y-auto">
+        <SheetContent className="p-0">
           <SheetHeader>
-            <SheetTitle>Resource Details</SheetTitle>
-            <SheetDescription>View resource allocation and information</SheetDescription>
+            <div className="flex-1">
+              <SheetTitle>Resource Details</SheetTitle>
+              <SheetDescription>View resource allocation and information</SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
+          <SheetBody>
           {selectedResource && (
-            <div className="mt-6 space-y-6">
+            <div className="space-y-6">
               <div className="space-y-4">
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Resource Name</Label>
@@ -1196,18 +1438,26 @@ export function ProjectDetailPage() {
               </div>
             </div>
           )}
+          </SheetBody>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setIsViewResourceOpen(false)}>Close</Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
 
       {/* Edit Resource Sheet */}
       <Sheet open={isEditResourceOpen} onOpenChange={setIsEditResourceOpen}>
-        <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-3xl p-0">
           <SheetHeader>
-            <SheetTitle>Edit Resource</SheetTitle>
-            <SheetDescription>Update resource allocation details</SheetDescription>
+            <div className="flex-1">
+              <SheetTitle>Edit Resource</SheetTitle>
+              <SheetDescription>Update resource allocation details</SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
+          <SheetBody>
           {selectedResource && editFormData && (
-            <div className="mt-6 space-y-6">
+            <div className="space-y-6">
               {/* Basic Details Section */}
               <Card>
                 <CardHeader>
@@ -1386,7 +1636,7 @@ export function ProjectDetailPage() {
                           <Calendar
                             mode="single"
                             selected={editFormData.requestedToDate || undefined}
-                            onSelect={(date) => setEditFormData({...editFormData, requestedToDate: date})}
+                            onSelect={handleToDateChange}
                             disabled={(date) => 
                               editFormData.requestedFromDate ? date < editFormData.requestedFromDate : false
                             }
@@ -1395,6 +1645,49 @@ export function ProjectDetailPage() {
                         </PopoverContent>
                       </Popover>
                     </div>
+
+                    {/* Extension Indicator */}
+                    {originalEndDate && editFormData.requestedToDate && isAfter(editFormData.requestedToDate, originalEndDate) && (
+                      <div className="md:col-span-2 flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                        <span className="text-sm text-yellow-700">
+                          Extending allocation beyond original end date ({format(originalEndDate, 'MMM d, yyyy')})
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Extended Months Allocation */}
+                    {extendedMonthAllocations.length > 0 && (
+                      <div className="md:col-span-2 space-y-3">
+                        <Label className="font-semibold flex items-center gap-2">
+                          <CalendarDays className="h-4 w-4 text-primary" />
+                          Extended Period Allocation (%)
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Set allocation percentage for each extended month. Current base allocation: {editFormData.utilizationPercentage || 0}%
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-muted/30 rounded-lg border">
+                          {extendedMonthAllocations.map((month) => (
+                            <div key={month.month} className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">
+                                {format(new Date(month.month + '-01'), 'MMMM yyyy')}
+                              </Label>
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={month.allocation}
+                                  onChange={(e) => handleExtendedMonthAllocationChange(month.month, parseFloat(e.target.value) || 0)}
+                                  className="h-8 text-sm"
+                                />
+                                <span className="text-sm text-muted-foreground">%</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Billable Toggle */}
                     <div className="flex items-center justify-between space-x-2 py-2 md:col-span-2">
@@ -1457,22 +1750,38 @@ export function ProjectDetailPage() {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Save Button */}
-              <div className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditResourceOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={async () => {
+            </div>
+          )}
+          </SheetBody>
+          <SheetFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditResourceOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
                     try {
                       const fullResource = flResources.find(r => r._id === selectedResource.id);
                       if (!fullResource) {
                         toast.error('Resource not found');
                         return;
+                      }
+
+                      // Merge existing monthlyAllocations with extended ones
+                      let monthlyAllocations = [...(fullResource.monthlyAllocations || [])];
+                      
+                      // Add/update extended month allocations
+                      if (extendedMonthAllocations.length > 0) {
+                        extendedMonthAllocations.forEach(ext => {
+                          const existingIndex = monthlyAllocations.findIndex(m => m.month === ext.month);
+                          if (existingIndex >= 0) {
+                            monthlyAllocations[existingIndex] = ext;
+                          } else {
+                            monthlyAllocations.push(ext);
+                          }
+                        });
                       }
 
                       const response = await fetch(`/api/flresources/${fullResource._id}`, {
@@ -1490,12 +1799,15 @@ export function ProjectDetailPage() {
                           requestedToDate: editFormData.requestedToDate,
                           billable: editFormData.billable,
                           status: editFormData.status,
+                          monthlyAllocations: monthlyAllocations,
                         }),
                       });
 
                       if (response.ok) {
                         toast.success('Resource updated successfully');
                         setIsEditResourceOpen(false);
+                        setExtendedMonthAllocations([]);
+                        setOriginalEndDate(null);
                         fetchFLResources();
                       } else {
                         toast.error('Failed to update resource');
@@ -1508,9 +1820,7 @@ export function ProjectDetailPage() {
                 >
                   Save Changes
                 </Button>
-              </div>
-            </div>
-          )}
+          </SheetFooter>
         </SheetContent>
       </Sheet>
 

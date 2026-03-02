@@ -3,6 +3,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { CreateRequestForm } from './CreateRequestForm';
@@ -51,14 +52,17 @@ export function RaiseRequestDrawer({
         {/* Fixed Header */}
         <div className="flex-shrink-0 p-4 border-b border-brand-light-gray dark:border-gray-700">
           <SheetHeader>
-            <SheetTitle className="text-2xl text-brand-navy dark:text-gray-100">
-              {reopenData ? `Reopen Request (from ${reopenData.previousTicketNumber})` : 'Raise a Request'}
-            </SheetTitle>
-            {reopenData && (
-              <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
-                Creating a new ticket based on your cancelled request
-              </p>
-            )}
+            <div className="flex-1">
+              <SheetTitle className="text-2xl text-brand-navy dark:text-gray-100">
+                {reopenData ? `Reopen Request (from ${reopenData.previousTicketNumber})` : 'Raise a Request'}
+              </SheetTitle>
+              {reopenData && (
+                <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
+                  Creating a new ticket based on your cancelled request
+                </p>
+              )}
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
         </div>
 

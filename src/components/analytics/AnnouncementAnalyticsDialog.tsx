@@ -4,6 +4,8 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -225,20 +227,21 @@ export function AnnouncementAnalyticsDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-[900px] lg:max-w-[1100px] p-0 overflow-hidden flex flex-col">
-        <SheetHeader className="px-6 py-5 border-b bg-background">
-          <SheetTitle className="flex items-center gap-3">
+      <SheetContent className="w-full sm:max-w-[900px] lg:max-w-[1100px] p-0">
+        <SheetHeader>
+          <div className="flex items-center gap-3 flex-1">
             <div className="p-2 bg-primary/10 rounded-lg">
               <BarChart3 className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">Analytics</h2>
+              <SheetTitle className="text-lg font-semibold">Analytics</SheetTitle>
               <p className="text-sm text-muted-foreground font-normal">{announcementTitle}</p>
             </div>
-          </SheetTitle>
+          </div>
+          <SheetCloseButton />
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <SheetBody className="py-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-5 mb-6 h-auto p-1">
               <TabsTrigger value="overview" className="flex items-center gap-2">
@@ -875,7 +878,7 @@ export function AnnouncementAnalyticsDialog({
             )}
           </TabsContent>
         </Tabs>
-        </div>
+        </SheetBody>
       </SheetContent>
     </Sheet>
   );

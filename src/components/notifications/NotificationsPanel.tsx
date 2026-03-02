@@ -8,6 +8,8 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -192,23 +194,27 @@ export function NotificationsPanel({ open, onOpenChange }: NotificationsPanelPro
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg" aria-label="Notifications panel">
+      <SheetContent className="w-full sm:max-w-lg p-0" aria-label="Notifications panel">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" aria-hidden="true" />
-            Notifications
-            {unreadCount > 0 && (
-              <Badge variant="default" className="ml-auto" aria-label={`${unreadCount} new notifications`}>
-                {unreadCount} new
-              </Badge>
-            )}
-          </SheetTitle>
-          <SheetDescription>
-            Stay updated with your latest activities
-          </SheetDescription>
+          <div className="flex-1">
+            <SheetTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" aria-hidden="true" />
+              Notifications
+              {unreadCount > 0 && (
+                <Badge variant="default" className="ml-2" aria-label={`${unreadCount} new notifications`}>
+                  {unreadCount} new
+                </Badge>
+              )}
+            </SheetTitle>
+            <SheetDescription>
+              Stay updated with your latest activities
+            </SheetDescription>
+          </div>
+          <SheetCloseButton />
         </SheetHeader>
 
-        <div className="flex items-center gap-2 mt-4 mb-2" role="group" aria-label="Notification actions">
+        <SheetBody>
+          <div className="flex items-center gap-2 mb-2" role="group" aria-label="Notification actions">
           <Button
             variant="outline"
             size="sm"
@@ -233,9 +239,9 @@ export function NotificationsPanel({ open, onOpenChange }: NotificationsPanelPro
           </Button>
         </div>
 
-        <Separator className="my-4" />
+          <Separator className="my-4" />
 
-        <ScrollArea className="h-[calc(100vh-200px)] pr-4" aria-label="Notifications list" role="region">
+          <ScrollArea className="h-full pr-4" aria-label="Notifications list" role="region">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Bell className="h-12 w-12 text-muted-foreground mb-4 opacity-50" aria-hidden="true" />
@@ -308,8 +314,9 @@ export function NotificationsPanel({ open, onOpenChange }: NotificationsPanelPro
                 </div>
               ))}
             </div>
-          )}
-        </ScrollArea>
+            )}
+          </ScrollArea>
+        </SheetBody>
       </SheetContent>
     </Sheet>
   );

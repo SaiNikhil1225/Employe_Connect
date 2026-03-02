@@ -18,6 +18,8 @@ import {
     SheetHeader,
     SheetTitle,
     SheetFooter,
+    SheetBody,
+    SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Save, Trash2, Edit2, Calendar } from 'lucide-react';
@@ -288,18 +290,15 @@ function PolicyDialog({
 
     return (
         <>
-            {/* Fixed Header */}
-            <div className="flex-shrink-0 border-b border-border bg-background p-6">
-                <SheetHeader>
-                    <SheetTitle className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5" />
-                        {policy ? 'Edit Leave Policy' : 'Add Leave Policy'}
-                    </SheetTitle>
-                </SheetHeader>
-            </div>
+            <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    {policy ? 'Edit Leave Policy' : 'Add Leave Policy'}
+                </SheetTitle>
+                <SheetCloseButton />
+            </SheetHeader>
 
-            {/* Scrollable Body */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <SheetBody>
                 <form id="policy-form" onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -444,20 +443,17 @@ function PolicyDialog({
                 </div>
 
                 </form>
-            </div>
+            </SheetBody>
 
-            {/* Fixed Footer */}
-            <div className="flex-shrink-0 border-t border-border bg-background p-6">
-                <SheetFooter className="flex gap-2 sm:justify-end">
-                    <Button type="button" variant="outline" onClick={onClose}>
-                        Cancel
-                    </Button>
-                    <Button type="submit" form="policy-form">
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Policy
-                    </Button>
-                </SheetFooter>
-            </div>
+            <SheetFooter>
+                <Button type="button" variant="outline" onClick={onClose}>
+                    Cancel
+                </Button>
+                <Button type="submit" form="policy-form">
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Policy
+                </Button>
+            </SheetFooter>
         </>
     );
 }

@@ -21,6 +21,8 @@ import {
     SheetFooter,
     SheetHeader,
     SheetTitle,
+    SheetBody,
+    SheetCloseButton,
 } from '@/components/ui/sheet';
 import {
     Tabs,
@@ -553,8 +555,8 @@ export default function PermissionsMatrix() {
             <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
                 <SheetContent className="flex flex-col h-full overflow-hidden w-full sm:max-w-6xl p-0">
                     {/* Fixed Header */}
-                    <div className="flex-shrink-0 border-b border-border bg-background p-6">
-                        <SheetHeader>
+                    <SheetHeader>
+                        <div className="flex-1">
                             <SheetTitle className="flex items-center gap-2">
                                 <span className="text-2xl">{selectedModule?.icon}</span>
                                 <div>
@@ -567,11 +569,12 @@ export default function PermissionsMatrix() {
                             <SheetDescription>
                                 Manage employee access permissions for this module
                             </SheetDescription>
-                        </SheetHeader>
-                    </div>
+                        </div>
+                        <SheetCloseButton />
+                    </SheetHeader>
 
                     {/* Scrollable Body */}
-                    <div className="flex-1 overflow-y-auto p-6">
+                    <SheetBody className="p-6">
                         <div className="space-y-4">
                         {/* Tabs for All vs Department View */}
                         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'department')} className="w-full">
@@ -807,16 +810,14 @@ export default function PermissionsMatrix() {
                             </TabsContent>
                         </Tabs>
                         </div>
-                    </div>
+                    </SheetBody>
 
                     {/* Fixed Footer */}
-                    <div className="flex-shrink-0 border-t border-border bg-background p-6">
-                        <SheetFooter className="flex gap-2 sm:justify-end">
-                            <Button variant="outline" onClick={() => setDrawerOpen(false)}>
-                                Close
-                            </Button>
-                        </SheetFooter>
-                    </div>
+                    <SheetFooter>
+                        <Button variant="outline" onClick={() => setDrawerOpen(false)}>
+                            Close
+                        </Button>
+                    </SheetFooter>
                 </SheetContent>
             </Sheet>
         </div>

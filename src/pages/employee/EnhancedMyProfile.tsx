@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useEmployeeStore } from '@/store/employeeStore';
 import { employeeManagementService } from '@/services/employeeManagementService';
@@ -38,6 +38,7 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
   const { user } = useAuthStore();
   const { fetchEmployees } = useEmployeeStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('about');
@@ -52,6 +53,15 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
 
   const targetEmployeeId = propEmployeeId || user?.employeeId;
   const isOwnProfile = !propEmployeeId || propEmployeeId === user?.employeeId;
+
+  // Track navigation for breadcrumb
+  useEffect(() => {
+    // Store the referrer path from location state or current path
+    const referrerPath = (location.state as any)?.from || sessionStorage.getItem('lastVisitedPath');
+    if (referrerPath) {
+      sessionStorage.setItem('profileReferrer', referrerPath);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (targetEmployeeId) {
@@ -250,6 +260,10 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
   // Check if current user is HR/Admin
   const isHRAdmin = user?.role === 'HR' || user?.role === 'IT_ADMIN' || user?.role === 'SUPER_ADMIN';
   const employeeAccountActive = employee?.isActive && employee?.hasLoginAccess;
+  
+  // Determine if current user can edit this profile
+  // User can edit if: viewing own profile OR user is HR Admin
+  const canEditProfile = isOwnProfile || isHRAdmin;
 
   // Define contextual actions
   const actions: ActionItem[] = [
@@ -357,6 +371,38 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
     }
   };
 
+  // Determine breadcrumb context from the referring page or current path
+  const getBreadcrumbContext = () => {
+    // First check location state
+    const state = location.state as { from?: string; breadcrumb?: string } | null;
+    if (state?.breadcrumb) {
+      return state.breadcrumb;
+    }
+    
+    // Then check sessionStorage for the referrer path
+    const referrerPath = sessionStorage.getItem('profileReferrer') || '';
+    
+    // Check specific paths
+    if (referrerPath.includes('/hr/employee-management') || referrerPath.includes('/hr/workforce')) {
+      return 'HR Management';
+    } else if (referrerPath.includes('/employee/directory')) {
+      return 'Employee Directory';
+    } else if (referrerPath.includes('/hr/attendance')) {
+      return 'HR Attendance';
+    } else if (referrerPath.includes('/hr/leave')) {
+      return 'Leave Management';
+    } else if (referrerPath.includes('/employee/my-team')) {
+      return 'My Team';
+    } else if (referrerPath.includes('/search') || referrerPath.includes('global')) {
+      return 'Search Results';
+    } else if (isOwnProfile) {
+      return 'Dashboard';
+    }
+    
+    // Default
+    return 'Employees';
+  };
+
   return (
     <div className="min-h-screen bg-gray-50/50">
       {/* Main Container */}
@@ -374,7 +420,7 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
               Back
             </Button>
             <ChevronRight className="h-3 w-3 text-gray-400" />
-            <span className="text-gray-500">Employees</span>
+            <span className="text-gray-500">{getBreadcrumbContext()}</span>
             <ChevronRight className="h-3 w-3 text-gray-400" />
             <span className="text-gray-900 font-medium">{employee.name}</span>
           </div>
@@ -472,6 +518,9 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
                   emergencyContactPhone={employee.emergencyContactPhone}
                   emergencyContactEmail={employee.emergencyContactEmail}
                   
+                  // Permission control
+                  canEdit={canEditProfile}
+                  
                   // Update handler
                   onUpdate={async (data) => {
                     await employeeManagementService.updatePersonalInfo(targetEmployeeId!, data);
@@ -516,6 +565,9 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
                   joiningDate={formatDate(employee.dateOfJoining)}
                   contractEndDate={formatDate(employee.contractEndDate)}
                   probationEndDate={formatDate(employee.probationEndDate)}
+                  
+                  // Permission control
+                  canEdit={canEditProfile}
                   
                   // Update handler
                   onUpdate={async (data) => {
@@ -580,6 +632,9 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
                   fullNameAsPerPAN={employee.fullNameAsPerPAN}
                   dobInPAN={formatDate(employee.dobInPAN)}
                   parentsNameAsPerPAN={employee.parentsNameAsPerPAN}
+
+                  // Permission control
+                  canEdit={canEditProfile}
 
                   // Update handler
                   onUpdate={async (data) => {

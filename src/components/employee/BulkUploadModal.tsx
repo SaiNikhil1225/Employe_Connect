@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, SheetDescription, SheetCloseButton } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, XCircle, Users } from 'lucide-react';
@@ -233,20 +233,24 @@ export function BulkUploadModal({ open, onClose, onSuccess }: BulkUploadModalPro
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent className="w-full sm:max-w-4xl overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-4xl p-0">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            Employee Bulk Upload
-          </SheetTitle>
-          <SheetDescription>
-            Upload multiple employees at once using Excel template
-          </SheetDescription>
+          <div className="flex-1">
+            <SheetTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Employee Bulk Upload
+            </SheetTitle>
+            <SheetDescription>
+              Upload multiple employees at once using Excel template
+            </SheetDescription>
+          </div>
+          <SheetCloseButton />
         </SheetHeader>
 
-        <div className="mt-6 space-y-6">
-          {/* Step Indicator */}
-          <div className="flex items-center justify-between">
+        <SheetBody>
+          <div className="space-y-6">
+            {/* Step Indicator */}
+            <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className={cn(
                 "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium",
@@ -577,7 +581,8 @@ export function BulkUploadModal({ open, onClose, onSuccess }: BulkUploadModalPro
               </div>
             </div>
           )}
-        </div>
+          </div>
+        </SheetBody>
       </SheetContent>
     </Sheet>
   );

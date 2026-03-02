@@ -179,10 +179,23 @@ export function FacilitiesTicketManagement() {
       try {
         await helpdeskService.updateProgress(ticketId, progress, notes);
         toast.success('Progress updated successfully');
+        await new Promise(resolve => setTimeout(resolve, 500));
         await loadTickets();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to update progress:', error);
-        toast.error('Failed to update progress. Please try again.');
+        console.error('Error response:', error?.response?.data);
+        
+        let errorMessage = 'Failed to update progress. Please try again.';
+        if (error?.response?.data?.error?.details) {
+          const details = error.response.data.error.details;
+          errorMessage = details.map((d: any) => `${d.field}: ${d.message}`).join(', ');
+        } else if (error?.response?.data?.error?.message) {
+          errorMessage = error.response.data.error.message;
+        } else if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        
+        toast.error(errorMessage);
         throw error;
       }
     },
@@ -190,15 +203,31 @@ export function FacilitiesTicketManagement() {
   );
 
   const handleCompleteWork = async (ticketId: string, resolutionNotes: string) => {
-    if (!user?.name) return;
+    if (!user?.name) {
+      toast.error('User information not available');
+      return;
+    }
 
     try {
       await helpdeskService.completeWork(ticketId, resolutionNotes, user.name);
       toast.success('Work marked as complete');
+      await new Promise(resolve => setTimeout(resolve, 500));
       await loadTickets();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to complete work:', error);
-      toast.error('Failed to complete work. Please try again.');
+      console.error('Error response:', error?.response?.data);
+      
+      let errorMessage = 'Failed to complete work. Please try again.';
+      if (error?.response?.data?.error?.details) {
+        const details = error.response.data.error.details;
+        errorMessage = details.map((d: any) => `${d.field}: ${d.message}`).join(', ');
+      } else if (error?.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
       throw error;
     }
   };
@@ -371,11 +400,11 @@ export function FacilitiesTicketManagement() {
               currentSpecialistName={user?.name || ''}
               onAssignToSelf={async () => {}} // Disabled - only Facilities Admin can assign
               onAssignToSpecialist={async () => {}} // Disabled - only Facilities Admin can assign
-              onUpdateProgress={isFacilitiesAdmin ? async () => {} : handleUpdateProgress}
-              onCompleteWork={isFacilitiesAdmin ? async () => {} : handleCompleteWork}
+              onUpdateProgress={handleUpdateProgress}
+              onCompleteWork={handleCompleteWork}
               onSendMessage={handleSendMessage}
-              onPauseTicket={isFacilitiesAdmin ? undefined : handlePauseTicket}
-              onResumeTicket={isFacilitiesAdmin ? undefined : handleResumeTicket}
+              onPauseTicket={handlePauseTicket}
+              onResumeTicket={handleResumeTicket}
               onCloseTicket={handleCloseTicket}
               isLoading={isLoading}
             />

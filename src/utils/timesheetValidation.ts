@@ -42,6 +42,57 @@ export const calculateTotalDayHours = (rows: any[], dayIdx: number): number => {
 };
 
 /**
+ * Validates that total hours for a specific day do not exceed the maximum allowed hours.
+ * @param rows - Array of timesheet rows
+ * @param dayIdx - Index of the day (0-6 for Mon-Sun)
+ * @param maxHours - Maximum hours allowed per day (default: 8)
+ * @returns Object with isValid flag and total hours
+ */
+export const validateDailyHours = (
+    rows: any[], 
+    dayIdx: number, 
+    maxHours: number = 8
+): { isValid: boolean; totalHours: number; message?: string } => {
+    const totalHours = calculateTotalDayHours(rows, dayIdx);
+    
+    if (totalHours > maxHours) {
+        return {
+            isValid: false,
+            totalHours,
+            message: `Total hours for this day (${totalHours.toFixed(2)}h) exceed the maximum allowed (${maxHours}h)`
+        };
+    }
+    
+    return {
+        isValid: true,
+        totalHours
+    };
+};
+
+/**
+ * Validates hours for all days in a week.
+ * @param rows - Array of timesheet rows
+ * @param maxHoursPerDay - Maximum hours allowed per day (default: 8)
+ * @returns Array of validation results for each day
+ */
+export const validateWeeklyHours = (
+    rows: any[], 
+    maxHoursPerDay: number = 8
+): Array<{ dayIdx: number; isValid: boolean; totalHours: number; message?: string }> => {
+    const validationResults = [];
+    
+    for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+        const result = validateDailyHours(rows, dayIdx, maxHoursPerDay);
+        validationResults.push({
+            dayIdx,
+            ...result
+        });
+    }
+    
+    return validationResults;
+};
+
+/**
  * Checks if projects have expired.
  */
 export const isProjectExpired = (projectEndDate: string | Date | undefined): boolean => {

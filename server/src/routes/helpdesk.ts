@@ -415,7 +415,7 @@ router.patch(
 
     // Check if user is assigned specialist (compare employeeId)
     const isAssigned = req.user?.employeeId === ticketObj.assignment?.assignedToId;
-    const isAdmin = ['IT_ADMIN', 'ADMIN'].includes(req.user?.role || '');
+    const isAdmin = ['IT_ADMIN', 'FINANCE_ADMIN', 'FACILITIES_ADMIN', 'HR_ADMIN', 'ADMIN'].includes(req.user?.role || '');
 
     if (!isAssigned && !isAdmin) {
       return res.status(403).json({
@@ -463,7 +463,7 @@ router.post(
 
     // Check if user is assigned specialist (compare employeeId)
     const isAssigned = req.user?.employeeId === ticketObj.assignment?.assignedToId;
-    const isAdmin = ['IT_ADMIN', 'ADMIN'].includes(req.user?.role || '');
+    const isAdmin = ['IT_ADMIN', 'FINANCE_ADMIN', 'FACILITIES_ADMIN', 'HR_ADMIN', 'ADMIN'].includes(req.user?.role || '');
 
     if (!isAssigned && !isAdmin) {
       return res.status(403).json({

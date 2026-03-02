@@ -9,6 +9,7 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { 
   CreditCard, 
@@ -205,17 +206,20 @@ export default function DocumentsTab({ documents = [], onAddDetails }: Documents
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
           <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              {selectedDocument && (
-                <>
-                  <selectedDocument.icon className="h-5 w-5 text-blue-600" />
-                  {selectedDocument.name}
-                </>
-              )}
-            </SheetTitle>
-            <SheetDescription>
-              Upload and provide details for this document
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle className="flex items-center gap-2">
+                {selectedDocument && (
+                  <>
+                    <selectedDocument.icon className="h-5 w-5 text-blue-600" />
+                    {selectedDocument.name}
+                  </>
+                )}
+              </SheetTitle>
+              <SheetDescription>
+                Upload and provide details for this document
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
 
           <div className="mt-6 space-y-6">

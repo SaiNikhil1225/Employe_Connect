@@ -42,7 +42,7 @@ const quickActions: QuickAction[] = [
     label: 'Web Clock-In',
     description: 'Mark your attendance for today',
     icon: Clock,
-    path: '/attendance',
+    path: '/employee/my-attendance',
     keywords: ['clock in', 'check in', 'punch in', 'web clock', 'attendance'],
   },
   {
@@ -50,7 +50,7 @@ const quickActions: QuickAction[] = [
     label: 'Web Clock-Out',
     description: 'Clock out from your shift',
     icon: LogOut,
-    path: '/attendance',
+    path: '/employee/my-attendance',
     keywords: ['clock out', 'check out', 'punch out', 'logout'],
   },
   {
@@ -58,7 +58,7 @@ const quickActions: QuickAction[] = [
     label: 'Attendance',
     description: 'View your attendance records',
     icon: UserCheck,
-    path: '/attendance',
+    path: '/employee/my-attendance',
     keywords: ['attendance', 'present', 'absent', 'records'],
   },
   {
@@ -187,6 +187,7 @@ export function GlobalSearch() {
       // Navigate to employee profile
       const employeeIndex = index - filteredActions.length;
       const employee = filteredEmployees[employeeIndex];
+      sessionStorage.setItem('profileReferrer', '/search');
       navigate(`/employee/profile/${employee.employeeId}`);
     }
     setIsOpen(false);
@@ -203,6 +204,7 @@ export function GlobalSearch() {
   };
 
   const handleEmployeeClick = (employeeId: string) => {
+    sessionStorage.setItem('profileReferrer', '/search');
     navigate(`/employee/profile/${employeeId}`);
     setIsOpen(false);
     setSearchQuery('');

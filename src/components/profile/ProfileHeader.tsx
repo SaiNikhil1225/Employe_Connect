@@ -57,9 +57,18 @@ export default function ProfileHeader({
   };
 
   return (
-    <div className="relative">
-      {/* Subtle gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/30 rounded-t-xl" />
+    <div className="relative overflow-hidden">
+      {/* Enhanced Cover Background with Pattern */}
+      <div className="absolute inset-0">
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 opacity-90" />
+        {/* Overlay pattern */}
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        }} />
+        {/* Subtle overlay for depth */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+      </div>
       
       {/* Quick Actions Dropdown - Top Right */}
       {quickActions && (
@@ -81,7 +90,7 @@ export default function ProfileHeader({
                 profilePhoto: avatar,
               }}
               size="xl"
-              className="border-4 border-white shadow-lg"
+              className="border-4 border-white shadow-xl ring-2 ring-white/50"
             />
             
             {isOwnProfile && (
@@ -112,20 +121,20 @@ export default function ProfileHeader({
           {/* Name and Details */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-semibold text-gray-900">{name}</h1>
-              <Badge className={cn('px-3 py-1 font-medium', statusInfo.className)}>
+              <h1 className="text-2xl font-semibold text-white drop-shadow-md">{name}</h1>
+              <Badge className={cn('px-3 py-1 font-medium shadow-sm', statusInfo.className)}>
                 {statusInfo.label}
               </Badge>
               {hasActivePIP && (
-                <Badge className="px-3 py-1 font-medium bg-orange-50 text-orange-700 border-orange-200 border flex items-center gap-1.5">
+                <Badge className="px-3 py-1 font-medium bg-orange-50 text-orange-700 border-orange-200 border flex items-center gap-1.5 shadow-sm">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   Under PIP
                 </Badge>
               )}
             </div>
-            <p className="text-base text-gray-600">
+            <p className="text-base text-white/95 drop-shadow-sm">
               {designation}
-              {employeeId && <span className="text-gray-500 ml-2">({employeeId})</span>}
+              {employeeId && <span className="text-white/80 ml-2">({employeeId})</span>}
             </p>
           </div>
         </div>

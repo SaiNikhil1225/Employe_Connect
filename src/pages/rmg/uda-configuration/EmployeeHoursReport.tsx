@@ -564,6 +564,7 @@ const EmployeeHoursReport: React.FC = () => {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Employee allocation counts for KPI
@@ -1229,12 +1230,35 @@ const EmployeeHoursReport: React.FC = () => {
     }
   };
 
-  // Filter data by search query
+  // Get unique employees list for dropdown
+  const employeesList = useMemo(() => {
+    const uniqueEmployees = reportData.map((emp) => ({
+      employeeId: emp.employeeId,
+      employeeName: emp.employeeName,
+    }));
+    // Remove duplicates
+    const seen = new Set();
+    return uniqueEmployees.filter((emp) => {
+      if (seen.has(emp.employeeId)) return false;
+      seen.add(emp.employeeId);
+      return true;
+    }).sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+  }, [reportData]);
+
+  // Filter data by search query and selected employee
   const filteredData = reportData.filter(
-    (emp) =>
-      emp.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchQuery.toLowerCase()),
+    (emp) => {
+      // Filter by selected employee
+      if (selectedEmployee && selectedEmployee !== "all") {
+        if (emp.employeeId !== selectedEmployee) return false;
+      }
+      // Filter by search query
+      return (
+        emp.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.email.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    },
   );
 
   // Chart Data Calculations
@@ -1683,12 +1707,12 @@ const EmployeeHoursReport: React.FC = () => {
         <div className="page-header-content">
           <h1 className="page-title">
             <FileText className="h-7 w-7 text-primary" />
-            Employee Hours Report
+            Productivity & Hours Dashboard
           </h1>
           <p className="page-description">
             {userRole === "EMPLOYEE"
-              ? "View your hours report with flexible date ranges"
-              : "View employee hours report with flexible date ranges and filters"}
+              ? "View your productivity and hours with flexible date ranges"
+              : "View productivity and hours dashboard with flexible date ranges and filters"}
           </p>
         </div>
         <Button onClick={exportToCSV} variant="outline" className="gap-2">
@@ -1728,6 +1752,42 @@ const EmployeeHoursReport: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedProject("all")}
+                className="h-8 px-2"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          {/* Employee Filter Dropdown */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="employeeFilter" className="text-sm font-medium whitespace-nowrap">
+              Employee:
+            </Label>
+            <Select
+              value={selectedEmployee}
+              onValueChange={(value) => {
+                setSelectedEmployee(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger id="employeeFilter" className="w-[220px]">
+                <SelectValue placeholder="All Employees" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Employees</SelectItem>
+                {employeesList.map((emp) => (
+                  <SelectItem key={emp.employeeId} value={emp.employeeId}>
+                    {emp.employeeName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedEmployee && selectedEmployee !== "all" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedEmployee("all")}
                 className="h-8 px-2"
               >
                 <X className="h-4 w-4" />
@@ -1944,37 +2004,6 @@ const EmployeeHoursReport: React.FC = () => {
 
             {/* Overview Tab with Charts */}
             <TabsContent value="overview" className="space-y-4 mt-0">
-              {/* Date Range Display - Only for RMG and MANAGER */}
-              {(userRole === "RMG" || userRole === "MANAGER") &&
-                startDate &&
-                endDate && (
-                  <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-semibold text-slate-700 mb-1">
-                            Selected Date Range
-                          </h3>
-                          <p className="text-xs text-slate-500">
-                            {dateRangeType === "current_week" && "Current Week"}
-                            {dateRangeType === "current_month" && "Current Month"}
-                            {dateRangeType === "last_3_months" && "Last 3 Months"}
-                            {dateRangeType === "last_6_months" && "Last 6 Months"}
-                            {dateRangeType === "last_year" && "Last Year"}
-                            {dateRangeType === "custom" && "Custom Range"}
-                          </p>
-                        </div>
-                        <div className="text-center min-w-[200px]">
-                          <div className="text-sm font-bold text-slate-800">
-                            {format(new Date(startDate), "MMM dd, yyyy")} -{" "}
-                            {format(new Date(endDate), "MMM dd, yyyy")}
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
               {/* Second Row: Allocation Summary and Approval Status - 50% each */}
               <div className="flex lg:flex-row gap-4 items-stretch">
                 {/* Chart 1: Allocation Summary - 50% */}
@@ -2189,62 +2218,57 @@ const EmployeeHoursReport: React.FC = () => {
                 </Card>
               )}
 
-              {/* Weekly Timesheet View - Full Component */}
-              <div className="mt-6">
-                <style>{`
-                /* Hide Weekly Timesheet header, description, tabs, and action buttons for report view */
-                /* Hide the main header title and description */
-                .weekly-timesheet-report-view .page-header-content h1,
-                .weekly-timesheet-report-view .page-header-content p.page-description,
-                .weekly-timesheet-report-view .page-title {
-                  display: none !important;
-                }
-                
-                /* Hide My Timesheet and Approval tabs in report view */
-                .weekly-timesheet-report-view [role="tablist"] {
-                  display: none !important;
-                }
-                
-                /* Hide all action buttons in the tabs row */
-                .weekly-timesheet-report-view .flex.items-center.gap-3 button {
-                  display: none !important;
-                }
-                
-                /* Hide delete buttons in Category Assignment dialog */
-                .weekly-timesheet-report-view .category-delete-btn {
-                  display: none !important;
-                }
-                
-                /* Hide empty row for adding categories in Category Assignment dialog */
-                .weekly-timesheet-report-view .category-empty-row {
-                  display: none !important;
-                }
-                
-                /* Keep the tab content visible */
-                .weekly-timesheet-report-view [role="tabpanel"] {
-                  display: block !important;
-                }
-                
-                /* Make timesheet read-only in report view */
-                .weekly-timesheet-report-view input,
-                .weekly-timesheet-report-view textarea,
-                .weekly-timesheet-report-view select {
-                  pointer-events: none !important;
-                  opacity: 0.8;
-                  cursor: not-allowed;
-                }
-              `}</style>
-                <div className="weekly-timesheet-report-view">
-                  <WeeklyTimesheet
-                    initialDate={
-                      startDate
-                        ? startOfWeek(new Date(startDate), { weekStartsOn: 1 })
-                        : new Date()
-                    }
-                    isReportView={true}
-                  />
+              {/* Weekly Timesheet View - Only for EMPLOYEE */}
+              {userRole === "EMPLOYEE" && (
+                <div className="mt-6">
+                  <style>{`
+                  /* Hide Weekly Timesheet header, description, tabs, and action buttons for report view */
+                  /* Hide the main header title and description */
+                  .weekly-timesheet-report-view .page-header-content h1,
+                  .weekly-timesheet-report-view .page-header-content p.page-description,
+                  .weekly-timesheet-report-view .page-title {
+                    display: none !important;
+                  }
+                  
+                  /* Hide My Timesheet and Approval tabs in report view */
+                  .weekly-timesheet-report-view [role="tablist"] {
+                    display: none !important;
+                  }
+                  
+                  /* Hide all action buttons in the tabs row */
+                  .weekly-timesheet-report-view .flex.items-center.gap-3 button {
+                    display: none !important;
+                  }
+                  
+                  /* Hide delete buttons in Category Assignment dialog */
+                  .weekly-timesheet-report-view .category-delete-btn {
+                    display: none !important;
+                  }
+                  
+                  /* Hide empty row for adding categories in Category Assignment dialog */
+                  .weekly-timesheet-report-view .category-empty-row {
+                    display: none !important;
+                  }
+                  
+                  /* Keep the tab content visible */
+                  .weekly-timesheet-report-view [role="tabpanel"] {
+                    display: block !important;
+                  }
+                  
+                  /* Make timesheet read-only in report view */
+                  .weekly-timesheet-report-view input,
+                  .weekly-timesheet-report-view textarea,
+                  .weekly-timesheet-report-view select {
+                    pointer-events: none !important;
+                    opacity: 0.8;
+                    cursor: not-allowed;
+                  }
+                `}</style>
+                  <div className="weekly-timesheet-report-view">
+                    <WeeklyTimesheet />
+                  </div>
                 </div>
-              </div>
+              )}
             </TabsContent>
             {/* Details Tab with Table */}
             <TabsContent value="details" className="space-y-4">

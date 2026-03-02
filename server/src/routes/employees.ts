@@ -8,7 +8,9 @@ import EmployeeDocument from '../models/EmployeeDocument';
 import OnboardingChecklist from '../models/OnboardingChecklist';
 import OffboardingChecklist from '../models/OffboardingChecklist';
 import CompanySettings from '../models/CompanySettings';
+import { FLResource } from '../models/FLResource';
 import { employeeValidation } from '../middleware/validation';
+import { authenticateToken } from '../middleware/auth';
 import { NotificationService } from '../services/notificationService';
 
 const router = express.Router();
@@ -431,6 +433,53 @@ router.get('/stats/workforce', async (_req: Request, res: Response) => {
   }
 });
 
+// Get employee allocations for RMG Employee Directory
+// Returns aggregated allocation data from FLResource collection
+router.get('/allocations/summary', async (_req: Request, res: Response) => {
+  try {
+    const today = new Date();
+    
+    // Get all active FLResources within current date range
+    const flResources = await FLResource.find({
+      status: 'Active',
+      requestedFromDate: { $lte: today },
+      requestedToDate: { $gte: today }
+    }).lean();
+
+    // Aggregate allocation by employeeId
+    const allocationMap = new Map<string, number>();
+    
+    flResources.forEach((resource: any) => {
+      if (resource.employeeId && resource.utilizationPercentage) {
+        const currentAllocation = allocationMap.get(resource.employeeId) || 0;
+        allocationMap.set(
+          resource.employeeId,
+          currentAllocation + resource.utilizationPercentage
+        );
+      }
+    });
+
+    // Convert to array format
+    const allocations = Array.from(allocationMap.entries()).map(([employeeId, allocation]) => ({
+      employeeId,
+      allocation: Math.min(allocation, 100), // Cap at 100%
+    }));
+
+    res.json({ 
+      success: true, 
+      data: allocations,
+      timestamp: today.toISOString()
+    });
+  } catch (error) {
+    console.error('Failed to fetch employee allocations:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch employee allocations',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Get employee by ID
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -691,8 +740,22 @@ router.patch('/:id/activate', async (req: Request, res: Response) => {
 });
 
 // Update employee
-router.put('/:id', employeeValidation.update, async (req: Request, res: Response) => {
+router.put('/:id', authenticateToken, employeeValidation.update, async (req: Request, res: Response) => {
   try {
+    // Authorization check: user can only edit their own profile or must be HR admin
+    const requestingUser = (req as any).user;
+    const targetEmployeeId = req.params.id;
+    
+    const isOwnProfile = requestingUser.employeeId === targetEmployeeId || requestingUser.id === targetEmployeeId;
+    const isHRAdmin = ['HR', 'SUPER_ADMIN', 'IT_ADMIN'].includes(requestingUser.role);
+    
+    if (!isOwnProfile && !isHRAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You do not have permission to edit this profile' 
+      });
+    }
+    
     const updateData = { ...req.body };
     
     // Handle password hashing if password is being updated
@@ -856,8 +919,22 @@ router.get('/:id/profile', async (req: Request, res: Response) => {
 });
 
 // Update employee medical information
-router.patch('/:id/medical-info', async (req: Request, res: Response) => {
+router.patch('/:id/medical-info', authenticateToken, async (req: Request, res: Response) => {
   try {
+    // Authorization check: user can only edit their own profile or must be HR admin
+    const requestingUser = (req as any).user;
+    const targetEmployeeId = req.params.id;
+    
+    const isOwnProfile = requestingUser.employeeId === targetEmployeeId || requestingUser.id === targetEmployeeId;
+    const isHRAdmin = ['HR', 'SUPER_ADMIN', 'IT_ADMIN'].includes(requestingUser.role);
+    
+    if (!isOwnProfile && !isHRAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You do not have permission to edit this profile' 
+      });
+    }
+    
     const employee = await Employee.findOneAndUpdate(
       { $or: [{ id: req.params.id }, { employeeId: req.params.id }] },
       { medicalInfo: req.body },
@@ -876,8 +953,22 @@ router.patch('/:id/medical-info', async (req: Request, res: Response) => {
 });
 
 // Add/Update emergency contacts
-router.patch('/:id/emergency-contacts', async (req: Request, res: Response) => {
+router.patch('/:id/emergency-contacts', authenticateToken, async (req: Request, res: Response) => {
   try {
+    // Authorization check: user can only edit their own profile or must be HR admin
+    const requestingUser = (req as any).user;
+    const targetEmployeeId = req.params.id;
+    
+    const isOwnProfile = requestingUser.employeeId === targetEmployeeId || requestingUser.id === targetEmployeeId;
+    const isHRAdmin = ['HR', 'SUPER_ADMIN', 'IT_ADMIN'].includes(requestingUser.role);
+    
+    if (!isOwnProfile && !isHRAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You do not have permission to edit this profile' 
+      });
+    }
+    
     const employee = await Employee.findOneAndUpdate(
       { $or: [{ id: req.params.id }, { employeeId: req.params.id }] },
       { emergencyContacts: req.body.contacts },
@@ -896,8 +987,22 @@ router.patch('/:id/emergency-contacts', async (req: Request, res: Response) => {
 });
 
 // Add/Update family members
-router.patch('/:id/family-members', async (req: Request, res: Response) => {
+router.patch('/:id/family-members', authenticateToken, async (req: Request, res: Response) => {
   try {
+    // Authorization check: user can only edit their own profile or must be HR admin
+    const requestingUser = (req as any).user;
+    const targetEmployeeId = req.params.id;
+    
+    const isOwnProfile = requestingUser.employeeId === targetEmployeeId || requestingUser.id === targetEmployeeId;
+    const isHRAdmin = ['HR', 'SUPER_ADMIN', 'IT_ADMIN'].includes(requestingUser.role);
+    
+    if (!isOwnProfile && !isHRAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You do not have permission to edit this profile' 
+      });
+    }
+    
     const employee = await Employee.findOneAndUpdate(
       { $or: [{ id: req.params.id }, { employeeId: req.params.id }] },
       { familyMembers: req.body.members },
@@ -916,8 +1021,22 @@ router.patch('/:id/family-members', async (req: Request, res: Response) => {
 });
 
 // Update education history
-router.patch('/:id/education-history', async (req: Request, res: Response) => {
+router.patch('/:id/education-history', authenticateToken, async (req: Request, res: Response) => {
   try {
+    // Authorization check: user can only edit their own profile or must be HR admin
+    const requestingUser = (req as any).user;
+    const targetEmployeeId = req.params.id;
+    
+    const isOwnProfile = requestingUser.employeeId === targetEmployeeId || requestingUser.id === targetEmployeeId;
+    const isHRAdmin = ['HR', 'SUPER_ADMIN', 'IT_ADMIN'].includes(requestingUser.role);
+    
+    if (!isOwnProfile && !isHRAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You do not have permission to edit this profile' 
+      });
+    }
+    
     const employee = await Employee.findOneAndUpdate(
       { $or: [{ id: req.params.id }, { employeeId: req.params.id }] },
       { educationHistory: req.body.educationHistory },
@@ -936,8 +1055,22 @@ router.patch('/:id/education-history', async (req: Request, res: Response) => {
 });
 
 // Add/Update banking information
-router.patch('/:id/banking-info', async (req: Request, res: Response) => {
+router.patch('/:id/banking-info', authenticateToken, async (req: Request, res: Response) => {
   try {
+    // Authorization check: user can only edit their own profile or must be HR admin
+    const requestingUser = (req as any).user;
+    const targetEmployeeId = req.params.id;
+    
+    const isOwnProfile = requestingUser.employeeId === targetEmployeeId || requestingUser.id === targetEmployeeId;
+    const isHRAdmin = ['HR', 'SUPER_ADMIN', 'IT_ADMIN'].includes(requestingUser.role);
+    
+    if (!isOwnProfile && !isHRAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You do not have permission to edit this profile' 
+      });
+    }
+    
     const updateData: any = {};
     
     if (req.body.primary) {

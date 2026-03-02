@@ -22,7 +22,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter, SheetCloseButton } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -429,6 +429,10 @@ export function AddResourceToFLDrawer({
       if (utilization < 0 || utilization > 100) {
         errors.utilizationPercentage = 'Utilization must be between 0 and 100';
       }
+      // Check for over-allocation
+      if (employeeAllocation && utilization + employeeAllocation.totalAllocated > 100) {
+        errors.utilizationPercentage = `Over-allocation: Total would be ${utilization + employeeAllocation.totalAllocated}% (max 100%)`;
+      }
     }
 
     if (formData.billable && !formData.utilizationPercentage) {
@@ -601,44 +605,41 @@ export function AddResourceToFLDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-6xl flex flex-col">
-        {/* Fixed Header */}
-        <div className="flex-shrink-0 border-b pb-4 pr-8">
-          <SheetHeader>
-            <div className="flex items-center justify-between">
-              <SheetTitle className="text-xl">
-                {existingResourcesCount > 0 ? 'Edit Resource Assignment' : 'Add Resource to Financial Line'}
-              </SheetTitle>
-              {(selectedFL || financialLine) && (
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="text-right">
-                    <p className="font-medium text-foreground">FL: {(selectedFL || financialLine)?.flNo}</p>
-                    <p className="text-muted-foreground">{(selectedFL || financialLine)?.flName}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <Badge variant="outline" className="text-xs">
-                      {(selectedFL || financialLine)?.contractType}
-                    </Badge>
-                    {existingResourcesCount > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        Editing Existing Resource
-                      </Badge>
-                    )}
-                    {(selectedFL || financialLine)?.contractType === 'T&M' && existingResourcesCount >= 1 && (
-                      <Badge variant="destructive" className="text-xs flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Max 1 resource for T&M
-                      </Badge>
-                    )}
-                  </div>
+      <SheetContent className="w-full sm:max-w-6xl p-0">
+        <SheetHeader>
+          <div className="flex-1">
+            <SheetTitle className="text-xl">
+              {existingResourcesCount > 0 ? 'Edit Resource Assignment' : 'Add Resource to Financial Line'}
+            </SheetTitle>
+            {(selectedFL || financialLine) && (
+              <div className="flex items-center gap-3 text-sm mt-2">
+                <div className="text-left">
+                  <p className="font-medium text-foreground">FL: {(selectedFL || financialLine)?.flNo}</p>
+                  <p className="text-muted-foreground">{(selectedFL || financialLine)?.flName}</p>
                 </div>
-              )}
-            </div>
-          </SheetHeader>
-        </div>
+                <div className="flex flex-wrap items-center gap-1">
+                  <Badge variant="outline" className="text-xs">
+                    {(selectedFL || financialLine)?.contractType}
+                  </Badge>
+                  {existingResourcesCount > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      Editing Existing Resource
+                    </Badge>
+                  )}
+                  {(selectedFL || financialLine)?.contractType === 'T&M' && existingResourcesCount >= 1 && (
+                    <Badge variant="destructive" className="text-xs flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Max 1 resource for T&M
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <SheetCloseButton />
+        </SheetHeader>
         
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto">
+        <SheetBody>
 
         {validationErrors.general && (
           <div className="mt-4 p-3 bg-destructive/10 border border-destructive rounded-lg flex items-start gap-2">
@@ -647,7 +648,7 @@ export function AddResourceToFLDrawer({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+        <form id="add-resource-form" onSubmit={handleSubmit} className="space-y-6 mt-6">
           {/* Select Financial Line - Only show if not pre-selected */}
           {!financialLine && projectId && (
             <Card>
@@ -1000,26 +1001,54 @@ export function AddResourceToFLDrawer({
                           </div>
                           {employeeAllocation.allocations.length > 0 && (
                             <div className="pt-2 border-t border-blue-200 dark:border-blue-800">
-                              <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-1">
-                                Active Allocations: {employeeAllocation.allocations.length} Financial Line(s)
+                              <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
+                                Current Allocations: {employeeAllocation.allocations.length} Financial Line(s)
                               </p>
-                              <div className="space-y-1">
-                                {employeeAllocation.allocations.slice(0, 3).map((alloc, idx) => (
-                                  <div key={idx} className="flex justify-between items-center text-xs">
-                                    <span className="text-blue-700 dark:text-blue-300">
-                                      {alloc.flNo} - {alloc.flName}
-                                      {alloc.role && ` • ${alloc.role}`}
-                                    </span>
-                                    <Badge variant={alloc.billable ? "default" : "secondary"} className="text-xs">
-                                      {alloc.allocation}%
-                                    </Badge>
+                              <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {employeeAllocation.allocations.map((alloc, idx) => (
+                                  <div key={idx} className="p-2 bg-white dark:bg-slate-900 rounded border border-blue-100 dark:border-blue-900">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                          {alloc.flNo} - {alloc.flName}
+                                        </p>
+                                        {alloc.role && (
+                                          <p className="text-xs text-blue-600 dark:text-blue-400">Role: {alloc.role}</p>
+                                        )}
+                                        {(alloc.fromDate || alloc.toDate) && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            {alloc.fromDate ? format(new Date(alloc.fromDate), 'MMM d, yyyy') : 'N/A'}
+                                            {' → '}
+                                            {alloc.toDate ? format(new Date(alloc.toDate), 'MMM d, yyyy') : 'N/A'}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <Badge variant={alloc.billable ? "default" : "secondary"} className="text-xs">
+                                        {alloc.allocation}%
+                                      </Badge>
+                                    </div>
                                   </div>
                                 ))}
-                                {employeeAllocation.allocations.length > 3 && (
-                                  <p className="text-xs text-blue-600 dark:text-blue-400">
-                                    +{employeeAllocation.allocations.length - 3} more
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Over-allocation Warning */}
+                          {formData.utilizationPercentage && (
+                            parseFloat(formData.utilizationPercentage) + employeeAllocation.totalAllocated > 100
+                          ) && (
+                            <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+                              <div className="flex items-start gap-2">
+                                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                                    Over-allocation Warning!
                                   </p>
-                                )}
+                                  <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                                    Total allocation would be {employeeAllocation.totalAllocated + parseFloat(formData.utilizationPercentage)}% 
+                                    (exceeds 100%). Consider reducing the utilization percentage or reviewing existing allocations.
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -1162,26 +1191,27 @@ export function AddResourceToFLDrawer({
             </Card>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t sticky bottom-0 bg-background pb-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              className="bg-brand-green hover:bg-brand-green-dark"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Saving...' : (existingResourcesCount > 0 ? 'Update Resource' : 'Save Resource')}
-            </Button>
-          </div>
         </form>
-        </div>
+        </SheetBody>
+        
+        <SheetFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="add-resource-form"
+            className="bg-brand-green hover:bg-brand-green-dark"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Saving...' : (existingResourcesCount > 0 ? 'Update Resource' : 'Save Resource')}
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

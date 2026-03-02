@@ -6,6 +6,8 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -91,18 +93,23 @@ export function AssignTicketDrawer({
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-xl p-0">
+        {/* Fixed Header */}
         <SheetHeader>
-          <SheetTitle className="text-brand-navy dark:text-gray-100 flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-brand-green" />
-            Assign Ticket to {department} Employee
-          </SheetTitle>
-          <SheetDescription className="text-brand-slate dark:text-gray-400">
-            Select a {department.toLowerCase()} employee based on their specialization and current workload
-          </SheetDescription>
+          <div className="flex-1">
+            <SheetTitle className="text-brand-navy dark:text-gray-100 flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-brand-green" />
+              Assign Ticket to {department} Employee
+            </SheetTitle>
+            <SheetDescription className="text-brand-slate dark:text-gray-400">
+              Select a {department.toLowerCase()} employee based on their specialization and current workload
+            </SheetDescription>
+          </div>
+          <SheetCloseButton />
         </SheetHeader>
 
-        <div className="space-y-6 py-6">
+        {/* Scrollable Body */}
+        <SheetBody className="space-y-6">
           {/* Ticket Details */}
           <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3 bg-gray-50/50 dark:bg-gray-900/50">
             <div className="flex items-start justify-between gap-2">
@@ -184,21 +191,21 @@ export function AssignTicketDrawer({
               These notes will be visible to the assigned {department.toLowerCase()} employee
             </p>
           </div>
-        </div>
+        </SheetBody>
 
-        <SheetFooter className="flex gap-2">
+        {/* Fixed Footer */}
+        <SheetFooter>
           <Button
             variant="outline"
             onClick={() => handleOpenChange(false)}
             disabled={isAssigning}
-            className="flex-1"
           >
             Cancel
           </Button>
           <Button
             onClick={handleAssign}
             disabled={!selectedEmployee || isAssigning}
-            className="flex-1 bg-brand-green hover:bg-brand-green/90"
+            className="bg-brand-green hover:bg-brand-green/90"
           >
             {isAssigning ? (
               <>

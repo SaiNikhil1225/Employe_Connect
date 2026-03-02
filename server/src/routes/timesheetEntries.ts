@@ -255,6 +255,143 @@ router.post('/submit', async (req, res) => {
 });
 
 /**
+ * Submit timesheet for specific days only
+ * Allows daily submission without locking the entire week
+ * Validates 8-hour daily limit before submission
+ */
+router.post('/submit-daily', async (req, res) => {
+    try {
+        const { employeeId, employeeName, dates, rows } = req.body;
+
+        if (!employeeId || !employeeName || !dates || !Array.isArray(dates) || !rows) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        console.log(`[POST Submit Daily] Submitting ${dates.length} days for ${employeeId}`);
+
+        // Convert date strings to Date objects for filtering
+        const targetDates = dates.map((dateStr: string) => {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            date.setHours(0, 0, 0, 0);
+            return date;
+        });
+
+        // Validate 8-hour limit for each day before submission
+        for (const date of targetDates) {
+            const dayEntries = [];
+            
+            for (const row of rows) {
+                const dayIndex = targetDates.indexOf(date);
+                if (dayIndex >= 0 && row.hours && row.hours[dayIndex]) {
+                    const hours = row.hours[dayIndex];
+                    if (hours && hours !== '00:00' && hours !== '0:00') {
+                        dayEntries.push({ ...row, hours: hours });
+                    }
+                }
+            }
+
+            // Calculate total hours for this day
+            let totalMinutes = 0;
+            for (const entry of dayEntries) {
+                const [h, m] = entry.hours.split(':').map((v: string) => parseInt(v) || 0);
+                totalMinutes += h * 60 + m;
+            }
+            
+            const totalHours = totalMinutes / 60;
+            const MAX_HOURS_PER_DAY = 8;
+
+            if (totalHours > MAX_HOURS_PER_DAY) {
+                return res.status(400).json({
+                    message: `Total hours for ${date.toISOString().split('T')[0]} (${totalHours.toFixed(2)}h) exceed the ${MAX_HOURS_PER_DAY}h daily limit`,
+                    date: date.toISOString().split('T')[0],
+                    totalHours: totalHours.toFixed(2),
+                    maxHours: MAX_HOURS_PER_DAY
+                });
+            }
+        }
+
+        // Process entries for the specified dates only
+        const entriesToSubmit = [];
+        
+        for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+            // Check if this day should be submitted
+            const weekStart = targetDates[0]; // First date in the array
+            const currentDate = new Date(weekStart);
+            currentDate.setDate(currentDate.getDate() + dayIndex);
+            
+            const shouldSubmitThisDay = targetDates.some(targetDate => 
+                targetDate.toISOString().split('T')[0] === currentDate.toISOString().split('T')[0]
+            );
+
+            if (!shouldSubmitThisDay) continue;
+
+            for (const row of rows) {
+                const hours = row.hours[dayIndex];
+                if (hours && hours !== '00:00' && hours !== '0:00') {
+                    entriesToSubmit.push({
+                        employeeId,
+                        employeeName,
+                        date: currentDate,
+                        projectId: row.projectId,
+                        projectCode: row.projectCode,
+                        projectName: row.projectName,
+                        udaId: row.udaId,
+                        udaName: row.udaName,
+                        type: row.type,
+                        financialLineItem: row.financialLineItem,
+                        billable: row.billable,
+                        hours,
+                        comment: row.comments ? row.comments[dayIndex] : null,
+                        status: 'submitted',
+                        submittedAt: new Date(),
+                        approvalStatus: 'pending'
+                    });
+                }
+            }
+        }
+
+        if (entriesToSubmit.length === 0) {
+            return res.status(400).json({ message: 'No hours entered for selected dates' });
+        }
+
+        // Bulk upsert entries (update if exists, insert if new)
+        const bulkOps = entriesToSubmit.map(entry => ({
+            updateOne: {
+                filter: {
+                    employeeId: entry.employeeId,
+                    date: entry.date,
+                    projectId: entry.projectId,
+                    udaId: entry.udaId
+                },
+                update: { $set: entry },
+                upsert: true
+            }
+        }));
+
+        const result = await TimesheetEntry.bulkWrite(bulkOps);
+
+        res.status(201).json({
+            success: true,
+            message: `Successfully submitted ${entriesToSubmit.length} entries for ${dates.length} day(s)`,
+            datesSubmitted: dates,
+            entriesProcessed: entriesToSubmit.length,
+            _meta: {
+                entriesCreated: result.upsertedCount,
+                entriesUpdated: result.modifiedCount
+            }
+        });
+
+    } catch (error) {
+        console.error('Error submitting daily timesheet:', error);
+        res.status(500).json({
+            message: 'Failed to submit daily timesheet',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+
+/**
  * Recall/Delete timesheet for a week
  * Deletes all date-based entries for the specified week
  */

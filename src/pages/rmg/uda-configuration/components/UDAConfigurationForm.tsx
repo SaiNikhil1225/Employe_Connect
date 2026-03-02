@@ -18,6 +18,7 @@ interface UDAConfigurationFormProps {
   defaultValues?: Partial<UDAConfigurationFormData>;
   isLoading?: boolean;
   submitLabel?: string;
+  onCancel?: () => void;
 }
 
 export function UDAConfigurationForm({
@@ -25,6 +26,7 @@ export function UDAConfigurationForm({
   defaultValues,
   isLoading = false,
   submitLabel = "Create UDA",
+  onCancel,
 }: UDAConfigurationFormProps) {
   const { configurations } = useUDAConfigurationStore();
 
@@ -215,7 +217,16 @@ export function UDAConfigurationForm({
       </div>
 
       {/* Submit Button */}
-      <div className="flex justify-end gap-3 pt-4">
+      <div className="flex justify-end gap-3 pt-4 border-t">
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+        )}
         <Button
           type="submit"
           disabled={isLoading}

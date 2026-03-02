@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetCloseButton } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Megaphone, 
@@ -510,13 +510,16 @@ export function AnnouncementsFeed({
       <Sheet open={reactionDialogOpen} onOpenChange={setReactionDialogOpen}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader className="pb-4 border-b">
-            <SheetTitle className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-red-500" />
-              Reactions
-            </SheetTitle>
-            <SheetDescription>
-              {selectedAnnouncementReactions?.title || 'See who reacted to this post'}
-            </SheetDescription>
+            <div className="flex-1">
+              <SheetTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-red-500" />
+                Reactions
+              </SheetTitle>
+              <SheetDescription>
+                {selectedAnnouncementReactions?.title || 'See who reacted to this post'}
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
           </SheetHeader>
           
           {getSelectedAnnouncementReactions().length === 0 ? (

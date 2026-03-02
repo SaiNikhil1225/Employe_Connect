@@ -24,6 +24,9 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetBody,
+  SheetFooter,
+  SheetCloseButton,
 } from '@/components/ui/sheet';
 import {
   AlertDialog,
@@ -441,18 +444,19 @@ export function ManagerLeaveApprovals() {
       <Sheet open={showViewRequestDrawer} onOpenChange={setShowViewRequestDrawer}>
         <SheetContent className="w-full sm:max-w-2xl flex flex-col p-0">
           {/* Fixed Header */}
-          <div className="flex-shrink-0 px-6 py-4 border-b bg-background">
-            <SheetHeader>
+          <SheetHeader>
+            <div className="flex-1">
               <SheetTitle className="flex items-center gap-2 text-xl">
                 <Palmtree className="h-5 w-5 text-primary" />
                 Leave Request Details
               </SheetTitle>
-            </SheetHeader>
-          </div>
+            </div>
+            <SheetCloseButton />
+          </SheetHeader>
           
           {/* Scrollable Body */}
           {selectedRequest && (
-            <div className="flex-1 overflow-y-auto px-6 py-6">
+            <SheetBody className="px-6 py-6">
               <div className="space-y-6">
               {/* Employee Header Card */}
               <div className="bg-primary/5 rounded-xl p-5 border">
@@ -667,36 +671,34 @@ export function ManagerLeaveApprovals() {
                 </div>
               </div>
               </div>
-            </div>
+            </SheetBody>
           )}
 
           {/* Fixed Footer - Action Buttons */}
           {selectedRequest && selectedRequest.status === 'pending' && (
-            <div className="flex-shrink-0 px-6 py-4 border-t bg-background">
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => {
-                    setShowViewRequestDrawer(false);
-                    handleApproveRequest(selectedRequest);
-                  }}
-                  className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg shadow-green-500/25"
-                >
-                  <CheckCircle className="h-5 w-5 mr-2" />
-                  Approve
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowViewRequestDrawer(false);
-                    handleRejectRequest(selectedRequest);
-                  }}
-                  variant="destructive"
-                  className="flex-1 h-12 font-semibold shadow-lg shadow-red-500/25"
-                >
-                  <XCircle className="h-5 w-5 mr-2" />
-                  Reject
-                </Button>
-              </div>
-            </div>
+            <SheetFooter className="gap-3">
+              <Button
+                onClick={() => {
+                  setShowViewRequestDrawer(false);
+                  handleApproveRequest(selectedRequest);
+                }}
+                className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg shadow-green-500/25"
+              >
+                <CheckCircle className="h-5 w-5 mr-2" />
+                Approve
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowViewRequestDrawer(false);
+                  handleRejectRequest(selectedRequest);
+                }}
+                variant="destructive"
+                className="flex-1 h-12 font-semibold shadow-lg shadow-red-500/25"
+              >
+                <XCircle className="h-5 w-5 mr-2" />
+                Reject
+              </Button>
+            </SheetFooter>
           )}
         </SheetContent>
       </Sheet>

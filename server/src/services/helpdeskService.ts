@@ -508,7 +508,7 @@ export class HelpdeskService {
     } else if (progressStatus === 'On Hold') {
       ticket.set('status', 'On Hold');
     } else if (progressStatus === 'Completed') {
-      ticket.set('status', 'Work Completed');
+      ticket.set('status', 'Completed');
     }
 
     ticket.set('updatedAt', new Date().toISOString());
@@ -581,7 +581,7 @@ export class HelpdeskService {
       notes: resolutionNotes
     });
 
-    ticket.set('status', 'Work Completed');
+    ticket.set('status', 'Completed');
 
     // Update progress
     ticket.set('progress', {
@@ -640,11 +640,11 @@ export class HelpdeskService {
   ): Promise<any> {
     const ticket = await this.getTicketById(ticketId);
 
-    if (ticket.get('status') !== 'Work Completed') {
-      throw new ApiError(400, 'Ticket must be in Work Completed status', 'INVALID_STATUS');
+    if (ticket.get('status') !== 'Completed') {
+      throw new ApiError(400, 'Ticket must be in Completed status', 'INVALID_STATUS');
     }
 
-    ticket.set('status', 'Completed - Awaiting IT Closure');
+    ticket.set('status', 'Confirmed');
     ticket.set('userConfirmedAt', new Date().toISOString());
     ticket.set('updatedAt', new Date().toISOString());
 

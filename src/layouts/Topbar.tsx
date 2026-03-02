@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
+import { ProfileSwitcher } from '@/components/profile/ProfileSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +55,9 @@ export function Topbar() {
         </div>
 
         <div className="flex-shrink-0 flex items-center gap-2 md:gap-3">
+          {/* Profile Switcher - For HR/Admin users */}
+          <ProfileSwitcher />
+
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
@@ -101,7 +105,10 @@ export function Topbar() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => navigate('/profile')}
+                onClick={() => {
+                  sessionStorage.setItem('profileReferrer', '/dashboard');
+                  navigate('/profile');
+                }}
                 className="cursor-pointer"
                 role="menuitem"
               >

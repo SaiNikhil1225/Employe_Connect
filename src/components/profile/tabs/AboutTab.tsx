@@ -53,6 +53,9 @@ interface AboutTabProps {
   emergencyContactPhone?: string;
   emergencyContactEmail?: string;
   
+  // Permission control
+  canEdit?: boolean;
+  
   // Update handler
   onUpdate?: (data: any) => Promise<void>;
 }
@@ -66,6 +69,7 @@ export default function AboutTab({
   physicallyHandicapped, bloodGroup, nationality,
   currentAddress, city, state, country, postalCode,
   emergencyContactName, emergencyContactRelationship, emergencyContactPhone, emergencyContactEmail,
+  canEdit = true, // Default to true for backward compatibility
   onUpdate
 }: AboutTabProps) {
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -163,7 +167,7 @@ export default function AboutTab({
               <FileText className="h-5 w-5 text-blue-600" />
               Professional Summary
             </div>
-            {editingSection !== 'summary' && (
+            {canEdit && editingSection !== 'summary' && (
               <Button onClick={() => setEditingSection('summary')} variant="ghost" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>
@@ -206,7 +210,7 @@ export default function AboutTab({
               <User className="h-5 w-5 text-purple-600" />
               Personal Information
             </div>
-            {editingSection !== 'personal' && (
+            {canEdit && editingSection !== 'personal' && (
               <Button onClick={() => setEditingSection('personal')} variant="ghost" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>
@@ -372,7 +376,7 @@ export default function AboutTab({
               <Phone className="h-5 w-5 text-emerald-600" />
               Contact Information
             </div>
-            {editingSection !== 'contact' && (
+            {canEdit && editingSection !== 'contact' && (
               <Button onClick={() => setEditingSection('contact')} variant="ghost" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>
@@ -493,7 +497,7 @@ export default function AboutTab({
               <Heart className="h-5 w-5 text-pink-600" />
               Family Details
             </div>
-            {editingSection !== 'family' && (
+            {canEdit && editingSection !== 'family' && (
               <Button onClick={() => setEditingSection('family')} variant="ghost" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>
@@ -621,7 +625,7 @@ export default function AboutTab({
               <MapPin className="h-5 w-5 text-teal-600" />
               Address Details
             </div>
-            {editingSection !== 'address' && (
+            {canEdit && editingSection !== 'address' && (
               <Button onClick={() => setEditingSection('address')} variant="ghost" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>
@@ -727,7 +731,7 @@ export default function AboutTab({
               <AlertCircle className="h-5 w-5 text-rose-600" />
               Emergency Contact
             </div>
-            {editingSection !== 'emergency' && (
+            {canEdit && editingSection !== 'emergency' && (
               <Button onClick={() => setEditingSection('emergency')} variant="ghost" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>
