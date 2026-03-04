@@ -375,6 +375,50 @@ export class NotificationService {
       }
     });
   }
+
+  /**
+   * Notify when a new employee is added
+   */
+  async notifyEmployeeAdded(employee: {
+    employeeId: string;
+    name: string;
+    designation?: string | null;
+    department?: string | null;
+    reportingManagerId?: string | null;
+    dottedLineManagerId?: string | null;
+  }): Promise<void> {
+    await this.createNotification({
+      title: 'New Employee Added',
+      description: `${employee.name} has joined as ${employee.designation || 'a new employee'} in ${employee.department || 'the organization'}.`,
+      type: 'announcement',
+      role: 'HR',
+      meta: {
+        employeeId: employee.employeeId,
+        department: employee.department,
+        designation: employee.designation
+      }
+    });
+  }
+
+  /**
+   * Notify when an employee profile is updated
+   */
+  async notifyEmployeeUpdated(employee: {
+    employeeId: string;
+    name: string;
+    reportingManagerId?: string | null;
+    dottedLineManagerId?: string | null;
+  }): Promise<void> {
+    await this.createNotification({
+      title: 'Employee Profile Updated',
+      description: `The profile of ${employee.name} has been updated.`,
+      type: 'system',
+      role: 'HR',
+      meta: {
+        employeeId: employee.employeeId
+      }
+    });
+  }
 }
 
 export default new NotificationService();

@@ -20,6 +20,7 @@ async function fixTicketAssignments() {
     let updatedCount = 0;
 
     for (const ticket of assignedTickets) {
+      if (!ticket.assignment) continue;
       const oldId = ticket.assignment.assignedToId;
       const name = ticket.assignment.assignedToName;
       
@@ -42,7 +43,7 @@ async function fixTicketAssignments() {
           'Amanda Wilson': 'IT011',
         };
 
-        const newId = nameToIdMap[name];
+        const newId = name ? nameToIdMap[name] : undefined;
         
         if (newId) {
           // Update using findByIdAndUpdate to ensure it saves

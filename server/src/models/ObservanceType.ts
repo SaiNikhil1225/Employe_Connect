@@ -37,7 +37,7 @@ const ObservanceTypeSchema: Schema = new Schema(
 );
 
 // Indexes
-ObservanceTypeSchema.index({ name: 1 });
+// Note: name already has a unique index from 'unique: true' in schema
 ObservanceTypeSchema.index({ isActive: 1 });
 
 export default mongoose.model<IObservanceType>('ObservanceType', ObservanceTypeSchema);

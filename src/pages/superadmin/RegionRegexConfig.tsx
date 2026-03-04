@@ -49,6 +49,7 @@ import type { Region, FieldConfig, FieldType } from '@/types/superAdmin';
 
 const REGIONS: Region[] = ['INDIA', 'US', 'UK', 'MIDDLE_EAST', 'OTHER'];
 const FIELD_TYPES: FieldType[] = ['text', 'number', 'date', 'select', 'file'];
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const FIELD_TYPE_CONFIG: Record<FieldType, { icon: React.ComponentType<any>; color: string; bgColor: string }> = {
     text: { icon: Type, color: 'text-blue-700', bgColor: 'bg-blue-50 border-blue-200' },
@@ -98,7 +99,7 @@ export default function RegionRegexConfig() {
             await Promise.all(
                 REGIONS.map(async (region) => {
                     const response = await fetch(
-                        `http://localhost:5000/api/superadmin/hr-region/${region}`,
+                        `${API_URL}/superadmin/hr-region/${region}`,
                         {
                             headers: {
                                 Authorization: `Bearer ${token}`,
@@ -138,7 +139,7 @@ export default function RegionRegexConfig() {
 
             // Get current config to preserve departments and designations
             const currentResponse = await fetch(
-                `http://localhost:5000/api/superadmin/hr-region/${region}`,
+                `${API_URL}/superadmin/hr-region/${region}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -168,7 +169,7 @@ export default function RegionRegexConfig() {
                 updatedFields = [...existingFields, field];
             }
 
-            const response = await fetch('http://localhost:5000/api/superadmin/hr-region', {
+            const response = await fetch(`${API_URL}/superadmin/hr-region`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -203,7 +204,7 @@ export default function RegionRegexConfig() {
 
             // Get current config
             const currentResponse = await fetch(
-                `http://localhost:5000/api/superadmin/hr-region/${region}`,
+                `${API_URL}/superadmin/hr-region/${region}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -218,7 +219,7 @@ export default function RegionRegexConfig() {
                     const designations = currentData.data.designations || [];
                     const updatedFields = (currentData.data.fields || []).filter((f: FieldConfig) => f.name !== fieldName);
 
-                    const response = await fetch('http://localhost:5000/api/superadmin/hr-region', {
+                    const response = await fetch(`${API_URL}/superadmin/hr-region`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -253,16 +254,16 @@ export default function RegionRegexConfig() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="page-container">
             {/* Header with Region Filter */}
-            <div className="flex items-center justify-between">
+            <div className="page-header">
                 <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-primary/10">
                         <Globe className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold">Regex Validation</h1>
-                        <p className="text-muted-foreground">Configure region-specific custom fields and validation rules</p>
+                        <h1 className="page-title">Regex Validation</h1>
+                        <p className="page-description">Configure region-specific custom fields and validation rules</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">

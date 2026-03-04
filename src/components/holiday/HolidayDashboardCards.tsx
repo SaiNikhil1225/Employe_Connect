@@ -35,7 +35,7 @@ export function HolidayDashboardCards({
         const monthlyPattern: Record<string, number> = {};
         holidays.forEach(holiday => {
             const date = new Date(holiday.date);
-            const monthIndex = date.getMonth();
+            const monthIndex = date.getUTCMonth();
             const monthName = MONTH_NAMES[monthIndex];
             monthlyPattern[monthName] = (monthlyPattern[monthName] || 0) + 1;
         });
@@ -44,7 +44,7 @@ export function HolidayDashboardCards({
         const weeklyPattern: Record<string, number> = {};
         holidays.forEach(holiday => {
             const date = new Date(holiday.date);
-            const dayIndex = getDay(date);
+            const dayIndex = date.getUTCDay();
             const dayName = WEEKDAY_NAMES[dayIndex];
             weeklyPattern[dayName] = (weeklyPattern[dayName] || 0) + 1;
         });

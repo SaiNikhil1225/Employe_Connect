@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Plus, Trash2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { FLStep1Data, FLStep2Data, FLStep4Data, PaymentMilestone } from '@/types/financialLine';
 import { format, isBefore, isAfter } from 'date-fns';
 
@@ -20,7 +20,6 @@ interface FLStep4MilestonesProps {
 
 export function FLStep4Milestones({ data, step1Data, step2Data, onDataChange, onBack, onComplete }: FLStep4MilestonesProps) {
   const [milestones, setMilestones] = useState<PaymentMilestone[]>(data.paymentMilestones || []);
-  const { toast } = useToast();
 
   const addMilestone = () => {
     const newMilestone: PaymentMilestone = {
@@ -48,31 +47,19 @@ export function FLStep4Milestones({ data, step1Data, step2Data, onDataChange, on
 
   const validateMilestones = () => {
     if (milestones.length === 0) {
-      toast({
-        title: 'Validation Error',
-        description: 'At least one payment milestone is required',
-        variant: 'destructive',
-      });
+      toast.error('At least one payment milestone is required');
       return false;
     }
 
     const invalidMilestone = milestones.find(m => !m.milestoneName || !m.dueDate || m.amount <= 0);
     if (invalidMilestone) {
-      toast({
-        title: 'Validation Error',
-        description: 'All milestones must have a name, due date, and amount greater than 0',
-        variant: 'destructive',
-      });
+      toast.error('All milestones must have a name, due date, and amount greater than 0');
       return false;
     }
 
     const totalMilestones = calculateTotalMilestones();
     if (Math.abs(totalMilestones - step2Data.totalFunding) > 0.01) {
-      toast({
-        title: 'Validation Error',
-        description: `Total milestone amount ($${totalMilestones.toFixed(2)}) must equal total funding ($${step2Data.totalFunding.toFixed(2)})`,
-        variant: 'destructive',
-      });
+      toast.error(`Total milestone amount ($${totalMilestones.toFixed(2)}) must equal total funding ($${step2Data.totalFunding.toFixed(2)})`);
       return false;
     }
 
@@ -86,11 +73,7 @@ export function FLStep4Milestones({ data, step1Data, step2Data, onDataChange, on
     });
 
     if (invalidDate) {
-      toast({
-        title: 'Validation Error',
-        description: 'All milestone due dates must be within FL schedule start and finish dates',
-        variant: 'destructive',
-      });
+      toast.error('All milestone due dates must be within FL schedule start and finish dates');
       return false;
     }
 

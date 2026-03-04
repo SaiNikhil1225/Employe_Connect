@@ -3,13 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
   FileText,
   Clock,
   CheckCircle2,
@@ -17,9 +10,6 @@ import {
   Headphones,
   User,
   Info,
-  Settings,
-  FileType,
-  MessageSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';

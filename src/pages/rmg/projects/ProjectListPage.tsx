@@ -10,7 +10,6 @@ import { ProjectTable } from './components/ProjectTable';
 import { CreateProjectDialog } from './components/CreateProjectDialog';
 import { EditProjectDialog } from './components/EditProjectDialog';
 import type { Project } from '@/types/project';
-import { KpiCard } from './components/KpiCard';
 import { ColumnToggle, type ColumnVisibility } from './components/ColumnToggle';
 import { MultiSelect, type Option } from '@/components/ui/multi-select';
 import { DateRangePicker } from '@/components/ui/date-range-picker';

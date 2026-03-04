@@ -49,6 +49,7 @@ export function EmployeeDirectory() {
     designation: true,
     department: true,
     reportingManagerName: true,
+    dottedLineManagerName: true,
     allocation: isRMGModule, // Show allocation only in RMG
     status: true,
   });
@@ -200,6 +201,14 @@ export function EmployeeDirectory() {
       sortable: true,
       align: 'left',
       hidden: !columnVisibility.reportingManagerName,
+      render: (value) => <span className="text-sm">{value || '-'}</span>,
+    },
+    {
+      key: 'dottedLineManagerName',
+      label: 'Dotted Line Manager',
+      sortable: true,
+      align: 'left',
+      hidden: !columnVisibility.dottedLineManagerName,
       render: (value) => <span className="text-sm">{value || '-'}</span>,
     },
     ...(isRMGModule ? [{
@@ -535,6 +544,19 @@ export function EmployeeDirectory() {
                               className="h-3.5 w-3.5"
                             />
                             <span className="flex-1 text-xs">Reporting Manager</span>
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={(e) => e.preventDefault()}
+                          className="cursor-pointer py-1.5 px-2"
+                        >
+                          <div className="flex items-center gap-2 w-full" onClick={() => toggleColumnVisibility('dottedLineManagerName')}>
+                            <Checkbox
+                              checked={columnVisibility.dottedLineManagerName}
+                              onCheckedChange={() => toggleColumnVisibility('dottedLineManagerName')}
+                              className="h-3.5 w-3.5"
+                            />
+                            <span className="flex-1 text-xs">Dotted Line Manager</span>
                           </div>
                         </DropdownMenuItem>
                         {isRMGModule && (

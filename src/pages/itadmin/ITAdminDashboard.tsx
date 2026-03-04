@@ -969,10 +969,10 @@ export function ITAdminDashboard() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="unassigned" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4 h-14 bg-muted/50">
+            <TabsList className="flex w-full h-14 bg-muted/50 overflow-x-auto">
               <TabsTrigger 
                 value="unassigned" 
-                className="flex items-center gap-2 data-[state=active]:bg-orange-50 dark:data-[state=active]:bg-orange-950/20 data-[state=active]:border-b-2 data-[state=active]:border-b-orange-500 data-[state=active]:text-orange-700 dark:data-[state=active]:text-orange-300 transition-all"
+                className="flex-1 min-w-[140px] flex items-center gap-2 data-[state=active]:bg-orange-50 dark:data-[state=active]:bg-orange-950/20 data-[state=active]:border-b-2 data-[state=active]:border-b-orange-500 data-[state=active]:text-orange-700 dark:data-[state=active]:text-orange-300 transition-all"
               >
                 <div className="flex items-center gap-2">
                   <div className="h-7 w-7 rounded-lg bg-orange-500/10 data-[state=active]:bg-orange-500/20 flex items-center justify-center transition-colors">
@@ -988,7 +988,7 @@ export function ITAdminDashboard() {
               </TabsTrigger>
               <TabsTrigger 
                 value="my-assignments" 
-                className="flex items-center gap-2 data-[state=active]:bg-cyan-50 dark:data-[state=active]:bg-cyan-950/20 data-[state=active]:border-b-2 data-[state=active]:border-b-cyan-500 data-[state=active]:text-cyan-700 dark:data-[state=active]:text-cyan-300 transition-all"
+                className="flex-1 min-w-[140px] flex items-center gap-2 data-[state=active]:bg-cyan-50 dark:data-[state=active]:bg-cyan-950/20 data-[state=active]:border-b-2 data-[state=active]:border-b-cyan-500 data-[state=active]:text-cyan-700 dark:data-[state=active]:text-cyan-300 transition-all"
               >
                 <div className="flex items-center gap-2">
                   <div className="h-7 w-7 rounded-lg bg-cyan-500/10 data-[state=active]:bg-cyan-500/20 flex items-center justify-center transition-colors">
@@ -1004,7 +1004,7 @@ export function ITAdminDashboard() {
               </TabsTrigger>
               <TabsTrigger 
                 value="all-tickets" 
-                className="flex items-center gap-2 data-[state=active]:bg-purple-50 dark:data-[state=active]:bg-purple-950/20 data-[state=active]:border-b-2 data-[state=active]:border-b-purple-500 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-300 transition-all"
+                className="flex-1 min-w-[140px] flex items-center gap-2 data-[state=active]:bg-purple-50 dark:data-[state=active]:bg-purple-950/20 data-[state=active]:border-b-2 data-[state=active]:border-b-purple-500 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-300 transition-all"
               >
                 <div className="flex items-center gap-2">
                   <div className="h-7 w-7 rounded-lg bg-purple-500/10 data-[state=active]:bg-purple-500/20 flex items-center justify-center transition-colors">
@@ -1018,7 +1018,7 @@ export function ITAdminDashboard() {
               </TabsTrigger>
               <TabsTrigger 
                 value="analytics" 
-                className="flex items-center gap-2 data-[state=active]:bg-green-50 dark:data-[state=active]:bg-green-950/20 data-[state=active]:border-b-2 data-[state=active]:border-b-green-500 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-300 transition-all"
+                className="flex-1 min-w-[140px] flex items-center gap-2 data-[state=active]:bg-green-50 dark:data-[state=active]:bg-green-950/20 data-[state=active]:border-b-2 data-[state=active]:border-b-green-500 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-300 transition-all"
               >
                 <div className="flex items-center gap-2">
                   <div className="h-7 w-7 rounded-lg bg-green-500/10 data-[state=active]:bg-green-500/20 flex items-center justify-center transition-colors">

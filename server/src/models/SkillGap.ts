@@ -3,8 +3,7 @@ import mongoose from 'mongoose';
 const skillGapSchema = new mongoose.Schema({
   employeeId: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   employeeName: {
     type: String,

@@ -61,7 +61,8 @@ export function HRDashboard() {
   const yearHolidays = useMemo(() => {
     return (allHolidays || [])
       .filter(holiday => {
-        const holidayYear = new Date(holiday.date).getFullYear();
+        const holidayDate = new Date(holiday.date);
+        const holidayYear = holidayDate.getUTCFullYear();
         return holidayYear === selectedYear;
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -74,18 +75,21 @@ export function HRDashboard() {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     
-    // 1. Check if today is a holiday
-    const todayHolidayIndex = yearHolidays.findIndex(holiday => 
-      holiday.date === todayStr
-    );
+    // 1. Check if today is a holiday (compare date strings directly)
+    const todayHolidayIndex = yearHolidays.findIndex(holiday => {
+      const holidayDate = new Date(holiday.date);
+      const holidayDateStr = `${holidayDate.getUTCFullYear()}-${String(holidayDate.getUTCMonth() + 1).padStart(2, '0')}-${String(holidayDate.getUTCDate()).padStart(2, '0')}`;
+      return holidayDateStr === todayStr;
+    });
     if (todayHolidayIndex !== -1) {
       return todayHolidayIndex;
     }
     
-    // 2. Find next upcoming holiday
+    // 2. Find next upcoming holiday (compare date strings, not timestamps)
     const upcomingHolidayIndex = yearHolidays.findIndex(holiday => {
       const holidayDate = new Date(holiday.date);
-      return holidayDate > today;
+      const holidayDateStr = `${holidayDate.getUTCFullYear()}-${String(holidayDate.getUTCMonth() + 1).padStart(2, '0')}-${String(holidayDate.getUTCDate()).padStart(2, '0')}`;
+      return holidayDateStr > todayStr;
     });
     if (upcomingHolidayIndex !== -1) {
       return upcomingHolidayIndex;
@@ -125,10 +129,12 @@ export function HRDashboard() {
   const isPrevDisabled = currentHolidayIndex <= 0 || yearHolidays.length <= 1;
   const isNextDisabled = currentHolidayIndex >= yearHolidays.length - 1 || yearHolidays.length <= 1;
 
-  // Format holiday date with day name
+  // Format holiday date with day name (using UTC to avoid timezone shifts)
   const formatHolidayDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    // Create a new date using UTC components to avoid timezone shift
+    const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    return utcDate.toLocaleDateString('en-US', {
       weekday: 'short',
       day: 'numeric',
       month: 'long',
@@ -444,6 +450,38 @@ export function HRDashboard() {
       <div className="grid gap-8 lg:grid-cols-12">
         {/* LEFT COLUMN - 4 columns */}
         <div className="lg:col-span-4 space-y-8 animate-in slide-in-from-left-6 duration-500">
+          {/* Quick Actions */}
+          <Card className="border-2 border-dashed">
+            <CardContent className="p-4">
+              <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Quick Actions
+              </h2>
+              <div className="flex flex-col gap-2">
+                {[
+                  { label: 'Add Announcement', icon: Megaphone, path: '/hr/announcements', color: 'bg-orange-500 hover:bg-orange-600' },
+                  { label: 'View Employees', icon: Users, path: '/employees', color: 'bg-blue-500 hover:bg-blue-600' },
+                  { label: 'Manage Leaves', icon: Calendar, path: '/hr/leave-attendance-overview', color: 'bg-green-500 hover:bg-green-600' },
+                ].map((action, index) => {
+                  const ActionIcon = action.icon;
+                  return (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      className="h-auto py-3 justify-start gap-3 hover:shadow-md transition-all duration-200 group w-full"
+                      onClick={() => navigate(action.path)}
+                    >
+                      <div className={`p-1.5 rounded-lg text-white ${action.color} group-hover:scale-110 transition-transform`}>
+                        <ActionIcon className="h-4 w-4" />
+                      </div>
+                      <span className="font-medium text-sm">{action.label}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Holiday Calendar - Enhanced */}
           <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl border-2">
             <CardHeader className="bg-primary/5 dark:bg-primary/10">
@@ -510,9 +548,17 @@ export function HRDashboard() {
                     {(() => {
                       const holiday = yearHolidays[currentHolidayIndex];
                       if (!holiday) return null;
+                      
+                      // Compare dates without time to avoid timezone issues
                       const holidayDate = new Date(holiday.date);
+                      const holidayDateStr = `${holidayDate.getUTCFullYear()}-${String(holidayDate.getUTCMonth() + 1).padStart(2, '0')}-${String(holidayDate.getUTCDate()).padStart(2, '0')}`;
                       const today = new Date();
-                      const daysUntil = Math.ceil((holidayDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                      const todayStr = today.toISOString().split('T')[0];
+                      
+                      // Calculate days until by comparing date strings
+                      const holidayDateObj = new Date(holidayDateStr + 'T00:00:00');
+                      const todayDateObj = new Date(todayStr + 'T00:00:00');
+                      const daysUntil = Math.round((holidayDateObj.getTime() - todayDateObj.getTime()) / (1000 * 60 * 60 * 24));
                       const isToday = daysUntil === 0;
                       
                       const getHolidayTheme = (type: string) => {

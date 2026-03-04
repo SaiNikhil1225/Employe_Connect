@@ -233,7 +233,8 @@ router.post('/:id/checkin', async (req: Request, res: Response) => {
         checkInTime,
         attendanceMode: attendanceMode || rsvps[rsvpIndex].attendanceMode,
         isLate: diffMinutes > 0,
-        lateByMinutes: diffMinutes > 0 ? diffMinutes : 0
+        lateByMinutes: diffMinutes > 0 ? diffMinutes : 0,
+        leftEarly: false
       };
       
       event.rsvps = rsvps;

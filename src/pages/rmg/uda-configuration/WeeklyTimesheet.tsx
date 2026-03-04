@@ -2400,7 +2400,7 @@ const WeeklyTimesheet: React.FC = () => {
 
       // Call backend API to create notification
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/timesheet-entries/send-reminder`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/timesheet-entries/send-reminder`,
         {
           method: "POST",
           headers: {

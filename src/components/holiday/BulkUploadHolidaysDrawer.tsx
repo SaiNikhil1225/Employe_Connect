@@ -30,26 +30,70 @@ import { cn } from '@/lib/utils';
 
 // Helper function to convert Excel serial date to YYYY-MM-DD format
 const excelSerialToDate = (serial: number): string => {
-    // Excel dates start from 1900-01-01 (serial 1)
-    // Account for Excel's 1900 leap year bug
-    const excelEpoch = new Date(1899, 11, 30);
-    const days = serial > 59 ? serial - 1 : serial; // Excel incorrectly treats 1900 as a leap year
-    const date = new Date(excelEpoch.getTime() + days * 24 * 60 * 60 * 1000);
-
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-
+    // Excel dates: serial 1 = January 1, 1900
+    // Excel incorrectly treats 1900 as a leap year
+    // Days between Excel epoch (Dec 30, 1899) and Unix epoch (Jan 1, 1970) = 25569
+    const excelEpochOffset = 25569;
+    
+    // For dates after Feb 28, 1900 (serial > 59), Excel has an extra day due to the leap year bug
+    // We need to subtract 1 to correct for this
+    const adjustedSerial = serial > 59 ? serial - 1 : serial;
+    
+    // Convert to days since Unix epoch
+    const daysSinceUnixEpoch = adjustedSerial - excelEpochOffset;
+    
+    // Convert to milliseconds and create Date
+    const timestamp = daysSinceUnixEpoch * 24 * 60 * 60 * 1000;
+    const date = new Date(timestamp);
+    
+    // Add 1 day to fix the off-by-one error
+    date.setUTCDate(date.getUTCDate() + 1);
+    
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    
     return `${year}-${month}-${day}`;
 };
 
 // Helper function to parse date from various formats
 const parseDate = (dateValue: unknown): string | null => {
+    console.log('🔍 parseDate Input:', {
+        value: dateValue,
+        type: typeof dateValue,
+        isDate: dateValue instanceof Date
+    });
+
     if (!dateValue) return null;
 
     // If it's a number (Excel serial date)
     if (typeof dateValue === 'number') {
-        return excelSerialToDate(dateValue);
+        const result = excelSerialToDate(dateValue);
+        console.log('📊 Excel Serial:', dateValue, '→', result);
+        return result;
+    }
+
+    // If it's a Date object (XLSX auto-converted it in local timezone)
+    // Use LOCAL methods since XLSX created it with local date components
+    if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
+        console.log('📅 Date Object:', {
+            original: dateValue.toString(),
+            iso: dateValue.toISOString(),
+            localYear: dateValue.getFullYear(),
+            localMonth: dateValue.getMonth() + 1,
+            localDay: dateValue.getDate(),
+            utcYear: dateValue.getUTCFullYear(),
+            utcMonth: dateValue.getUTCMonth() + 1,
+            utcDay: dateValue.getUTCDate()
+        });
+        
+        const year = dateValue.getFullYear();
+        const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+        const day = String(dateValue.getDate()).padStart(2, '0');
+        const result = `${year}-${month}-${day}`;
+        
+        console.log('✅ Using LOCAL methods:', result);
+        return result;
     }
 
     // If it's a string
@@ -58,33 +102,47 @@ const parseDate = (dateValue: unknown): string | null => {
 
         // Check if it's already in YYYY-MM-DD format
         if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+            console.log('✅ Already YYYY-MM-DD:', trimmed);
             return trimmed;
         }
 
         // Try to parse as a number (string representation of Excel serial)
         const asNumber = parseFloat(trimmed);
         if (!isNaN(asNumber)) {
-            return excelSerialToDate(asNumber);
+            const result = excelSerialToDate(asNumber);
+            console.log('📊 String as serial:', trimmed, '→', result);
+            return result;
         }
 
-        // Try to parse as a date string
-        const parsedDate = new Date(trimmed);
-        if (!isNaN(parsedDate.getTime())) {
-            const year = parsedDate.getFullYear();
-            const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
-            const day = String(parsedDate.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+        // Try to parse common date string formats manually to avoid timezone issues
+        // Patterns: M/D/YYYY, MM/DD/YYYY, M-D-YYYY, MM-DD-YYYY, etc.
+        const datePattern = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/;
+        const match = trimmed.match(datePattern);
+        if (match) {
+            const month = match[1].padStart(2, '0');
+            const day = match[2].padStart(2, '0');
+            const year = match[3];
+            const result = `${year}-${month}-${day}`;
+            console.log('✅ Manual parse:', trimmed, '→', result);
+            return result;
+        }
+
+        // Try ISO format parsing with explicit UTC
+        // This handles formats like "2026-01-01" or ISO strings
+        if (trimmed.includes('-') || trimmed.includes('T')) {
+            const parsedDate = new Date(trimmed + (trimmed.includes('T') ? '' : 'T00:00:00.000Z'));
+            if (!isNaN(parsedDate.getTime())) {
+                const year = parsedDate.getUTCFullYear();
+                const month = String(parsedDate.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(parsedDate.getUTCDate()).padStart(2, '0');
+                const result = `${year}-${month}-${day}`;
+                console.log('✅ ISO parse:', trimmed, '→', result);
+                return result;
+            }
         }
     }
 
-    // If it's a Date object
-    if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
-        const year = dateValue.getFullYear();
-        const month = String(dateValue.getMonth() + 1).padStart(2, '0');
-        const day = String(dateValue.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
+    console.log('❌ Could not parse date:', dateValue);
     return null;
 };
 
@@ -240,6 +298,14 @@ export function BulkUploadHolidaysDrawer({
                 const type = String(row.Type || row.type || '').trim();
                 const group = String(row.Group || row.group || '').trim();
 
+                console.log(`📝 Row ${rowNum} - Raw data:`, {
+                    name,
+                    dateValue,
+                    dateType: typeof dateValue,
+                    type,
+                    group
+                });
+
                 // Validate required fields
                 if (!name) {
                     errors.push(`Row ${rowNum}: Holiday name is required`);
@@ -256,6 +322,8 @@ export function BulkUploadHolidaysDrawer({
 
                 // Parse and validate date
                 const date = parseDate(dateValue);
+                console.log(`✨ Row ${rowNum} - Parsed date:`, date);
+                
                 if (!date) {
                     errors.push(`Row ${rowNum}: Invalid date format "${dateValue}". Use YYYY-MM-DD or Excel date format`);
                     return;
@@ -360,6 +428,12 @@ export function BulkUploadHolidaysDrawer({
                 if (groupIds.length > 0) {
                     payload.groupIds = groupIds;
                 }
+
+                console.log(`🚀 Uploading holiday #${i + 1}:`, {
+                    name: payload.name,
+                    date: payload.date,
+                    dateType: typeof payload.date
+                });
 
                 await createHoliday(payload);
                 successCount++;

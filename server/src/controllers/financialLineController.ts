@@ -1,6 +1,39 @@
 import type { Request, Response } from 'express';
-import FinancialLine from '../models/FinancialLine';
+import FinancialLine, { syncFLStatusesByDate } from '../models/FinancialLine';
+import CustomerPO from '../models/CustomerPO';
 import Project from '../models/Project';
+
+/**
+ * Auto-update project status to 'Active' if the project has
+ * at least one active FL OR at least one active PO.
+ * If neither exists, revert to 'Draft' (only if currently 'Active').
+ */
+const syncProjectStatus = async (projectId: string | undefined) => {
+  if (!projectId) return;
+  try {
+    const [activeFLCount, activePOCount] = await Promise.all([
+      FinancialLine.countDocuments({ projectId, status: 'Active' }),
+      CustomerPO.countDocuments({ projectId, status: 'Active' }),
+    ]);
+
+    const project = await Project.findById(projectId);
+    if (!project) return;
+
+    if (activeFLCount > 0 || activePOCount > 0) {
+      // Has active FL or PO → make project Active
+      if (project.status !== 'Active') {
+        project.status = 'Active';
+        await project.save();
+      }
+    } else if (project.status === 'Active') {
+      // Lost all active FLs and POs → revert to Draft
+      project.status = 'Draft';
+      await project.save();
+    }
+  } catch (err) {
+    console.error('syncProjectStatus error:', err);
+  }
+};
 
 // Generate FL number
 const generateFLNumber = async (): Promise<string> => {
@@ -15,6 +48,9 @@ const generateFLNumber = async (): Promise<string> => {
 // Get all financial lines with filters
 export const getFinancialLines = async (req: Request, res: Response) => {
   try {
+    // Sync FL statuses based on dates before querying
+    await syncFLStatusesByDate();
+
     const { status, locationType, contractType, projectId, search } = req.query;
     const query: Record<string, unknown> = {};
 
@@ -53,6 +89,9 @@ export const getFinancialLines = async (req: Request, res: Response) => {
 // Get active financial lines
 export const getActiveFinancialLines = async (req: Request, res: Response) => {
   try {
+    // Sync FL statuses by date first
+    await syncFLStatusesByDate();
+
     const fls = await FinancialLine.find({ status: 'Active' })
       .populate('projectId', 'projectName projectId')
       .populate('customerPOId', 'poNo contractNo')
@@ -184,6 +223,9 @@ export const createFinancialLine = async (req: Request, res: Response) => {
       .populate('projectId', 'projectName projectId');
     
     console.log('Financial line populated and ready to return:', populatedFL?.flNo);
+
+    // Auto-update project status if FL is Active
+    await syncProjectStatus(req.body.projectId);
     
     res.status(201).json({ success: true, data: populatedFL });
   } catch (error: unknown) {
@@ -224,6 +266,10 @@ export const updateFinancialLine = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Financial line not found' });
     }
 
+    // Auto-update project status
+    const projectId = fl.projectId?._id || fl.projectId;
+    await syncProjectStatus(projectId?.toString());
+
     res.json({ success: true, data: fl });
   } catch (error: unknown) {
     console.error('Failed to update financial line:', error);
@@ -240,6 +286,10 @@ export const deleteFinancialLine = async (req: Request, res: Response) => {
     if (!fl) {
       return res.status(404).json({ success: false, message: 'Financial line not found' });
     }
+
+    // Auto-update project status after FL deletion
+    const projectId = fl.projectId?.toString();
+    await syncProjectStatus(projectId);
     
     res.json({ success: true, message: 'Financial line deleted successfully' });
   } catch (error: unknown) {

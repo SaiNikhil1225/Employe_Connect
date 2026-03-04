@@ -75,6 +75,7 @@ import {
     getHolidayById,
     publishHoliday,
     deleteHoliday,
+    bulkDeleteHolidays,
     getHolidayTypes,
     getObservanceTypes,
     getHolidayGroups
@@ -96,7 +97,16 @@ const getStatusBadgeColor = (status: string) => {
 };
 
 const formatDate = (date: string | Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
+    // Extract UTC date components to avoid timezone shifts
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const year = dateObj.getUTCFullYear();
+    const month = dateObj.getUTCMonth();
+    const day = dateObj.getUTCDate();
+    
+    // Create a date in local timezone with the UTC components
+    const localDate = new Date(year, month, day);
+    
+    return localDate.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
@@ -126,6 +136,7 @@ export function HolidayManagement() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
     const [isViewOpen, setIsViewOpen] = useState(false);
     const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
     const [viewingHoliday, setViewingHoliday] = useState<Holiday | null>(null);
@@ -296,6 +307,19 @@ export function HolidayManagement() {
         }
     };
 
+    const handleBulkDelete = async () => {
+        try {
+            await bulkDeleteHolidays(selectedHolidays);
+            toast.success(`${selectedHolidays.length} holiday(s) deleted successfully`);
+            setIsBulkDeleteOpen(false);
+            setSelectedHolidays([]);
+            fetchHolidays();
+        } catch (error) {
+            console.error('Error deleting holidays:', error);
+            toast.error('Failed to delete holidays');
+        }
+    };
+
     const handleSelectHoliday = (holidayId: string) => {
         setSelectedHolidays(prev =>
             prev.includes(holidayId)
@@ -398,10 +422,16 @@ export function HolidayManagement() {
                             Bulk Upload
                         </Button>
                         {selectedHolidays.length > 0 && (
-                            <Button onClick={handleBulkPublish} variant="default">
-                                <Send className="h-4 w-4 mr-2" />
-                                Publish Selected ({selectedHolidays.length})
-                            </Button>
+                            <>
+                                <Button onClick={handleBulkPublish} variant="default">
+                                    <Send className="h-4 w-4 mr-2" />
+                                    Publish Selected ({selectedHolidays.length})
+                                </Button>
+                                <Button onClick={() => setIsBulkDeleteOpen(true)} variant="destructive">
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Selected ({selectedHolidays.length})
+                                </Button>
+                            </>
                         )}
                         <Button onClick={() => {
                             setEditingHoliday(null);
@@ -768,6 +798,24 @@ export function HolidayManagement() {
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
                                 Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                {/* Bulk Delete Confirmation */}
+                <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Multiple Holidays</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you sure you want to delete {selectedHolidays.length} selected holiday(s)? This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground">
+                                Delete {selectedHolidays.length} Holiday(s)
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>

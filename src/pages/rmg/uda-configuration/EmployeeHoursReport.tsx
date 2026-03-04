@@ -2,8 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   FileText,
   Download,
-  Filter,
-  Calendar as CalendarIcon,
   Search,
   Loader2,
   Info,
@@ -13,29 +11,18 @@ import {
 } from "lucide-react";
 import WeeklyTimesheet from "@/pages/rmg/uda-configuration/WeeklyTimesheet";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  Legend,
-  LabelList,
 } from "recharts";
 import {
   format,
   isAfter,
   isBefore,
-  addDays,
-  startOfToday,
   startOfWeek,
   endOfWeek,
-  eachWeekOfInterval,
-  isSameWeek,
   startOfMonth,
   endOfMonth,
   subMonths,
@@ -80,7 +67,6 @@ import { useAuthStore } from "@/store/authStore";
 import { employeeHoursReportService } from "@/services/employeeHoursReportService";
 import type {
   EmployeeHoursData,
-  ReportSummary,
   ProjectOption,
   ReportFilters,
 } from "@/services/employeeHoursReportService";
@@ -105,6 +91,58 @@ const CHART_COLORS = {
   ash: "#D1D5DB",
 };
 
+// Type definitions for chart data and allocations
+interface ChartDataItem {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface AllocationSegment {
+  startDate: string;
+  endDate: string;
+  projectName: string | null;
+  color: string;
+  allocationStart: string | null;
+  allocationEnd: string | null;
+  dayCount: number;
+}
+
+interface ProjectAllocation {
+  projectName: string;
+  hours: number;
+  percentage: number;
+  startDate: string;
+  endDate: string;
+  color: string;
+}
+
+interface AllocationRecord {
+  flNo?: string;
+  projectId?: string;
+  projectCode?: string;
+  projectName?: string;
+  employeeId?: string;
+  startDate?: string | Date;
+  expectedStartDate?: string;
+  requestedFromDate?: string;
+  endDate?: string | Date;
+  expectedEndDate?: string;
+  requestedToDate?: string;
+  totalAllocation?: string | number;
+  allocation?: string | number;
+  projectManager?: { employeeId?: string };
+  [key: string]: unknown;
+}
+
+interface ProjectRecord {
+  _id?: string;
+  projectId: string;
+  projectCode?: string;
+  projectName?: string;
+  projectManager?: { employeeId?: string };
+}
+
 /**
  * Helper: Project Color Palette Generator
  */
@@ -117,26 +155,12 @@ const generateProjectColor = (projectName: string) => {
 };
 
 /**
- * Helper: Date logic to highlight projects ending next week
- */
-const isEndingSoon = (endDateStr: string) => {
-  try {
-    const end = new Date(endDateStr);
-    const today = startOfToday();
-    const nextWeek = addDays(today, 7);
-    return isAfter(end, today) && isBefore(end, nextWeek);
-  } catch (e) {
-    return false;
-  }
-};
-
-/**
  * Redesigned Chart Components
  */
 
 // 1. KPI 1: Allocation Summary - Semi-Circle Gauge (Half-Donut)
 const AllocationSummaryChart: React.FC<{
-  data: any[];
+  data: ChartDataItem[];
   employeeCount: number;
   allocatedCount: number;
   benchCount: number;
@@ -211,91 +235,9 @@ const AllocationSummaryChart: React.FC<{
   );
 };
 
-// 2. Multi-Project Allocation Component (Horizontal Bar)
-const MultiProjectAllocationChart: React.FC<{ data: any[] }> = ({ data }) => (
-  <ResponsiveContainer width="100%" height={Math.max(180, data.length * 45)}>
-    <BarChart
-      data={data}
-      layout="vertical"
-      margin={{ top: 10, right: 60, bottom: 10, left: 100 }}
-      barGap={2}
-      barCategoryGap={8}
-    >
-      <CartesianGrid
-        strokeDasharray="3 3"
-        horizontal={false}
-        stroke="#f1f5f9"
-      />
-      <XAxis type="number" hide />
-      <YAxis
-        dataKey="projectName"
-        type="category"
-        width={90}
-        fontSize={11}
-        axisLine={false}
-        tickLine={false}
-      />
-      <Tooltip
-        content={({ active, payload }) => {
-          if (active && payload && payload.length) {
-            const item = payload[0].payload;
-            const warning = isEndingSoon(item.endDate);
-            return (
-              <div
-                className={`p-4 rounded-xl shadow-xl border-none ${warning ? "bg-orange-50" : "bg-white"}`}
-              >
-                <p className="font-bold text-slate-800 text-sm">
-                  {item.projectName}
-                </p>
-                <p className="text-xs text-slate-600 mt-1">
-                  Allocation:{" "}
-                  <b>
-                    {item.percentage
-                      ? `${item.percentage.toFixed(1)}%`
-                      : `${item.hours}h`}
-                  </b>
-                </p>
-                <p className="text-xs text-slate-500">
-                  {format(new Date(item.startDate), "MMM dd")} -{" "}
-                  {format(new Date(item.endDate), "MMM dd, yyyy")}
-                </p>
-                {warning && (
-                  <p className="text-[10px] font-bold text-orange-600 mt-2 uppercase">
-                    ⚠️ Ending next week
-                  </p>
-                )}
-              </div>
-            );
-          }
-          return null;
-        }}
-      />
-      <Bar dataKey="percentage" radius={[0, 4, 4, 0]} barSize={20}>
-        {data.map((entry, index) => (
-          <Cell
-            key={`cell-${index}`}
-            fill={
-              isEndingSoon(entry.endDate)
-                ? CHART_COLORS.orange
-                : entry.color || generateProjectColor(entry.projectName)
-            }
-            fillOpacity={isEndingSoon(entry.endDate) ? 1 : 0.8}
-          />
-        ))}
-        <LabelList
-          dataKey="percentage"
-          position="right"
-          formatter={(value: number) => `${value.toFixed(1)}%`}
-          style={{ fontSize: 10, fill: "#64748b", fontWeight: 600 }}
-        />
-      </Bar>
-    </BarChart>
-  </ResponsiveContainer>
-);
-
 // 2b. Monthly Daily Allocation Progress Bar (Day-by-Day Multi-Segment)
 const MonthlyDailyAllocationChart: React.FC<{
-  dailyData: any[];
+  dailyData: AllocationSegment[];
 }> = ({ dailyData }) => {
   if (!dailyData || dailyData.length === 0) {
     return (
@@ -355,7 +297,7 @@ const MonthlyDailyAllocationChart: React.FC<{
                       <div className="mt-1 text-slate-300">
                         Project: {segment.projectName}
                       </div>
-                      {segment.allocationStart && (
+                      {segment.allocationStart && segment.allocationEnd && (
                         <div className="text-slate-400 text-[10px] mt-1">
                           Full allocation:{" "}
                           {format(new Date(segment.allocationStart), "MMM dd")}{" "}
@@ -408,7 +350,7 @@ const MonthlyDailyAllocationChart: React.FC<{
 
 // 3. Approval Status Doughnut Component
 const ApprovalStatusDoughnut: React.FC<{
-  data: any[];
+  data: ChartDataItem[];
   reportData?: EmployeeHoursData[];
   userRole?: string;
 }> = ({ data, reportData = [], userRole }) => {
@@ -451,7 +393,7 @@ const ApprovalStatusDoughnut: React.FC<{
               outerRadius={90}
               paddingAngle={5}
               dataKey="value"
-              label={({ name, percent, value }) =>
+              label={({ percent, value }) =>
                 `${(percent * 100).toFixed(0)}% (${value}h)`
               }
             >
@@ -540,13 +482,11 @@ const EmployeeHoursReport: React.FC = () => {
 
   // State
   const [reportData, setReportData] = useState<EmployeeHoursData[]>([]);
-  const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
-  const [departments, setDepartments] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [projectAllocations, setProjectAllocations] = useState<any[]>([]);
-  const [approvalStatusData, setApprovalStatusData] = useState<any[]>([]);
+  const [projectAllocations, setProjectAllocations] = useState<ProjectAllocation[]>([]);
+  const [approvalStatusData, setApprovalStatusData] = useState<ChartDataItem[]>([]);
 
   // Custom Date Range Popover
   const [customDatePopoverOpen, setCustomDatePopoverOpen] = useState(false);
@@ -557,13 +497,13 @@ const EmployeeHoursReport: React.FC = () => {
   // Filters
   const [dateRangeType, setDateRangeType] = useState<string>("current_week");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
-  const [selectedWeek, setSelectedWeek] = useState<Date>(new Date());
   const [selectedProject, setSelectedProject] = useState<string>(
     userRole === "RMG" ? "" : "all",
   );
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [selectedDepartment, _setSelectedDepartment] = useState<string>("all");
   const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -601,26 +541,20 @@ const EmployeeHoursReport: React.FC = () => {
             user?.employeeId || user?.id,
           );
           setProjects(projectsData);
-
-          // Load departments (only for RMG)
-          if (userRole === "RMG") {
-            const depsData = await employeeHoursReportService.getDepartments();
-            setDepartments(depsData);
-          }
         }
 
         setIsInitialLoad(false);
         
         // Explicitly load the report after initial setup
         // The dates are now set, so we can load the report
-      } catch (error) {
-        console.error("Error loading initial data:", error);
+      } catch {
         toast.error("Failed to load initial data");
         setIsInitialLoad(false);
       }
     };
 
     loadInitialData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Calculate date range based on filter type
@@ -664,15 +598,16 @@ const EmployeeHoursReport: React.FC = () => {
   // Auto-reload report when filters change
   useEffect(() => {
     if (!isInitialLoad && startDate && endDate) {
-      console.log('[Employee Hours Report] Auto-loading report with:', { startDate, endDate, selectedProject, dateRangeType });
       loadReport();
       loadProjectAllocations();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInitialLoad, selectedMonth, selectedProject, startDate, endDate, selectedDepartment]);
 
   // Update approval status when reportData changes (filtered by date range)
   useEffect(() => {
     loadApprovalStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportData]);
 
   // Load project allocations from FLResource
@@ -680,111 +615,48 @@ const EmployeeHoursReport: React.FC = () => {
     try {
       if (!user) return;
 
-      let allocations: any[] = [];
-      let empIdSet = new Set<string>();
+      let allocations: AllocationRecord[] = [];
+      const empIdSet = new Set<string>();
 
       // KPI 2: For MANAGER role, show projects managed by logged-in user
       if (userRole === "MANAGER") {
-        console.log(
-          "[Project Allocations Debug] Loading projects for MANAGER:",
-          user.employeeId || user.id,
-        );
-
         // Get all projects managed by this user
         const managedProjects = await projectService.getAll();
         let userManagedProjects = managedProjects.filter(
-          (project: any) =>
+          (project: ProjectRecord) =>
             project.projectManager?.employeeId === (user.employeeId || user.id),
         );
 
         // Filter by selected project if not "all"
         if (selectedProject && selectedProject !== "all") {
           userManagedProjects = userManagedProjects.filter(
-            (project: any) => project.projectId === selectedProject,
+            (project: ProjectRecord) => project.projectId === selectedProject,
           );
         }
 
-        console.log(
-          "[Project Allocations Debug] Managed projects:",
-          userManagedProjects.length,
-        );
-
         // Get allocations for these projects
-        allocations = await Promise.all(
-          userManagedProjects.map(async (project: any) => {
+        allocations = (await Promise.all(
+          userManagedProjects.map(async (project: ProjectRecord) => {
             const projectAllocations = await flResourceService.getByProjectId(
-              project._id,
+              project._id!,
             );
             return projectAllocations;
           }),
-        );
-        allocations = allocations.flat();
+        )).flat() as unknown as AllocationRecord[];
       } else if (userRole === "RMG") {
-        console.log(
-          "[Project Allocations Debug] Loading all allocations for RMG",
-        );
-
         // RMG can view all allocations across all projects
         // Fetch all FLResource allocations
         try {
-          allocations = await flResourceService.getAll();
-          console.log(
-            "[Project Allocations Debug] Total RMG allocations:",
-            allocations.length,
-          );
-        } catch (error) {
-          console.error(
-            "[Project Allocations Debug] Error fetching all allocations:",
-            error,
-          );
+          allocations = await flResourceService.getAll() as unknown as AllocationRecord[];
+        } catch {
           allocations = [];
         }
       } else {
         // For EMPLOYEE role, use their own allocations
         const employeeId = user.employeeId || user.id;
-        console.log(
-          "[Project Allocations Debug] Loading allocations for EMPLOYEE:",
-          {
-            employeeId: employeeId,
-            email: user.email,
-            userObject: user,
-          },
-        );
-        allocations = await flResourceService.getByEmployeeId(employeeId);
-        console.log(
-          "[Project Allocations Debug] Found allocations for employee:",
-          allocations.length,
-        );
-        if (allocations.length > 0) {
-          console.log(
-            "[Project Allocations Debug] ALL allocations:",
-            JSON.stringify(allocations, null, 2),
-          );
-        } else {
-          console.warn(
-            "[Project Allocations Debug] ⚠️ NO ALLOCATIONS FOUND - Please check:",
-            {
-              expectedEmployeeId: employeeId,
-              checkFlResourceTable:
-                "SELECT * FROM flresources WHERE employeeId = '" +
-                employeeId +
-                "'",
-              possibleIssues: [
-                "1. No record exists in flresource table with this employeeId",
-                "2. EmployeeId in flresource table doesn't match user.employeeId",
-                "3. Database connection issue",
-              ],
-            },
-          );
-        }
+        allocations = await flResourceService.getByEmployeeId(employeeId) as unknown as AllocationRecord[];
         empIdSet.add(employeeId);
       }
-
-      // Apply filters to allocations
-      console.log(
-        "[Project Allocations Debug] Allocations before filtering:",
-        allocations.length,
-      );
 
       // Filter by selected project (for RMG only, MANAGER filtered above)
       if (
@@ -794,13 +666,9 @@ const EmployeeHoursReport: React.FC = () => {
         selectedProject !== ""
       ) {
         allocations = allocations.filter(
-          (alloc: any) =>
+          (alloc: AllocationRecord) =>
             alloc.projectId === selectedProject ||
             alloc.projectCode === selectedProject,
-        );
-        console.log(
-          "[Project Allocations Debug] After project filter:",
-          allocations.length,
         );
       }
 
@@ -809,24 +677,7 @@ const EmployeeHoursReport: React.FC = () => {
         const filterStartDate = new Date(startDate);
         const filterEndDate = new Date(endDate);
 
-        console.log(
-          "[Project Allocations Debug] =============================",
-        );
-        console.log("[Project Allocations Debug] DATE FILTERING PROCESS");
-        console.log("[Project Allocations Debug] Selected Date Range:", {
-          filterStart: startDate,
-          filterEnd: endDate,
-          filterStartDate: filterStartDate.toISOString(),
-          filterEndDate: filterEndDate.toISOString(),
-        });
-        console.log(
-          "[Project Allocations Debug] Total allocations before date filter:",
-          allocations.length,
-        );
-
-        const beforeFilterCount = allocations.length;
-
-        allocations = allocations.filter((alloc: any) => {
+        allocations = allocations.filter((alloc: AllocationRecord) => {
           // Handle multiple possible date field names from flresource table
           const allocStartStr =
             alloc.startDate ||
@@ -836,14 +687,6 @@ const EmployeeHoursReport: React.FC = () => {
             alloc.endDate || alloc.expectedEndDate || alloc.requestedToDate;
 
           if (!allocStartStr || !allocEndStr) {
-            console.warn(
-              `[Project Allocations Debug] ⚠️ Missing dates for allocation:`,
-              {
-                flNo: alloc.flNo,
-                projectName: alloc.projectName,
-                availableFields: Object.keys(alloc),
-              },
-            );
             return false;
           }
 
@@ -855,48 +698,13 @@ const EmployeeHoursReport: React.FC = () => {
           const overlaps =
             allocStart <= filterEndDate && allocEnd >= filterStartDate;
 
-          console.log(
-            `[Project Allocations Debug] ${overlaps ? "✅ KEEP" : "❌ FILTER OUT"}:`,
-            {
-              projectName: alloc.projectName || alloc.projectCode || "Unknown",
-              flNo: alloc.flNo,
-              allocStart: allocStartStr,
-              allocEnd: allocEndStr,
-              filterStart: startDate,
-              filterEnd: endDate,
-              overlapCheck: `allocStart(${allocStart.toISOString().split("T")[0]}) <= filterEnd(${filterEndDate.toISOString().split("T")[0]}) = ${allocStart <= filterEndDate}`,
-              overlapCheck2: `allocEnd(${allocEnd.toISOString().split("T")[0]}) >= filterStart(${filterStartDate.toISOString().split("T")[0]}) = ${allocEnd >= filterStartDate}`,
-              overlaps: overlaps,
-            },
-          );
-
           return overlaps;
         });
-
-        console.log(
-          "[Project Allocations Debug] =============================",
-        );
-        console.log(
-          `[Project Allocations Debug] DATE FILTER RESULT: ${beforeFilterCount} → ${allocations.length} allocations`,
-        );
-        if (allocations.length === 0 && beforeFilterCount > 0) {
-          console.warn(
-            "[Project Allocations Debug] ⚠️ ALL ALLOCATIONS FILTERED OUT BY DATE RANGE!",
-            {
-              filterRange: `${startDate} to ${endDate}`,
-              suggestion:
-                "Check if allocation dates overlap with this range or select a different date range",
-            },
-          );
-        }
-        console.log(
-          "[Project Allocations Debug] =============================",
-        );
       }
 
       // Calculate employee allocation counts
       const uniqueEmployees = new Set(
-        allocations.map((alloc: any) => alloc.employeeId),
+        allocations.map((alloc: AllocationRecord) => alloc.employeeId),
       );
       const totalEmployees =
         userRole === "EMPLOYEE" ? 1 : reportData.length || uniqueEmployees.size;
@@ -909,81 +717,57 @@ const EmployeeHoursReport: React.FC = () => {
         bench: benchEmployees,
       });
 
-      console.log("[Project Allocations Debug] Raw allocations:", allocations);
-      console.log("[Project Allocations Debug] Employee counts:", {
-        total: totalEmployees,
-        allocated: allocatedEmployees,
-        bench: benchEmployees,
-      });
-
       // Transform to chart format
-      const projectMap: Record<string, any> = {};
+      const projectMap: Record<string, { projectName: string; hours: number; startDate: string; endDate: string; color: string }> = {};
       let totalHours = 0;
 
-      allocations.forEach((alloc: any) => {
-        const projectKey = alloc.projectCode || alloc.projectId;
+      allocations.forEach((alloc: AllocationRecord) => {
+        const projectKey = alloc.projectCode || alloc.projectId || 'unknown';
         if (!projectMap[projectKey]) {
           projectMap[projectKey] = {
             projectName:
-              alloc.projectName || alloc.projectCode || alloc.projectId,
+              alloc.projectName || alloc.projectCode || alloc.projectId || 'Unknown',
             hours: 0,
             startDate:
-              alloc.startDate ||
+              String(alloc.startDate || '') ||
               alloc.expectedStartDate ||
               alloc.requestedFromDate ||
               new Date().toISOString().split("T")[0],
             endDate:
-              alloc.endDate ||
+              String(alloc.endDate || '') ||
               alloc.expectedEndDate ||
               alloc.requestedToDate ||
               new Date().toISOString().split("T")[0],
             color: generateProjectColor(
-              alloc.projectName || alloc.projectCode || alloc.projectId,
+              alloc.projectName || alloc.projectCode || alloc.projectId || 'Unknown',
             ),
           };
         }
         const hours = Number.parseFloat(
-          alloc.totalAllocation || alloc.allocation || 0,
+          String(alloc.totalAllocation || alloc.allocation || 0),
         );
         projectMap[projectKey].hours += hours;
         totalHours += hours;
       });
 
-      console.log("[Project Allocations Debug] Total hours:", totalHours);
-      console.log("[Project Allocations Debug] Project map:", projectMap);
-
       // Convert to array and calculate percentages
       const projectData = Object.values(projectMap)
-        .map((proj: any) => ({
+        .map((proj) => ({
           ...proj,
           hours: Math.round(proj.hours),
           percentage: totalHours > 0 ? (proj.hours / totalHours) * 100 : 0,
         }))
-        .filter((p: any) => p.hours > 0);
-
-      console.log(
-        "[Project Allocations Debug] Project data before Bench:",
-        projectData,
-      );
+        .filter((p) => p.hours > 0);
 
       // Calculate total allocated percentage
       const totalPercentage = projectData.reduce(
-        (sum: number, proj: any) => sum + proj.percentage,
+        (sum: number, proj: { percentage: number }) => sum + proj.percentage,
         0,
-      );
-
-      console.log(
-        "[Project Allocations Debug] Total percentage:",
-        totalPercentage,
       );
 
       // Add Bench project if total is less than 100%
       if (totalPercentage < 100 && totalPercentage > 0) {
         const benchPercentage = 100 - totalPercentage;
-        console.log(
-          "[Project Allocations Debug] Adding Bench with percentage:",
-          benchPercentage,
-        );
         projectData.push({
           projectName: "Bench",
           hours: 0,
@@ -994,16 +778,8 @@ const EmployeeHoursReport: React.FC = () => {
         });
       }
 
-      console.log(
-        "[Project Allocations Debug] Final project data:",
-        projectData,
-      );
-
       // If no allocations match the date filter, show 100% Bench
       if (projectData.length === 0) {
-        console.log(
-          "[Project Allocations Debug] No allocations found, showing 100% Bench",
-        );
         setProjectAllocations([
           {
             projectName: "Bench",
@@ -1017,8 +793,7 @@ const EmployeeHoursReport: React.FC = () => {
       } else {
         setProjectAllocations(projectData);
       }
-    } catch (error) {
-      console.error("Error loading project allocations:", error);
+    } catch {
       // On error, show 100% Bench instead of sample data
       setProjectAllocations([
         {
@@ -1048,8 +823,7 @@ const EmployeeHoursReport: React.FC = () => {
       });
 
       return workingDays.length;
-    } catch (error) {
-      console.error("Error calculating working days:", error);
+    } catch {
       return 0;
     }
   };
@@ -1062,21 +836,11 @@ const EmployeeHoursReport: React.FC = () => {
         return;
       }
 
-      console.log("[Approval Status Debug] Report data:", reportData);
-
       // Calculate totalFilteredAllocation based on working days * 8 hours/day * number of employees
       // This gives realistic allocation based on actual working days (excluding weekends)
       const workingDays = calculateWorkingDays(startDate, endDate);
       const employeeCount = reportData.length;
       const totalFilteredAllocation = workingDays * 8 * employeeCount;
-
-      console.log("[Approval Status Debug] Allocation calculation:", {
-        startDate,
-        endDate,
-        workingDays,
-        employeeCount,
-        totalFilteredAllocation: `${workingDays} days * 8 hours * ${employeeCount} employees = ${totalFilteredAllocation} hours`,
-      });
 
       const totalApprovedHours = reportData.reduce(
         (sum, emp) => sum + emp.approvedHours,
@@ -1103,27 +867,11 @@ const EmployeeHoursReport: React.FC = () => {
         0,
       );
 
-      console.log("[Approval Status Debug] Filtered calculations:", {
-        totalFilteredAllocation,
-        totalApprovedHours,
-        totalPendingHours,
-        totalRevisionRequestedHours,
-        totalRejectedHours,
-        totalActualHours,
-      });
-
       // Calculate Not Submitted = allocated - actual worked hours
       const notSubmitted = Math.max(
         0,
         totalFilteredAllocation - totalActualHours,
       );
-
-      const totalHours =
-        totalApprovedHours +
-        totalPendingHours +
-        totalRevisionRequestedHours +
-        totalRejectedHours +
-        notSubmitted;
 
       const statusData = [
         {
@@ -1153,12 +901,8 @@ const EmployeeHoursReport: React.FC = () => {
         },
       ].filter((item) => item.value > 0);
 
-      console.log("[Approval Status Debug] Status breakdown:", statusData);
-      console.log("[Approval Status Debug] Total hours:", totalHours);
-
       setApprovalStatusData(statusData);
-    } catch (error) {
-      console.error("Error loading approval status:", error);
+    } catch {
       setApprovalStatusData([]);
     }
   };
@@ -1166,12 +910,9 @@ const EmployeeHoursReport: React.FC = () => {
   // Load report data
   const loadReport = async () => {
     if (!user) {
-      console.error("[Employee Hours Report] No user found!");
       toast.error("User information not available");
       return;
     }
-
-    console.log("[Employee Hours Report] Starting loadReport for role:", userRole, "user:", user);
 
     // RMG no longer requires project selection - show month-wise data for all employees
 
@@ -1200,31 +941,14 @@ const EmployeeHoursReport: React.FC = () => {
             : undefined,
       };
 
-      console.log(
-        "[Employee Hours Report] Requesting report with filters:",
-        filters,
-      );
-
       const response = await employeeHoursReportService.getReport(filters);
 
-      console.log("[Employee Hours Report] Response received:", {
-        employeeCount: response.employees.length,
-        summary: response.summary,
-      });
-
       setReportData(response.employees);
-      setSummary(response.summary);
       setCurrentPage(1); // Reset to first page on new data
-      
-      if (response.employees.length === 0) {
-        console.warn("[Employee Hours Report] No employee data returned from API");
-      }
-    } catch (error: any) {
-      console.error("Error loading report:", error);
-      console.error("Error response:", error.response?.data);
-      toast.error(error.response?.data?.message || "Failed to load report");
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || "Failed to load report");
       setReportData([]);
-      setSummary(null);
     } finally {
       setIsLoading(false);
     }
@@ -1261,180 +985,10 @@ const EmployeeHoursReport: React.FC = () => {
     },
   );
 
-  // Chart Data Calculations
-  const hoursDistributionData = useMemo(() => {
-    if (!summary) return [];
-    return [
-      {
-        name: "Billable Actual",
-        value: summary.totalActualBillableHours,
-        color: CHART_COLORS.blue,
-      },
-      {
-        name: "Non-Billable Actual",
-        value: summary.totalActualNonBillableHours,
-        color: CHART_COLORS.orange,
-      },
-      {
-        name: "Billable Approved",
-        value: summary.totalBillableApprovedHours,
-        color: CHART_COLORS.green,
-      },
-      {
-        name: "Non-Billable Approved",
-        value: summary.totalNonBillableApprovedHours,
-        color: CHART_COLORS.emerald,
-      },
-    ].filter((item) => item.value > 0);
-  }, [summary]);
-
-  const actualVsApprovedData = useMemo(() => {
-    if (!summary) return [];
-    return [
-      {
-        name: "Billable",
-        actual: summary.totalActualBillableHours,
-        approved: summary.totalBillableApprovedHours,
-      },
-      {
-        name: "Non-Billable",
-        actual: summary.totalActualNonBillableHours,
-        approved: summary.totalNonBillableApprovedHours,
-      },
-    ];
-  }, [summary]);
-
-  const departmentDistributionData = useMemo(() => {
-    const deptCounts = reportData.reduce(
-      (acc, emp) => {
-        const dept = emp.department || "Unknown";
-        if (!acc[dept]) {
-          acc[dept] = { total: 0, actual: 0, approved: 0 };
-        }
-        acc[dept].total++;
-        acc[dept].actual += emp.actualHours;
-        acc[dept].approved += emp.approvedHours;
-        return acc;
-      },
-      {} as Record<string, { total: number; actual: number; approved: number }>,
-    );
-
-    return Object.entries(deptCounts).map(([dept, data]) => ({
-      name: dept,
-      employees: data.total,
-      actualHours: data.actual,
-      approvedHours: data.approved,
-    }));
-  }, [reportData]);
-
-  const allocationVsActualData = useMemo(() => {
-    if (!summary) return [];
-    return [
-      {
-        name: "Allocated",
-        value: summary.totalAllocationHours,
-        color: CHART_COLORS.slate,
-      },
-      {
-        name: "Actual Hours",
-        value: summary.totalActualHours,
-        color: CHART_COLORS.indigo,
-      },
-      {
-        name: "Approved Hours",
-        value: summary.totalApprovedHours,
-        color: CHART_COLORS.teal,
-      },
-    ].filter((item) => item.value > 0);
-  }, [summary]);
-
-  const topEmployeesData = useMemo(() => {
-    return [...reportData]
-      .sort((a, b) => b.actualHours - a.actualHours)
-      .slice(0, 10)
-      .map((emp) => ({
-        name: emp.employeeName.split(" ").slice(0, 2).join(" "), // Shorten name
-        actual: emp.actualHours,
-        approved: emp.approvedHours,
-      }));
-  }, [reportData]);
-
   /**
    * Data Transformations for Redesigned Charts
    */
 
-  // Calculate weeks within the selected month for weekly slider
-  const weeksInMonth = useMemo(() => {
-    if (!selectedMonth || selectedMonth === "") {
-      return [];
-    }
-    const [year, monthNum] = selectedMonth.split("-").map(Number);
-    const monthStart = new Date(year, monthNum - 1, 1);
-    const monthEnd = new Date(year, monthNum, 0);
-
-    const weeks = eachWeekOfInterval(
-      {
-        start: monthStart,
-        end: monthEnd,
-      },
-      { weekStartsOn: 1 },
-    );
-
-    return weeks;
-  }, [selectedMonth]);
-
-  // Initialize selected week when month changes
-  useEffect(() => {
-    if (weeksInMonth.length > 0) {
-      const currentWeek = weeksInMonth.find((week) =>
-        isSameWeek(week, new Date(), { weekStartsOn: 1 }),
-      );
-      setSelectedWeek(currentWeek || weeksInMonth[0]);
-    }
-  }, [weeksInMonth]);
-
-  // Week navigation handlers
-  const handlePreviousWeek = () => {
-    const currentIndex = weeksInMonth.findIndex((week) =>
-      isSameWeek(week, selectedWeek, { weekStartsOn: 1 }),
-    );
-    if (currentIndex > 0) {
-      setSelectedWeek(weeksInMonth[currentIndex - 1]);
-    }
-  };
-
-  const handleNextWeek = () => {
-    const currentIndex = weeksInMonth.findIndex((week) =>
-      isSameWeek(week, selectedWeek, { weekStartsOn: 1 }),
-    );
-    if (currentIndex < weeksInMonth.length - 1) {
-      setSelectedWeek(weeksInMonth[currentIndex + 1]);
-    }
-  };
-
-  // Calculate week dates ensuring they stay within the selected month
-  const { currentWeekIndex, weekStartDate, weekEndDate } = useMemo(() => {
-    const weekIndex = weeksInMonth.findIndex((week) =>
-      isSameWeek(week, selectedWeek, { weekStartsOn: 1 }),
-    );
-
-    const [year, monthNum] = selectedMonth.split("-").map(Number);
-    const monthStart = new Date(year, monthNum - 1, 1);
-    const monthEnd = new Date(year, monthNum, 0);
-
-    let startDate = startOfWeek(selectedWeek, { weekStartsOn: 1 });
-    let endDate = endOfWeek(selectedWeek, { weekStartsOn: 1 });
-
-    // Clamp dates to month boundaries
-    if (startDate < monthStart) startDate = monthStart;
-    if (endDate > monthEnd) endDate = monthEnd;
-
-    return {
-      currentWeekIndex: weekIndex,
-      weekStartDate: startDate,
-      weekEndDate: endDate,
-    };
-  }, [selectedWeek, selectedMonth, weeksInMonth]);
 
   // 1. Allocation Summary (Pie chart showing project allocation percentages)
   const redesignedAllocationSummaryData = useMemo(() => {
@@ -1465,11 +1019,6 @@ const EmployeeHoursReport: React.FC = () => {
           : [],
       )
       .filter((item) => item.value > 0);
-  }, [projectAllocations]);
-
-  // 2. Project Allocations (From FLResource table)
-  const redesignedProjectData = useMemo(() => {
-    return projectAllocations;
   }, [projectAllocations]);
 
   // 2b. Weekly Project Allocation Data
@@ -1578,7 +1127,7 @@ const EmployeeHoursReport: React.FC = () => {
         dayCount: number;
       }> = [];
 
-      dailySegments.forEach((segment, index) => {
+      dailySegments.forEach((segment) => {
         const lastMerged = mergedSegments[mergedSegments.length - 1];
 
         // Check if we can merge with the previous segment
@@ -1606,8 +1155,7 @@ const EmployeeHoursReport: React.FC = () => {
       });
 
       return mergedSegments;
-    } catch (error) {
-      console.error("Error calculating monthly daily allocation data:", error);
+    } catch {
       return [];
     }
   }, [projectAllocations, startDate, endDate]);
@@ -2411,7 +1959,7 @@ const EmployeeHoursReport: React.FC = () => {
                                         emp.pendingDetails.length > 0 ? (
                                           <div className="space-y-3 max-h-60 overflow-auto">
                                             {emp.pendingDetails.map(
-                                              (item, index) => (
+                                              (item: { date: string; projectName: string; projectId: string; projectManagerName: string }, index: number) => (
                                                 <div
                                                   key={`${emp.employeeId}-${index}`}
                                                   className="text-xs"

@@ -111,7 +111,7 @@ GroupSchema.pre('save', async function (next) {
 });
 
 // Index for better query performance
-GroupSchema.index({ groupName: 1 });
+// Note: groupName already has a unique index from 'unique: true' in schema
 GroupSchema.index({ status: 1 });
 GroupSchema.index({ groupType: 1 });
 GroupSchema.index({ department: 1 });

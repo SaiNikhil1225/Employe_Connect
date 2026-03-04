@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useProjectStore } from '@/store/projectStore';
 import { useCustomerPOStore } from '@/store/customerPOStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,6 +77,7 @@ interface Employee {
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { selectedProject, fetchProjectById } = useProjectStore();
   const { pos, fetchPOs } = useCustomerPOStore();
   const [isInitialLoading, setIsInitialLoading] = useState(!selectedProject);
@@ -145,6 +146,23 @@ export function ProjectDetailPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]); // fetchProjectById and fetchPOs are stable in Zustand stores
+
+  // Handle URL query params for tab navigation (e.g., from EditProjectDialog "Go to Financial Lines")
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const subtab = searchParams.get('subtab');
+    if (tab) {
+      setPrimaryTab(tab);
+      if (tab === 'financials' && subtab) {
+        setFinancialSubTab(subtab);
+      }
+      // Clean up URL params after applying
+      searchParams.delete('tab');
+      searchParams.delete('subtab');
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Fetch FL resources when project ID is available
   useEffect(() => {

@@ -50,8 +50,7 @@ const DepartmentSchema: Schema = new Schema(
 );
 
 // Indexes
-DepartmentSchema.index({ name: 1 });
-DepartmentSchema.index({ code: 1 });
+// Note: name and code already have unique indexes from 'unique: true' in schema
 DepartmentSchema.index({ isActive: 1 });
 DepartmentSchema.index({ managerId: 1 });
 

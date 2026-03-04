@@ -14,7 +14,7 @@ function DashboardLayoutContent() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar />
         <main className="flex-1 overflow-y-auto scrollbar-thin" role="main">
-          <div className="mx-auto p-6">
+          <div className="mx-auto max-w-[1920px] p-6">
             <Outlet />
           </div>
         </main>

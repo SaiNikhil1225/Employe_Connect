@@ -142,27 +142,27 @@ export function AnnouncementAnalyticsDialog({
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const baseURL = 'http://localhost:5000';
+      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       console.log(`Fetching analytics for announcement ${announcementId}, tab: ${activeTab}`);
       
       if (activeTab === 'overview') {
-        const response = await axios.get(`${baseURL}/api/announcements/${announcementId}/analytics`);
+        const response = await axios.get(`${baseURL}/announcements/${announcementId}/analytics`);
         console.log('Overview analytics response:', response.data);
         setOverview(response.data);
       } else if (activeTab === 'reactions') {
-        const { data } = await axios.get(`${baseURL}/api/announcements/${announcementId}/analytics/reactions`);
+        const { data } = await axios.get(`${baseURL}/announcements/${announcementId}/analytics/reactions`);
         console.log('Reactions analytics response:', data);
         setReactions(data.data?.reactions || []);
       } else if (activeTab === 'comments') {
-        const { data } = await axios.get(`${baseURL}/api/announcements/${announcementId}/analytics/comments`);
+        const { data } = await axios.get(`${baseURL}/announcements/${announcementId}/analytics/comments`);
         console.log('Comments analytics response:', data);
         setComments(data.data?.comments || []);
       } else if (activeTab === 'views') {
-        const { data } = await axios.get(`${baseURL}/api/announcements/${announcementId}/analytics/views`);
+        const { data } = await axios.get(`${baseURL}/announcements/${announcementId}/analytics/views`);
         console.log('Views analytics response:', data);
         setViews(data.data?.views || []);
       } else if (activeTab === 'timeline') {
-        const { data } = await axios.get(`${baseURL}/api/announcements/${announcementId}/analytics/timeline`);
+        const { data } = await axios.get(`${baseURL}/announcements/${announcementId}/analytics/timeline`);
         console.log('Timeline analytics response:', data);
         setTimeline(data.data || []);
       }

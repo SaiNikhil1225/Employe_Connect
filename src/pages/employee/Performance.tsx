@@ -44,13 +44,3 @@ export function Performance() {
     </div>
   );
 }
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-green-500" />
-          <h4 className="font-medium">{title}</h4>
-        </div>
-        <span className="text-xs text-muted-foreground">{date}</span>
-      </div>
-      <p className="text-sm text-muted-foreground">{feedback}</p>
-    </div>
-  );
-}

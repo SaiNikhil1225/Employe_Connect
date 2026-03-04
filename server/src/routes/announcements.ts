@@ -254,7 +254,7 @@ router.post('/:id/reaction', async (req: Request, res: Response) => {
           label,
           timestamp,
           device
-        };
+        } as any;
       }
     } else {
       // New reaction
@@ -348,7 +348,7 @@ router.post('/:id/vote', async (req: Request, res: Response) => {
         };
       }
       return option.toObject ? option.toObject() : option;
-    });
+    }) as any;
 
     // Update total votes
     announcement.totalVotes = (announcement.totalVotes || 0) + 1;

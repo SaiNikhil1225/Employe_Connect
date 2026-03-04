@@ -1,7 +1,40 @@
 import type { Request, Response } from 'express';
 import CustomerPO from '../models/CustomerPO';
+import FinancialLine from '../models/FinancialLine';
 import Customer from '../models/Customer';
 import Project from '../models/Project';
+
+/**
+ * Auto-update project status to 'Active' if the project has
+ * at least one active PO OR at least one active FL.
+ * If neither exists, revert to 'Draft' (only if currently 'Active').
+ */
+const syncProjectStatus = async (projectId: string | undefined) => {
+  if (!projectId) return;
+  try {
+    const [activeFLCount, activePOCount] = await Promise.all([
+      FinancialLine.countDocuments({ projectId, status: 'Active' }),
+      CustomerPO.countDocuments({ projectId, status: 'Active' }),
+    ]);
+
+    const project = await Project.findById(projectId);
+    if (!project) return;
+
+    if (activeFLCount > 0 || activePOCount > 0) {
+      // Has active FL or PO → make project Active
+      if (project.status !== 'Active') {
+        project.status = 'Active';
+        await project.save();
+      }
+    } else if (project.status === 'Active') {
+      // Lost all active FLs and POs → revert to Draft
+      project.status = 'Draft';
+      await project.save();
+    }
+  } catch (err) {
+    console.error('syncProjectStatus error:', err);
+  }
+};
 
 // Get all customer POs with filters
 export const getCustomerPOs = async (req: Request, res: Response) => {
@@ -108,6 +141,9 @@ export const createCustomerPO = async (req: Request, res: Response) => {
     const populatedPO = await CustomerPO.findById(po._id)
       .populate('customerId', 'customerName customerNo')
       .populate('projectId', 'projectName projectId');
+
+    // Auto-update project status if PO is Active
+    await syncProjectStatus(req.body.projectId);
     
     res.status(201).json({ success: true, data: populatedPO });
   } catch (error: unknown) {
@@ -152,6 +188,10 @@ export const updateCustomerPO = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Customer PO not found' });
     }
 
+    // Auto-update project status
+    const projectId = po.projectId?._id || po.projectId;
+    await syncProjectStatus(projectId?.toString());
+
     res.json({ success: true, data: po });
   } catch (error: unknown) {
     console.error('Failed to update customer PO:', error);
@@ -168,6 +208,10 @@ export const deleteCustomerPO = async (req: Request, res: Response) => {
     if (!po) {
       return res.status(404).json({ success: false, message: 'Customer PO not found' });
     }
+
+    // Auto-update project status after PO deletion
+    const projectId = po.projectId?.toString();
+    await syncProjectStatus(projectId);
     
     res.json({ success: true, message: 'Customer PO deleted successfully' });
   } catch (error: unknown) {

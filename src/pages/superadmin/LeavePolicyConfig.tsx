@@ -22,23 +22,36 @@ import {
     SheetCloseButton,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Plus, Save, Trash2, Edit2, Calendar } from 'lucide-react';
 import type { LeavePolicy, Distribution } from '@/types/superAdmin';
 
 const DISTRIBUTIONS: Distribution[] = ['QUARTERLY', 'HALF_YEARLY', 'ANNUAL'];
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export default function LeavePolicyConfig() {
     const [policies, setPolicies] = useState<LeavePolicy[]>([]);
     const [loading, setLoading] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | null>(null);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [policyToDelete, setPolicyToDelete] = useState<string | null>(null);
 
     // Load policies
     const loadPolicies = async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('auth-token');
-            const response = await fetch('http://localhost:5000/api/superadmin/leave-policies', {
+            const response = await fetch(`${API_URL}/superadmin/leave-policies`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -65,8 +78,8 @@ export default function LeavePolicyConfig() {
         try {
             const token = localStorage.getItem('auth-token');
             const url = policy._id
-                ? `http://localhost:5000/api/superadmin/leave-policy/${policy._id}`
-                : 'http://localhost:5000/api/superadmin/leave-policy';
+                ? `${API_URL}/superadmin/leave-policy/${policy._id}`
+                : `${API_URL}/superadmin/leave-policy`;
 
             const method = policy._id ? 'PUT' : 'POST';
 
@@ -98,7 +111,7 @@ export default function LeavePolicyConfig() {
     const deletePolicy = async (policyId: string) => {
         try {
             const token = localStorage.getItem('auth-token');
-            const response = await fetch(`http://localhost:5000/api/superadmin/leave-policy/${policyId}`, {
+            const response = await fetch(`${API_URL}/superadmin/leave-policy/${policyId}`, {
                 method: 'DELETE',
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -119,16 +132,16 @@ export default function LeavePolicyConfig() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="page-container">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="page-header">
                 <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-primary/10">
                         <Calendar className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold">Leave Policy Configuration</h1>
-                        <p className="text-muted-foreground">Configure leave types, allocations, and policies</p>
+                        <h1 className="page-title">Leave Policy Configuration</h1>
+                        <p className="page-description">Configure leave types, allocations, and policies</p>
                     </div>
                 </div>
                 <Button onClick={() => {
@@ -235,9 +248,8 @@ export default function LeavePolicyConfig() {
                                         size="sm"
                                         variant="outline"
                                         onClick={() => {
-                                            if (confirm('Delete this leave policy?')) {
-                                                deletePolicy(policy._id!);
-                                            }
+                                            setPolicyToDelete(policy._id!);
+                                            setDeleteConfirmOpen(true);
                                         }}
                                     >
                                         <Trash2 className="h-4 w-4" />
@@ -248,6 +260,30 @@ export default function LeavePolicyConfig() {
                     ))}
                 </div>
             )}
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Leave Policy</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this leave policy? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (policyToDelete) deletePolicy(policyToDelete);
+                                setPolicyToDelete(null);
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

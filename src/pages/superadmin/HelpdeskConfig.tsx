@@ -64,6 +64,7 @@ import type {
 import { searchEmployees } from '@/services/superAdminService';
 
 const FIXED_TABS = ['IT Support', 'Facilities', 'Finance'] as const;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 type TabType = typeof FIXED_TABS[number];
 
 const getTabIcon = (tab: TabType) => {
@@ -113,7 +114,7 @@ export default function HelpdeskConfigPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('auth-token');
-            const response = await fetch('http://localhost:5000/api/superadmin/categories', {
+            const response = await fetch(`${API_URL}/superadmin/categories`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await response.json();
@@ -358,7 +359,7 @@ export default function HelpdeskConfigPage() {
             const token = localStorage.getItem('auth-token');
             const hasAnyApproval = tempApprovalConfig.l1.enabled || tempApprovalConfig.l2.enabled || tempApprovalConfig.l3.enabled;
 
-            const response = await fetch(`http://localhost:5000/api/superadmin/categories/${editingCategory.id}`, {
+            const response = await fetch(`${API_URL}/superadmin/categories/${editingCategory.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -391,7 +392,7 @@ export default function HelpdeskConfigPage() {
     const handleToggleStatus = async (category: SubCategoryConfig) => {
         try {
             const token = localStorage.getItem('auth-token');
-            const response = await fetch(`http://localhost:5000/api/superadmin/categories/${category.id}`, {
+            const response = await fetch(`${API_URL}/superadmin/categories/${category.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -418,16 +419,16 @@ export default function HelpdeskConfigPage() {
 
     return (
         <TooltipProvider>
-            <div className="space-y-6">
+            <div className="page-container">
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="page-header">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10">
                             <Headset className="h-6 w-6 text-primary" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold">Helpdesk Configuration</h1>
-                            <p className="text-muted-foreground">Configure approval workflows for helpdesk categories</p>
+                            <h1 className="page-title">Helpdesk Configuration</h1>
+                            <p className="page-description">Configure approval workflows for helpdesk categories</p>
                         </div>
                     </div>
                 </div>

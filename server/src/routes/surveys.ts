@@ -269,7 +269,7 @@ router.post('/:id/submit', async (req: Request, res: Response) => {
           : 0;
         
         return question;
-      });
+      }) as any;
       
     } else {
       // Partial save

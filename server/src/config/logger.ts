@@ -1,5 +1,6 @@
 import winston from 'winston';
 import path from 'path';
+import fs from 'fs';
 
 // Define log levels
 const levels = {
@@ -52,24 +53,33 @@ const transports: winston.transport[] = [
 
 // Add file transports for production
 if (!isDevelopment) {
-  // Error log file
-  transports.push(
-    new winston.transports.File({
-      filename: path.join('logs', 'error.log'),
-      level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    })
-  );
+  try {
+    const logDir = path.join(process.cwd(), 'logs');
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+    // Error log file
+    transports.push(
+      new winston.transports.File({
+        filename: path.join(logDir, 'error.log'),
+        level: 'error',
+        maxsize: 5242880, // 5MB
+        maxFiles: 5,
+      })
+    );
 
-  // Combined log file
-  transports.push(
-    new winston.transports.File({
-      filename: path.join('logs', 'combined.log'),
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    })
-  );
+    // Combined log file
+    transports.push(
+      new winston.transports.File({
+        filename: path.join(logDir, 'combined.log'),
+        maxsize: 5242880, // 5MB
+        maxFiles: 5,
+      })
+    );
+  } catch (err) {
+    // If file logging fails, continue with console only
+    console.warn('Could not set up file logging:', err);
+  }
 }
 
 // Create the logger

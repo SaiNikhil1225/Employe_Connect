@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { getAvatarColor } from '@/lib/avatarUtils';
+import { getAvatarGradient, getInitials } from '@/constants/design-system';
 import { 
   AlertTriangle, 
   CheckCircle, 
@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { getInitials } from '@/constants/design-system';
+
 
 interface PIPRecord {
   _id: string;
@@ -78,6 +78,8 @@ interface PIPTableProps {
   employeeId?: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export default function PIPTable({ employeeId: propEmployeeId }: PIPTableProps = {}) {
   const { user } = useAuthStore();
   const [pipRecords, setPipRecords] = useState<PIPRecord[]>([]);
@@ -98,7 +100,7 @@ export default function PIPTable({ employeeId: propEmployeeId }: PIPTableProps =
     
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:5000/api/pip/employee/${employeeId}`);
+      const response = await axios.get(`${API_URL}/pip/employee/${employeeId}`);
       console.log('PIP Records response:', response.data);
       if (response.data.success) {
         setPipRecords(response.data.data);
@@ -113,7 +115,7 @@ export default function PIPTable({ employeeId: propEmployeeId }: PIPTableProps =
 
   const handleAcknowledge = async (pipId: string) => {
     try {
-      const response = await axios.patch(`http://localhost:5000/api/pip/${pipId}/acknowledge`);
+      const response = await axios.patch(`${API_URL}/pip/${pipId}/acknowledge`);
       if (response.data.success) {
         toast.success('PIP acknowledged successfully');
         fetchPIPRecords();
@@ -304,11 +306,7 @@ export default function PIPTable({ employeeId: propEmployeeId }: PIPTableProps =
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={pip.raisedBy.avatar} />
                               <AvatarFallback 
-                                className="text-xs font-semibold"
-                                style={{
-                                  backgroundColor: getAvatarColor(pip.raisedBy.employeeId || pip.raisedBy.name).bg,
-                                  color: getAvatarColor(pip.raisedBy.employeeId || pip.raisedBy.name).text,
-                                }}
+                                className={`text-xs font-semibold text-white ${getAvatarGradient(pip.raisedBy.name)}`}
                               >
                                 {getInitials(pip.raisedBy.name)}
                               </AvatarFallback>
@@ -328,11 +326,7 @@ export default function PIPTable({ employeeId: propEmployeeId }: PIPTableProps =
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={pip.reportingManager.avatar} />
                               <AvatarFallback 
-                                className="text-xs font-semibold"
-                                style={{
-                                  backgroundColor: getAvatarColor(pip.reportingManager.employeeId || pip.reportingManager.name).bg,
-                                  color: getAvatarColor(pip.reportingManager.employeeId || pip.reportingManager.name).text,
-                                }}
+                                className={`text-xs font-semibold text-white ${getAvatarGradient(pip.reportingManager.name)}`}
                               >
                                 {getInitials(pip.reportingManager.name)}
                               </AvatarFallback>
@@ -423,11 +417,7 @@ export default function PIPTable({ employeeId: propEmployeeId }: PIPTableProps =
                                     <Avatar className="h-10 w-10">
                                       <AvatarImage src={pip.raisedBy.avatar} />
                                       <AvatarFallback
-                                        className="font-semibold"
-                                        style={{
-                                          backgroundColor: getAvatarColor(pip.raisedBy.employeeId || pip.raisedBy.name).bg,
-                                          color: getAvatarColor(pip.raisedBy.employeeId || pip.raisedBy.name).text,
-                                        }}
+                                        className={`font-semibold text-white ${getAvatarGradient(pip.raisedBy.name)}`}
                                       >
                                         {getInitials(pip.raisedBy.name)}
                                       </AvatarFallback>
@@ -450,11 +440,7 @@ export default function PIPTable({ employeeId: propEmployeeId }: PIPTableProps =
                                     <Avatar className="h-10 w-10">
                                       <AvatarImage src={pip.reportingManager.avatar} />
                                       <AvatarFallback
-                                        className="font-semibold"
-                                        style={{
-                                          backgroundColor: getAvatarColor(pip.reportingManager.employeeId || pip.reportingManager.name).bg,
-                                          color: getAvatarColor(pip.reportingManager.employeeId || pip.reportingManager.name).text,
-                                        }}
+                                        className={`font-semibold text-white ${getAvatarGradient(pip.reportingManager.name)}`}
                                       >
                                         {getInitials(pip.reportingManager.name)}
                                       </AvatarFallback>

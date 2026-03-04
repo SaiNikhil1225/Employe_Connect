@@ -38,6 +38,8 @@ interface AddEditEmployeeModalProps {
   onSuccess?: () => void;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export function AddEditEmployeeModal({ open, onClose, employee, onSuccess }: AddEditEmployeeModalProps) {
   const navigate = useNavigate();
   const { addEmployee, updateEmployee, getNextEmployeeId, activeEmployees, fetchActiveEmployees, fetchEmployees } = useEmployeeStore();
@@ -411,7 +413,7 @@ export function AddEditEmployeeModal({ open, onClose, employee, onSuccess }: Add
       setEmailValidation({ isChecking: true, isValid: true, message: '' });
       
       try {
-        const response = await fetch(`http://localhost:5000/api/employees/validate/email?email=${encodeURIComponent(formData.email)}&excludeId=${employee?._id || ''}`);
+        const response = await fetch(`${API_URL}/employees/validate/email?email=${encodeURIComponent(formData.email)}&excludeId=${employee?._id || ''}`);
         const data = await response.json();
         
         if (data.exists) {
@@ -439,7 +441,7 @@ export function AddEditEmployeeModal({ open, onClose, employee, onSuccess }: Add
       setPanValidation({ isChecking: true, isValid: true, message: '' });
       
       try {
-        const response = await fetch(`http://localhost:5000/api/employees/validate/pan?panNumber=${encodeURIComponent(formData.panNumber)}&excludeId=${employee?._id || ''}`);
+        const response = await fetch(`${API_URL}/employees/validate/pan?panNumber=${encodeURIComponent(formData.panNumber)}&excludeId=${employee?._id || ''}`);
         const data = await response.json();
         
         if (data.exists) {
@@ -1429,8 +1431,8 @@ export function AddEditEmployeeModal({ open, onClose, employee, onSuccess }: Add
                   ) : null}
                 </div>
 
-                {/* BACKUP - Dotted Line Manager (commented out as per request) */}
-                {/* <div className="space-y-2">
+                {/* Dotted Line Manager */}
+                <div className="space-y-2">
                   <Label htmlFor="dottedLineManagerId">Dotted Line Manager</Label>
                   <Select
                     value={formData.dottedLineManagerId || 'none'}
@@ -1450,10 +1452,10 @@ export function AddEditEmployeeModal({ open, onClose, employee, onSuccess }: Add
                         ))}
                     </SelectContent>
                   </Select>
-                </div> */}
+                </div>
 
-                {/* BACKUP - Reporting Manager (commented out as per request) */}
-                {/* <div className="space-y-2">
+                {/* Reporting Manager */}
+                <div className="space-y-2">
                   <Label htmlFor="reportingManagerId">Reporting Manager's Employee Number</Label>
                   <Select
                     value={formData.reportingManagerId || 'none'}
@@ -1473,7 +1475,7 @@ export function AddEditEmployeeModal({ open, onClose, employee, onSuccess }: Add
                         ))}
                     </SelectContent>
                   </Select>
-                </div> */}
+                </div>
               </div>
 
               {/* Leave Plan Assignment */}

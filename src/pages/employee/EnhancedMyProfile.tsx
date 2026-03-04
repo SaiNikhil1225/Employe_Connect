@@ -34,6 +34,8 @@ interface EnhancedMyProfileProps {
   employeeId?: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export default function EnhancedMyProfile({ employeeId: propEmployeeId }: EnhancedMyProfileProps) {
   const { user } = useAuthStore();
   const { fetchEmployees } = useEmployeeStore();
@@ -78,7 +80,7 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
     }
     console.log('EnhancedMyProfile: Checking active PIP for:', targetEmployeeId);
     try {
-      const response = await axios.get(`http://localhost:5000/api/pip/employee/${targetEmployeeId}`);
+      const response = await axios.get(`${API_URL}/pip/employee/${targetEmployeeId}`);
       console.log('EnhancedMyProfile: PIP check response:', response.data);
       
       // Ensure we have a valid response with data array
@@ -139,7 +141,7 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
     setIsDisabling(true);
     try {
       const response = await axios.patch(
-        `http://localhost:5000/api/employees/${targetEmployeeId}/disable-login`
+        `${API_URL}/employees/${targetEmployeeId}/disable-login`
       );
       
       if (response.data.success) {
@@ -162,7 +164,7 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
     setIsEnabling(true);
     try {
       const response = await axios.patch(
-        `http://localhost:5000/api/employees/${targetEmployeeId}/enable-login`
+        `${API_URL}/employees/${targetEmployeeId}/enable-login`
       );
       
       if (response.data.success) {
@@ -190,7 +192,7 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
     setIsRemovingFromPIP(true);
     try {
       // First, get the active PIP
-      const pipsResponse = await axios.get(`http://localhost:5000/api/pip/employee/${targetEmployeeId}`);
+      const pipsResponse = await axios.get(`${API_URL}/pip/employee/${targetEmployeeId}`);
       
       if (pipsResponse.data.success && Array.isArray(pipsResponse.data.data)) {
         const activePIP = pipsResponse.data.data.find((pip: any) => 
@@ -204,7 +206,7 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
 
         // Cancel the PIP by updating its status
         const cancelResponse = await axios.patch(
-          `http://localhost:5000/api/pip/${activePIP._id}/status`,
+          `${API_URL}/pip/${activePIP._id}/status`,
           { status: 'Cancelled' }
         );
 

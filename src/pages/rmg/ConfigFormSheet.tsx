@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { configService, type ConfigMaster } from '@/services/configService';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface ConfigFormSheetProps {
   open: boolean;
@@ -47,7 +47,6 @@ const ConfigFormSheet: React.FC<ConfigFormSheetProps> = ({
   config,
   onSuccess,
 }) => {
-  const { toast } = useToast();
   const {
     register,
     handleSubmit,
@@ -90,10 +89,7 @@ const ConfigFormSheet: React.FC<ConfigFormSheetProps> = ({
           description: data.description.trim(),
           status: data.status,
         });
-        toast({
-          title: 'Success',
-          description: 'Configuration updated successfully',
-        });
+        toast.success('Configuration updated successfully');
       } else {
         // Create new
         await configService.create(type, {
@@ -101,20 +97,12 @@ const ConfigFormSheet: React.FC<ConfigFormSheetProps> = ({
           description: data.description.trim(),
           status: data.status,
         });
-        toast({
-          title: 'Success',
-          description: 'Configuration created successfully',
-        });
+        toast.success('Configuration created successfully');
       }
       onSuccess();
     } catch (error) {
       console.error('Failed to save configuration:', error);
-      toast({
-        title: 'Error',
-        description:
-          (error as Error).message || 'Failed to save configuration',
-        variant: 'destructive',
-      });
+      toast.error((error as Error).message || 'Failed to save configuration');
     }
   };
 

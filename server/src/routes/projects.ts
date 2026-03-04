@@ -1,8 +1,76 @@
 import express, { Request, Response } from 'express';
 import Project from '../models/Project';
 import Customer from '../models/Customer';
+import FinancialLine, { syncFLStatusesByDate } from '../models/FinancialLine';
+import CustomerPO from '../models/CustomerPO';
 
 const router = express.Router();
+
+/**
+ * Sync a single project's status based on active FL or PO presence.
+ * Project → Active when it has ≥1 active FL OR ≥1 active PO.
+ * Project → Draft when it was Active but lost both.
+ */
+async function syncProjectStatus(projectId: string) {
+  try {
+    const [activeFLs, activePOs] = await Promise.all([
+      FinancialLine.countDocuments({ projectId, status: 'Active' }),
+      CustomerPO.countDocuments({ projectId, status: 'Active' }),
+    ]);
+
+    const project = await Project.findById(projectId);
+    if (!project) return;
+
+    if (activeFLs > 0 || activePOs > 0) {
+      if (project.status !== 'Active') {
+        project.status = 'Active';
+        await project.save();
+        console.log(`Project ${project.projectId} auto-set to Active (${activeFLs} active FLs, ${activePOs} active POs)`);
+      }
+    } else if (project.status === 'Active') {
+      project.status = 'Draft';
+      await project.save();
+      console.log(`Project ${project.projectId} reverted to Draft (${activeFLs} active FLs, ${activePOs} active POs)`);
+    }
+  } catch (err) {
+    console.error('syncProjectStatus error:', err);
+  }
+}
+
+/**
+ * Sync ALL project statuses in one pass.
+ */
+async function syncAllProjectStatuses() {
+  try {
+    // First sync FL statuses based on dates
+    await syncFLStatusesByDate();
+
+    const projects = await Project.find();
+    let updated = 0;
+    for (const project of projects) {
+      const [activeFLs, activePOs] = await Promise.all([
+        FinancialLine.countDocuments({ projectId: project._id, status: 'Active' }),
+        CustomerPO.countDocuments({ projectId: project._id, status: 'Active' }),
+      ]);
+
+      const shouldBeActive = activeFLs > 0 || activePOs > 0;
+
+      if (shouldBeActive && project.status !== 'Active') {
+        project.status = 'Active';
+        await project.save();
+        updated++;
+      } else if (!shouldBeActive && project.status === 'Active') {
+        project.status = 'Draft';
+        await project.save();
+        updated++;
+      }
+    }
+    return updated;
+  } catch (err) {
+    console.error('syncAllProjectStatuses error:', err);
+    return 0;
+  }
+}
 
 // Helper function to update customer status based on active project count
 async function updateCustomerStatusBasedOnProjects(customerId: string) {
@@ -102,6 +170,49 @@ router.get('/active', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Failed to fetch active projects:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch active projects' });
+  }
+});
+
+// Get project stats (aggregated counts by status, region, billing type)
+router.get('/stats', async (req: Request, res: Response) => {
+  try {
+    // Auto-sync all project statuses before computing stats
+    await syncAllProjectStatuses();
+
+    const [total, byStatus, byRegion, byBillingType] = await Promise.all([
+      Project.countDocuments(),
+      Project.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ]),
+      Project.aggregate([
+        { $group: { _id: '$region', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+      Project.aggregate([
+        { $group: { _id: '$billingType', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+    ]);
+
+    res.json({
+      success: true,
+      data: { total, byStatus, byRegion, byBillingType }
+    });
+  } catch (error) {
+    console.error('Failed to fetch project stats:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch project stats' });
+  }
+});
+
+// Sync all project statuses based on active FL + PO
+router.post('/sync-statuses', async (req: Request, res: Response) => {
+  try {
+    const updated = await syncAllProjectStatuses();
+    res.json({ success: true, message: `${updated} project(s) updated`, updated });
+  } catch (error) {
+    console.error('Failed to sync project statuses:', error);
+    res.status(500).json({ success: false, message: 'Failed to sync project statuses' });
   }
 });
 

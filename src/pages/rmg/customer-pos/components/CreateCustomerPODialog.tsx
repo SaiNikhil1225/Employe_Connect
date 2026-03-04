@@ -10,7 +10,7 @@ import {
 import { CustomerPOForm } from './CustomerPOForm';
 import { useCustomerPOStore } from '@/store/customerPOStore';
 import type { CustomerPO, CustomerPOFormData } from '@/types/customerPO';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface CreateCustomerPODialogProps {
   open: boolean;
@@ -26,31 +26,20 @@ export function CreateCustomerPODialog({
   onSuccess,
 }: CreateCustomerPODialogProps) {
   const { createPO, updatePO } = useCustomerPOStore();
-  const { toast } = useToast();
 
   const handleSubmit = async (data: CustomerPOFormData) => {
     try {
       if (po) {
         await updatePO(po._id, data);
-        toast({
-          title: 'Success',
-          description: 'Customer PO updated successfully',
-        });
+        toast.success('Customer PO updated successfully');
       } else {
         await createPO(data);
-        toast({
-          title: 'Success',
-          description: 'Customer PO created successfully',
-        });
+        toast.success('Customer PO created successfully');
       }
       onSuccess?.();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'An error occurred';
-      toast({
-        title: 'Error',
-        description: message,
-        variant: 'destructive',
-      });
+      toast.error(message);
     }
   };
 

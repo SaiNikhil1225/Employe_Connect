@@ -2,7 +2,17 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 import type { FLStep1Data, FLStep2Data, FLStep3Data, RevenuePlanning } from '@/types/financialLine';
 import { format, startOfMonth, addMonths, isBefore, isSameMonth, eachDayOfInterval, isWeekend, startOfDay, endOfMonth } from 'date-fns';
 import { Info, SplitSquareHorizontal } from 'lucide-react';
@@ -19,7 +29,7 @@ interface FLStep3PlanningProps {
 export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNext, onBack }: FLStep3PlanningProps) {
   const [monthlyData, setMonthlyData] = useState<RevenuePlanning[]>(data.revenuePlanning || []);
   const [totalUnitsToSplit, setTotalUnitsToSplit] = useState<number>(0);
-  const { toast } = useToast();
+  const [showZeroRevenueConfirm, setShowZeroRevenueConfirm] = useState(false);
 
   // Generate months between schedule start and finish
   useEffect(() => {
@@ -104,20 +114,12 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
   // Split total units proportionally based on working days per month
   const handleSplitRevenue = () => {
     if (totalUnitsToSplit <= 0) {
-      toast({
-        title: 'Validation Error',
-        description: `Please enter total ${getUnitLabelShort()} to split.`,
-        variant: 'destructive',
-      });
+      toast.error(`Please enter total ${getUnitLabelShort()} to split.`);
       return;
     }
 
     if (monthlyData.length === 0) {
-      toast({
-        title: 'Error',
-        description: 'No months available for splitting.',
-        variant: 'destructive',
-      });
+      toast.error('No months available for splitting.');
       return;
     }
 
@@ -131,11 +133,7 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
     const totalWorkingDays = monthsWithWorkingDays.reduce((sum, m) => sum + m.workingDays, 0);
 
     if (totalWorkingDays === 0) {
-      toast({
-        title: 'Error',
-        description: 'No working days found in the selected period.',
-        variant: 'destructive',
-      });
+      toast.error('No working days found in the selected period.');
       return;
     }
 
@@ -158,44 +156,33 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
     
     setMonthlyData(cleanedData);
     
-    toast({
-      title: 'Success',
-      description: `${totalUnitsToSplit} ${getUnitLabelShort()} split across ${monthlyData.length} months based on working days.`,
-    });
+    toast.success(`${totalUnitsToSplit} ${getUnitLabelShort()} split across ${monthlyData.length} months based on working days.`);
   };
 
   const handleNext = () => {
     const totalPlanned = calculateTotalPlannedRevenue();
     
-    console.log('FLStep3Planning - handleNext called');
-    console.log('FLStep3Planning - monthlyData:', monthlyData);
-    console.log('FLStep3Planning - totalPlanned:', totalPlanned);
-    
     // Warning if no revenue planned
     if (totalPlanned === 0) {
-      const confirmProceed = window.confirm(
-        'You haven\'t entered any planned revenue. This will result in USD 0 planned revenue. Do you want to proceed?'
-      );
-      if (!confirmProceed) {
-        return;
-      }
+      setShowZeroRevenueConfirm(true);
+      return;
     }
     
-    if (totalPlanned > step2Data.totalFunding) {
-      toast({
-        title: 'Validation Error',
-        description: `Total planned revenue ($${totalPlanned.toFixed(2)}) exceeds total funding ($${step2Data.totalFunding.toFixed(2)})`,
-        variant: 'destructive',
-      });
+    proceedToNext(totalPlanned);
+  };
+
+  const proceedToNext = (totalPlanned?: number) => {
+    const total = totalPlanned ?? calculateTotalPlannedRevenue();
+    
+    if (total > step2Data.totalFunding) {
+      toast.error(`Total planned revenue ($${total.toFixed(2)}) exceeds total funding ($${step2Data.totalFunding.toFixed(2)})`);
       return;
     }
 
     const step3Data = {
       revenuePlanning: monthlyData,
-      totalPlannedRevenue: totalPlanned,
+      totalPlannedRevenue: total,
     };
-    
-    console.log('FLStep3Planning - step3Data to pass:', step3Data);
     
     // Update parent state
     onDataChange(step3Data);
@@ -228,10 +215,10 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium text-amber-900">
-                Auto-Split by Working Days
+                Auto-Split by Monthly Capacity Hours
               </label>
               <p className="text-xs text-amber-700">
-                Enter total {getUnitLabelShort()} to split proportionally based on working days per month (excluding weekends).
+                Enter total {getUnitLabelShort()} to split proportionally based on monthly capacity hours (Working Days × 8h, excluding weekends).
               </p>
               <div className="flex items-center gap-2">
                 <Input
@@ -253,10 +240,35 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
                 </Button>
               </div>
             </div>
-            <div className="text-xs text-amber-700 bg-amber-100 rounded-lg p-3 max-w-sm">
-              <strong>Formula:</strong> Each month's {getUnitLabelShort()} = Total × (Working Days in Month ÷ Total Working Days)
+            <div className="text-xs text-amber-700 bg-amber-100 rounded-lg p-3 max-w-sm space-y-1">
+              <p><strong>Formula:</strong> Month Allocation = (Month Capacity ÷ Total Capacity) × Total {getUnitLabelShort()}</p>
+              <p><strong>Capacity:</strong> Working Days × 8 hours (weekends excluded)</p>
             </div>
           </div>
+
+          {/* Monthly Capacity Breakdown */}
+          {monthlyData.length > 0 && (
+            <div className="mt-4 border-t border-amber-200 pt-3">
+              <p className="text-xs font-medium text-amber-900 mb-2">Monthly Capacity Breakdown:</p>
+              <div className="flex flex-wrap gap-2">
+                {monthlyData.map(month => {
+                  const workingDays = getWorkingDaysInMonth(month.month);
+                  const capacityHours = workingDays * 8;
+                  return (
+                    <div key={month.month} className="bg-white border border-amber-200 rounded-md px-2.5 py-1.5 text-xs">
+                      <span className="font-medium text-amber-900">{format(new Date(month.month + '-01'), 'MMM yyyy')}</span>
+                      <span className="text-amber-700 ml-1">
+                        {workingDays}d × 8h = <strong>{capacityHours}h</strong>
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="bg-amber-100 border border-amber-300 rounded-md px-2.5 py-1.5 text-xs font-semibold text-amber-900">
+                  Total: {monthlyData.reduce((sum, m) => sum + getWorkingDaysInMonth(m.month) * 8, 0)}h
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -309,6 +321,32 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
                   {monthlyData.map((month, idx) => (
                     <td key={`empty-${month.month}-${idx}`} className="border p-2"></td>
                   ))}
+                </tr>
+
+                {/* Capacity Hours Row (Read-only) */}
+                <tr className="bg-indigo-50">
+                  <td className="border p-2 font-medium sticky left-0 bg-indigo-50">
+                    <div className="space-y-0.5">
+                      <div className="text-sm">⏱️ Capacity</div>
+                      <div className="text-xs text-muted-foreground">(Working Days × 8h)</div>
+                    </div>
+                  </td>
+                  {monthlyData.map((month) => {
+                    const workingDays = getWorkingDaysInMonth(month.month);
+                    const capacityHours = workingDays * 8;
+                    return (
+                      <td key={`capacity-${month.month}`} className="border p-2">
+                        <div className="space-y-0.5 text-center">
+                          <div className="text-xs text-indigo-700 font-semibold">
+                            {capacityHours}h
+                          </div>
+                          <div className="text-[10px] text-indigo-500">
+                            {workingDays} days
+                          </div>
+                        </div>
+                      </td>
+                    );
+                  })}
                 </tr>
 
                 {/* Planned Row (Editable) */}
@@ -391,6 +429,24 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
       {/* Hidden buttons controlled by parent */}
       <button type="button" onClick={handleNext} className="hidden" id="step3-next" />
       <button type="button" onClick={onBack} className="hidden" id="step3-back" />
+
+      {/* Zero Revenue Confirmation Dialog */}
+      <AlertDialog open={showZeroRevenueConfirm} onOpenChange={setShowZeroRevenueConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>No Planned Revenue</AlertDialogTitle>
+            <AlertDialogDescription>
+              You haven&apos;t entered any planned revenue. This will result in USD 0 planned revenue. Do you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => proceedToNext(0)}>
+              Proceed with $0
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

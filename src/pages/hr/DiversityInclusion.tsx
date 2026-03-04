@@ -66,6 +66,8 @@ interface Employee {
   tenure: number;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export function DiversityInclusion() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +93,7 @@ export function DiversityInclusion() {
   const fetchEmployees = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/employees');
+      const response = await fetch(`${API_URL}/employees`);
       const result = await response.json();
 
       // Handle different response formats

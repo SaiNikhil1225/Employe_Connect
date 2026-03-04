@@ -24,7 +24,7 @@ import type {
 } from '@/types/holiday';
 import { HolidayStatus as HolidayStatusEnum } from '@/types/holiday';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Helper to get auth token
 const getAuthToken = () => {
@@ -108,6 +108,17 @@ export const deleteHoliday = async (id: string): Promise<void> => {
   await axios.delete(`${API_BASE}/holidays/${id}`, {
     headers: getHeaders()
   });
+};
+
+/**
+ * Bulk delete holidays (soft delete)
+ */
+export const bulkDeleteHolidays = async (holidayIds: string[]): Promise<{ deletedCount: number }> => {
+  const response = await axios.post(`${API_BASE}/holidays/bulk-delete`, 
+    { holidayIds },
+    { headers: getHeaders() }
+  );
+  return response.data;
 };
 
 /**

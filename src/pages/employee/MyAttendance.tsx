@@ -67,31 +67,12 @@ export default function MyAttendance() {
   // Get today's attendance record from logs (API data) or fallback to local storage
   const todayRecord = useMemo(() => {
     const today = format(new Date(), 'yyyy-MM-dd');
-    console.log('%c[todayRecord CALC] Starting calculation', 'background: blue; color: white; font-weight: bold; padding: 4px;');
-    console.log('[todayRecord CALC] Today\'s date:', today, '| Last update:', lastLogsUpdate);
-    console.log('[todayRecord CALC] Total logs in array:', logs?.length);
-    
-    // Debug: Show ALL logs with their dates
-    console.log('[todayRecord CALC] ALL LOGS:');
-    logs?.forEach((log, idx) => {
-      const logDate = format(new Date(log.date), 'yyyy-MM-dd');
-      console.log(`  Log ${idx + 1}:`, {
-        date: log.date,
-        formattedDate: logDate,
-        isToday: logDate === today,
-        checkInTime: log.checkInTime,
-        checkOutTime: log.checkOutTime,
-        isOpen: !!log.checkInTime && !log.checkOutTime
-      });
-    });
     
     // Get all sessions for today
     const todaySessions = logs?.filter(log => {
       const logDate = format(new Date(log.date), 'yyyy-MM-dd');
       return logDate === today;
     }) || [];
-    
-    console.log('[todayRecord CALC] Found', todaySessions.length, 'session(s) for today');
     
     if (todaySessions.length > 0) {
       // Calculate cumulative hours from all completed sessions
@@ -101,29 +82,6 @@ export default function MyAttendance() {
       // Find current open session (has check-in but no check-out)
       const openSession = todaySessions.find(log => log.checkInTime && !log.checkOutTime);
       
-      // Debug: Log each session's state
-      console.log('[todayRecord CALC] TODAY\'S SESSIONS:');
-      todaySessions.forEach((session, idx) => {
-        const isOpen = !!session.checkInTime && !session.checkOutTime;
-        console.log(`  Session ${idx + 1}:`, {
-          checkInTime: session.checkInTime,
-          checkOutTime: session.checkOutTime,
-          isOpen: isOpen,
-          effectiveHours: session.effectiveHours
-        });
-        if (isOpen) {
-          console.log('  ⭐ THIS IS THE OPEN SESSION ⭐');
-        }
-      });
-      
-      console.log('[todayRecord CALC] Open session found:', !!openSession);
-      if (openSession) {
-        console.log('[todayRecord CALC] Open session details:', {
-          checkInTime: openSession.checkInTime,
-          checkOutTime: openSession.checkOutTime
-        });
-      }
-      
       // Get the most recent session for display
       const latestSession = todaySessions.sort((a, b) => 
         new Date(b.checkInTime || 0).getTime() - new Date(a.checkInTime || 0).getTime()
@@ -131,14 +89,6 @@ export default function MyAttendance() {
       
       const MAX_WORK_HOURS = 8;
       const remainingHours = Math.max(0, MAX_WORK_HOURS - cumulativeHours);
-      
-      console.log('[MyAttendance todayRecord] Sessions:', {
-        total: todaySessions.length,
-        completed: completedSessions.length,
-        openSession: !!openSession,
-        cumulative: cumulativeHours.toFixed(2),
-        remaining: remainingHours.toFixed(2)
-      });
       
       // Convert to format compatible with existing UI
       const result = {
@@ -154,75 +104,32 @@ export default function MyAttendance() {
         maxHoursReached: cumulativeHours >= MAX_WORK_HOURS
       };
       
-      console.log('%c[todayRecord CALC] RESULT', 'background: purple; color: white; font-weight: bold; padding: 4px;', {
-        hasOpenSession: result.hasOpenSession,
-        sessionCount: result.sessionCount,
-        completedSessionCount: result.completedSessionCount,
-        checkIn: result.checkIn,
-        cumulativeHours: result.cumulativeHours.toFixed(2),
-        maxHoursReached: result.maxHoursReached
-      });
-      
       return result;
     }
     
     // No sessions today
-    console.log('%c[todayRecord CALC] No sessions found for today, returning null', 'background: gray; color: white; padding: 4px;');
     return null;
   }, [logs, lastLogsUpdate, user?.employeeId]);
 
   // Force fetch logs on component mount and periodically
   useEffect(() => {
-    console.log('%c[MyAttendance] Component Mounted', 'background: #0066cc; color: white; font-size: 14px; font-weight: bold; padding: 4px 8px;');
-    
     if (user?.employeeId) {
-      console.log('[MyAttendance] Initial data fetch for employee:', user.employeeId);
       // Force immediate fetch
       fetchLogs(user.employeeId);
       fetchStats(user.employeeId);
       fetchWFHRequests(user.employeeId);
       fetchRegularizationRequests(user.employeeId);
       
-      // Set up polling every 5 seconds to keep data fresh
+      // Set up polling every 60 seconds to keep data fresh
       const pollInterval = setInterval(() => {
-        console.log('[MyAttendance] Auto-refresh polling...');
         fetchLogs(user.employeeId);
-      }, 5000);
+      }, 60000);
       
       return () => {
-        console.log('[MyAttendance] Cleanup: stopping auto-refresh');
         clearInterval(pollInterval);
       };
     }
   }, [user?.employeeId, fetchLogs, fetchStats, fetchWFHRequests, fetchRegularizationRequests]);
-
-  // Component mount and todayRecord change logging
-  useEffect(() => {
-    console.log('%c[MyAttendance] todayRecord Updated', 'background: #222; color: #bada55; font-size: 14px; font-weight: bold;');
-    console.log('[MyAttendance] todayRecord changed:', todayRecord ? {
-      hasOpenSession: todayRecord.hasOpenSession,
-      checkIn: todayRecord.checkIn,
-      sessionCount: todayRecord.sessionCount,
-      cumulativeHours: todayRecord.cumulativeHours
-    } : 'NULL');
-  }, [todayRecord]);
-
-  // Debug: Log button states and attendance record
-  useEffect(() => {
-    console.log('[MyAttendance] State update at', new Date().toLocaleTimeString(), ':', {
-      lastLogsUpdate,
-      isClocking,
-      sessionCount: todayRecord?.sessionCount || 0,
-      completedSessions: todayRecord?.completedSessionCount || 0,
-      hasOpenSession: todayRecord?.hasOpenSession || false,
-      cumulativeHours: todayRecord?.cumulativeHours?.toFixed(2) || '0',
-      remainingHours: todayRecord?.remainingHours?.toFixed(2) || '8',
-      maxHoursReached: todayRecord?.maxHoursReached || false,
-      logsCount: logs?.length,
-      clockInDisabled: isClocking || todayRecord?.hasOpenSession || todayRecord?.maxHoursReached,
-      clockOutDisabled: isClocking || !todayRecord?.hasOpenSession
-    });
-  }, [todayRecord, isClocking, logs, lastLogsUpdate]);
 
   // Update current time every second
   useEffect(() => {
@@ -240,7 +147,6 @@ export default function MyAttendance() {
   // Load data on initial mount
   useEffect(() => {
     if (user?.employeeId) {
-      console.log('[MyAttendance] Initial load for user:', user.employeeId);
       loadData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -250,8 +156,6 @@ export default function MyAttendance() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && user?.employeeId) {
-        console.log('[MyAttendance] Page visible, refreshing attendance data');
-        
         // Calculate date range based on current selection
         let startDate: string | undefined;
         let endDate: string | undefined;
@@ -285,8 +189,6 @@ export default function MyAttendance() {
   const loadData = async () => {
     const employeeId = user?.employeeId || 'EMP001';
     
-    console.log('Loading attendance data for employee:', employeeId);
-    
     // Calculate date range based on selection
     let startDate: string | undefined;
     let endDate: string | undefined;
@@ -310,37 +212,35 @@ export default function MyAttendance() {
         break;
     }
     
-    console.log('Date range filter:', { selectedDateRange, startDate, endDate });
-    
     // Load data with individual error handling to prevent failures from breaking the entire page
     try {
       await fetchStats(employeeId, true);
     } catch (error) {
-      console.error('Failed to load stats:', error);
+      // Error handled silently
     }
     
     try {
       await fetchDailyTimings(employeeId, format(selectedDay, 'yyyy-MM-dd'));
     } catch (error) {
-      console.error('Failed to load daily timings:', error);
+      // Error handled silently
     }
     
     try {
       await fetchWFHRequests();
     } catch (error) {
-      console.error('Failed to load WFH requests:', error);
+      // Error handled silently
     }
     
     try {
       await fetchRegularizationRequests();
     } catch (error) {
-      console.error('Failed to load regularization requests:', error);
+      // Error handled silently
     }
 
     try {
       await fetchLogs(employeeId, { startDate, endDate });
     } catch (error) {
-      console.error('Failed to load attendance logs:', error);
+      // Error handled silently
     }
   };
 
@@ -353,106 +253,55 @@ export default function MyAttendance() {
     
     try {
       setIsClocking(true);
-      console.log('%c[handleClockIn] START', 'background: green; color: white; font-weight: bold; padding: 4px;');
-      console.log('[handleClockIn] Employee ID:', user.employeeId);
-      console.log('[handleClockIn] Current cumulative hours:', todayRecord?.cumulativeHours?.toFixed(2) || '0');
       
       await webClockIn(user.employeeId);
-      console.log('[handleClockIn] API call completed successfully');
       
-      // Force multiple refreshes to ensure data loads
-      console.log('[handleClockIn] Forcing data refresh...');
+      // Force refresh to ensure data loads
       await fetchLogs(user.employeeId);
       
-      // Additional refresh after delay to catch any async updates
+      // Single delayed refresh to catch async updates
       setTimeout(async () => {
-        console.log('[handleClockIn] Secondary refresh after 500ms');
-        await fetchLogs(user.employeeId);
-      }, 500);
-      
-      setTimeout(async () => {
-        console.log('[handleClockIn] Tertiary refresh after 1000ms');
         await fetchLogs(user.employeeId);
       }, 1000);
       
     } catch (error: any) {
-      console.error('[handleClockIn] ERROR:', error);
-      // Error toast already shown by store
+      // Error handled silently
     } finally {
       setIsClocking(false);
-      console.log('%c[handleClockIn] END', 'background: green; color: white; font-weight: bold; padding: 4px;');
     }
   };
 
   const handleClockOut = async () => {
-    console.log('========================================');
-    console.log('%c[handleClockOut] BUTTON CLICKED', 'background: red; color: white; font-weight: bold; padding: 4px;');
-    console.log('[handleClockOut] timestamp:', new Date().toISOString());
-    console.log('[handleClockOut] Employee ID:', user?.employeeId);
-    console.log('[handleClockOut] todayRecord state:', JSON.stringify({
-      exists: !!todayRecord,
-      hasOpenSession: todayRecord?.hasOpenSession,
-      checkIn: todayRecord?.checkIn,
-      checkOut: todayRecord?.checkOut,
-      sessionCount: todayRecord?.sessionCount,
-      completedSessionCount: todayRecord?.completedSessionCount,
-      cumulativeHours: todayRecord?.cumulativeHours
-    }, null, 2));
-    console.log('[handleClockOut] Raw logs count:', logs?.length);
-    console.log('[handleClockOut] isClocking state:', isClocking);
-    console.log('========================================');
-    
     if (!user?.employeeId) {
       toast.error('User not authenticated');
       return;
     }
     
     if (!todayRecord?.hasOpenSession) {
-      console.error('%c[handleClockOut] VALIDATION FAILED', 'background: orange; color: black; font-weight: bold; padding: 4px;');
-      console.error('[handleClockOut] No open session found!');
-      console.error('[handleClockOut] Current logs:', logs);
       toast.error('No active session to clock out. Please clock in first.');
       
       // Force refresh to get latest data
-      console.log('[handleClockOut] Forcing data refresh to check for missed updates...');
       await fetchLogs(user.employeeId);
       return;
     }
     
     try {
       setIsClocking(true);
-      console.log('%c[handleClockOut] PROCEEDING WITH CLOCK-OUT', 'background: red; color: white; font-weight: bold; padding: 4px;');
-      console.log('[handleClockOut] Session count:', todayRecord.sessionCount, 'Cumulative hours:', todayRecord.cumulativeHours?.toFixed(2));
       
       await webClockOut(user.employeeId);
-      console.log('[handleClockOut] API call completed successfully');
       
-      // Force multiple refreshes to ensure data loads
-      console.log('[handleClockOut] Forcing data refresh...');
+      // Force refresh to ensure data loads
       await fetchLogs(user.employeeId);
       
-      // Additional refresh after delay to catch any async updates
+      // Single delayed refresh to catch async updates
       setTimeout(async () => {
-        console.log('[handleClockOut] Secondary refresh after 500ms');
-        await fetchLogs(user.employeeId);
-      }, 500);
-      
-      setTimeout(async () => {
-        console.log('[handleClockOut] Tertiary refresh after 1000ms');
         await fetchLogs(user.employeeId);
       }, 1000);
       
     } catch (error: any) {
-      console.error('%c[handleClockOut] ERROR', 'background: red; color: yellow; font-weight: bold; padding: 4px;');
-      console.error('[handleClockOut] Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-      // Error toast already shown by store
+      // Error handled silently
     } finally {
       setIsClocking(false);
-      console.log('%c[handleClockOut] END', 'background: red; color: white; font-weight: bold; padding: 4px;');
     }
   };
 
@@ -468,7 +317,7 @@ export default function MyAttendance() {
         await fetchWFHRequests(); // Refresh WFH requests
       }
     } catch (error) {
-      console.error('WFH request failed:', error);
+      // Error handled silently
     }
   };
 
@@ -506,12 +355,9 @@ export default function MyAttendance() {
         // Display current session duration
         setWorkDuration({ hours: sessionHours, minutes: sessionMinutes });
         
-        console.log('[Duration] Session:', sessionHours, 'h', sessionMinutes, 'm | Cumulative:', cumulativeHours.toFixed(2), '| Total:', totalHours.toFixed(2));
-        
         // Auto clock-out when total reaches 8 hours (only once)
         if (totalHours >= MAX_WORK_HOURS && !hasAutoClockOut) {
           hasAutoClockOut = true;
-          console.log('[Auto Clock-Out] 8 hours cumulative reached, triggering auto clock-out');
           toast.info(`Total work hours reached ${MAX_WORK_HOURS} hours. Auto-clocking out now...`);
           handleClockOut();
         }
@@ -536,7 +382,7 @@ export default function MyAttendance() {
         await fetchLogs(user.employeeId); // Refresh logs in case it affects attendance
       }
     } catch (error) {
-      console.error('Regularization failed:', error);
+      // Error handled silently
     }
   };
 
@@ -583,7 +429,7 @@ export default function MyAttendance() {
       sortable: true,
       render: (value) => (
         <div>
-          <div className="text-sm font-medium text-gray-900">
+          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
             {value ? format(new Date(value), 'EEE, dd MMM yyyy') : '-'}
           </div>
         </div>
@@ -596,7 +442,7 @@ export default function MyAttendance() {
         // Handle weekly-off and holidays
         if (value === 'weekly-off') {
           return (
-            <Badge variant="secondary" className="bg-gray-200 text-gray-700 font-medium">
+            <Badge variant="secondary" className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium">
               W-OFF
             </Badge>
           );
@@ -624,7 +470,7 @@ export default function MyAttendance() {
         // Show check-in/check-out times
         return (
           <div>
-            <div className="text-sm text-gray-900">
+            <div className="text-sm text-gray-900 dark:text-gray-100">
               {formatTime(row.checkInTime)} - {formatTime(row.checkOutTime)}
             </div>
             {row.isLate && row.lateMinutes > 0 && (
@@ -641,7 +487,7 @@ export default function MyAttendance() {
       label: 'Effective Hours',
       sortable: true,
       render: (value) => (
-        <div className="text-sm font-medium text-gray-900">{formatHours(value)}</div>
+        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatHours(value)}</div>
       )
     },
     {
@@ -649,7 +495,7 @@ export default function MyAttendance() {
       label: 'Gross Hours',
       sortable: true,
       render: (value) => (
-        <div className="text-sm font-medium text-gray-900">{formatHours(value)}</div>
+        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatHours(value)}</div>
       )
     }
   ];
@@ -747,8 +593,8 @@ export default function MyAttendance() {
             <Calendar className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground\">Filter by Date Range</h2>
-            <p className="text-sm text-muted-foreground\">Select period</p>
+            <h2 className="text-lg font-semibold text-foreground">Filter by Date Range</h2>
+            <p className="text-sm text-muted-foreground">Select period</p>
           </div>
         </div>
         <Select value={selectedDateRange} onValueChange={setSelectedDateRange}>
@@ -765,9 +611,9 @@ export default function MyAttendance() {
 
       {/* Timings Card */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 shadow-sm rounded-xl bg-white border-0 ring-1 ring-gray-200">
+        <Card className="lg:col-span-2 shadow-sm rounded-xl bg-white dark:bg-gray-800 border-0 ring-1 ring-gray-200 dark:ring-gray-700">
             <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-semibold text-gray-900">Timings</CardTitle>
+              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">Timings</CardTitle>
               <div className="flex gap-1">
                 {getWeekDays().map((day, index) => {
                   const dayLetter = format(day, 'EEEEE');
@@ -783,7 +629,7 @@ export default function MyAttendance() {
                           ? 'bg-blue-600 text-white shadow-md' 
                           : isToday
                           ? 'border-blue-200 text-blue-600 hover:bg-blue-50'
-                          : 'text-muted-foreground border-gray-200 hover:bg-gray-50'
+                          : 'text-muted-foreground border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50'
                       }`}
                       onClick={() => {
                         setSelectedDay(day);
@@ -801,13 +647,13 @@ export default function MyAttendance() {
 
             <CardContent className="p-4 pt-0 space-y-4">
               <div className="text-center">
-                <div className="text-lg font-semibold text-gray-900">
+                <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {isSameDay(selectedDay, new Date()) ? 'Today' : format(selectedDay, 'EEEE')} 
                   {' '}({dailyTimings?.checkIn || '10:00 AM'} – {dailyTimings?.checkOut || '7:00 PM'})
                 </div>
               </div>
               <div className="space-y-3">
-                <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div className="h-full flex">
                     <div 
                       className="bg-blue-500 h-full transition-all duration-300"
@@ -829,13 +675,13 @@ export default function MyAttendance() {
               <div className="bg-muted/30 rounded-lg p-3 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-muted-foreground">Duration:</span>
-                  <span className="text-sm font-bold text-gray-900">
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
                     {dailyTimings?.totalHours || '9h 0m'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-muted-foreground">Break time:</span>
-                  <span className="text-sm font-bold text-gray-900">
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
                     {dailyTimings?.breakDuration || '60 min'}
                   </span>
                 </div>
@@ -850,13 +696,13 @@ export default function MyAttendance() {
               </div>
             </CardContent>
           </Card>
-          <Card className="shadow-sm rounded-xl bg-white border-0 ring-1 ring-gray-200">
+          <Card className="shadow-sm rounded-xl bg-white dark:bg-gray-800 border-0 ring-1 ring-gray-200 dark:ring-gray-700">
             <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-lg font-semibold text-gray-900">Web Check-In</CardTitle>
+              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">Web Check-In</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0 space-y-4">
               <div className="text-center space-y-2">
-                <div className="text-3xl font-bold text-gray-900 font-mono">
+                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 font-mono">
                   {format(currentTime, 'h:mm a')}
                 </div>
                 <div className="text-sm font-medium text-muted-foreground">
@@ -918,7 +764,7 @@ export default function MyAttendance() {
                             <span className="text-sm text-muted-foreground">Remaining</span>
                             <span className={`text-sm font-semibold ${
                               todayRecord.remainingHours <= 0 ? 'text-red-600' :
-                              todayRecord.remainingHours <= 1 ? 'text-orange-600' : 'text-gray-700'
+                              todayRecord.remainingHours <= 1 ? 'text-orange-600' : 'text-gray-700 dark:text-gray-300'
                             }`}>
                               {Math.floor(todayRecord.remainingHours)}h {Math.round((todayRecord.remainingHours % 1) * 60)}m
                             </span>
@@ -1022,9 +868,9 @@ export default function MyAttendance() {
           </Card>
         </div>
 
-        <Card className="shadow-sm rounded-xl bg-white border-0 ring-1 ring-gray-200 overflow-hidden">
+        <Card className="shadow-sm rounded-xl bg-white dark:bg-gray-800 border-0 ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
           <CardHeader className="bg-muted/30 p-4">
-            <CardTitle className="text-xl font-semibold text-gray-900">My Requests</CardTitle>
+            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">My Requests</CardTitle>
           </CardHeader>
           
           <CardContent className="p-6">
@@ -1041,13 +887,13 @@ export default function MyAttendance() {
                 <div className="space-y-4">
                   {wfhRequests && wfhRequests.length > 0 ? (
                     wfhRequests.map((request: any) => (
-                      <div key={request._id} className="border border-gray-200 rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                      <div key={request._id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-muted/30 transition-colors">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <Home className="h-5 w-5 text-green-600" />
                               <div>
-                                <h4 className="font-semibold text-gray-900">
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                                   Work From Home - {format(new Date(request.date), 'MMM dd, yyyy')}
                                 </h4>
                                 <p className="text-sm text-muted-foreground">
@@ -1057,7 +903,7 @@ export default function MyAttendance() {
                             </div>
                             
                             <div className="ml-8">
-                              <p className="text-sm text-gray-700 mb-3">
+                              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
                                 <strong>Reason:</strong> {request.reason}
                               </p>
                               
@@ -1107,7 +953,7 @@ export default function MyAttendance() {
                     <div className="text-center py-12 space-y-4">
                       <Home className="h-12 w-12 text-muted-foreground mx-auto" />
                       <div>
-                        <h3 className="text-lg font-medium text-gray-900">No WFH Requests</h3>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No WFH Requests</h3>
                         <p className="text-muted-foreground">You haven't submitted any work from home requests yet.</p>
                         <Button 
                           variant="outline" 
@@ -1125,13 +971,13 @@ export default function MyAttendance() {
                 <div className="space-y-4">
                   {regularizationRequests && regularizationRequests.length > 0 ? (
                     regularizationRequests.map((request: any) => (
-                      <div key={request._id} className="border border-gray-200 rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                      <div key={request._id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-muted/30 transition-colors">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <Edit3 className="h-5 w-5 text-orange-600" />
                               <div>
-                                <h4 className="font-semibold text-gray-900">
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                                   {request.requestType?.replace('-', ' ').toUpperCase() || 'Attendance Regularization'} - {format(new Date(request.date), 'MMM dd, yyyy')}
                                 </h4>
                                 <p className="text-sm text-muted-foreground">
@@ -1142,17 +988,17 @@ export default function MyAttendance() {
                             
                             <div className="ml-8">
                               {request.proposedCheckIn && (
-                                <p className="text-sm text-gray-700 mb-1">
+                                <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">
                                   <strong>Proposed Check-in:</strong> {format(new Date(request.proposedCheckIn), 'h:mm a')}
                                 </p>
                               )}
                               {request.proposedCheckOut && (
-                                <p className="text-sm text-gray-700 mb-1">
+                                <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">
                                   <strong>Proposed Check-out:</strong> {format(new Date(request.proposedCheckOut), 'h:mm a')}
                                 </p>
                               )}
                               
-                              <p className="text-sm text-gray-700 mb-3">
+                              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
                                 <strong>Reason:</strong> {request.reason}
                               </p>
                               
@@ -1202,7 +1048,7 @@ export default function MyAttendance() {
                     <div className="text-center py-12 space-y-4">
                       <Edit3 className="h-12 w-12 text-muted-foreground mx-auto" />
                       <div>
-                        <h3 className="text-lg font-medium text-gray-900">No Regularization Requests</h3>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No Regularization Requests</h3>
                         <p className="text-muted-foreground">You haven't submitted any attendance regularization requests yet.</p>
                         <Button 
                           variant="outline" 
@@ -1221,7 +1067,7 @@ export default function MyAttendance() {
         </Card>
 
       {/* Attendance Logs DataTable */}
-      <Card className="shadow-sm rounded-xl bg-white border-0 ring-1 ring-gray-200 overflow-hidden">
+      <Card className="shadow-sm rounded-xl bg-white dark:bg-gray-800 border-0 ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
         <CardHeader className="bg-muted/30 p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -1229,7 +1075,7 @@ export default function MyAttendance() {
                 <FileText className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900">Attendance Logs & Requests</CardTitle>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Attendance Logs & Requests</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">View your attendance history and requests</p>
               </div>
             </div>
@@ -1268,7 +1114,7 @@ export default function MyAttendance() {
           ) : (
             <div className="flex flex-col items-center justify-center py-16 px-4">
               <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Attendance Logs Yet</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No Attendance Logs Yet</h3>
               <p className="text-sm text-muted-foreground text-center max-w-md">
                 Your attendance logs will appear here once you start checking in. 
                 Use the Web Check-In button above to record your attendance.

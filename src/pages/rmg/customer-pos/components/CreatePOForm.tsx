@@ -34,7 +34,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Upload, FileText } from 'lucide-react';
 import type { CustomerPOFormData } from '@/types/customerPO';
 import { useCustomerPOStore } from '@/store/customerPOStore';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useProjectStore } from '@/store/projectStore';
 import { useCustomerStore } from '@/store/customerStore';
 
@@ -87,7 +87,6 @@ interface CreatePOFormProps {
 
 export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }: CreatePOFormProps) {
   const { createPO } = useCustomerPOStore();
-  const { toast } = useToast();
   const { projects = [], fetchProjects } = useProjectStore();
   const { customers = [], fetchCustomers } = useCustomerStore();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -189,11 +188,7 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
     try {
       // Validate project context
       if (!selectedProjectId) {
-        toast({
-          title: 'Error',
-          description: 'Project context is required to create a PO',
-          variant: 'destructive',
-        });
+        toast.error('Project context is required to create a PO');
         return;
       }
 
@@ -207,21 +202,13 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
 
         // Validate PO Start Date is within project dates
         if (poStartDate < projectStartDate || poStartDate > projectEndDate) {
-          toast({
-            title: 'Validation Error',
-            description: 'PO Start Date must fall within the project start and end dates',
-            variant: 'destructive',
-          });
+          toast.error('PO Start Date must fall within the project start and end dates');
           return;
         }
 
         // Validate PO Validity Date is within project end date
         if (poValidityDate > projectEndDate) {
-          toast({
-            title: 'Validation Error',
-            description: 'PO Validity Date must be on or before the project end date',
-            variant: 'destructive',
-          });
+          toast.error('PO Validity Date must be on or before the project end date');
           return;
         }
       }
@@ -244,20 +231,13 @@ export function CreatePOForm({ open, onOpenChange, onSuccess, defaultProjectId }
 
       await createPO(poData);
       
-      toast({
-        title: 'Success',
-        description: 'Customer PO created successfully',
-      });
+      toast.success('Customer PO created successfully');
       
       onSuccess?.();
       handleClose();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to create PO';
-      toast({
-        title: 'Error',
-        description: message,
-        variant: 'destructive',
-      });
+      toast.error(message);
     }
   };
 

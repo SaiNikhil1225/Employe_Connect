@@ -14,7 +14,7 @@ import { Step2FundingDetailsForm } from './Step2FundingDetailsForm';
 import { Step3RevenuePlanningForm } from './Step3RevenuePlanningForm';
 import { Step4PaymentMilestonesForm } from './Step4PaymentMilestonesForm';
 import { useFinancialLineStore } from '@/store/financialLineStore';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type {
   FLBasicDetails,
   FLFundingDetails,
@@ -44,7 +44,6 @@ export function CreateFLWizard({ open, onOpenChange, onSuccess, defaultProjectId
   const [showPaymentMilestones, setShowPaymentMilestones] = useState(false);
   const [isStepperLocked, setIsStepperLocked] = useState(false);
   const { createFL } = useFinancialLineStore();
-  const { toast } = useToast();
 
   // Initialize/update stepper configuration based on contract type
   useEffect(() => {
@@ -94,19 +93,12 @@ export function CreateFLWizard({ open, onOpenChange, onSuccess, defaultProjectId
 
       try {
         await createFL(completeData);
-        toast({
-          title: 'Success',
-          description: 'Financial line created successfully',
-        });
+        toast.success('Financial line created successfully');
         onSuccess?.();
         handleClose();
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'An error occurred';
-        toast({
-          title: 'Error',
-          description: message,
-          variant: 'destructive',
-        });
+        toast.error(message);
       }
     } else {
       // Fixed Bid - proceed to milestones step
@@ -123,19 +115,12 @@ export function CreateFLWizard({ open, onOpenChange, onSuccess, defaultProjectId
 
     try {
       await createFL(completeData);
-      toast({
-        title: 'Success',
-        description: 'Financial line created successfully',
-      });
+      toast.success('Financial line created successfully');
       onSuccess?.();
       handleClose();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'An error occurred';
-      toast({
-        title: 'Error',
-        description: message,
-        variant: 'destructive',
-      });
+      toast.error(message);
     }
   };
 

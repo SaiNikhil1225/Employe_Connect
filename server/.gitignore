@@ -1,0 +1,8 @@
+# Never ignore dist - needed for Azure deployment
+!dist
+
+# Ignore local dev files
+node_modules
+*.log
+.env
+.env.local

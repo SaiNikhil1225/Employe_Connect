@@ -1,7 +1,9 @@
-import { Moon, Sun, LogOut, User, ChevronDown } from 'lucide-react';
+import { Moon, Sun, LogOut, User, ChevronDown, Search } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { getAvatarGradient, getInitials } from '@/constants/design-system';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
 import { ProfileSwitcher } from '@/components/profile/ProfileSwitcher';
@@ -19,17 +21,11 @@ export function Topbar() {
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
   const { theme, toggleTheme } = useThemeStore();
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
   };
 
   return (
@@ -40,14 +36,14 @@ export function Topbar() {
       <div className="h-full px-4 md:px-6 flex items-center gap-4">
         <div className="flex-shrink-0 min-w-0" style={{ width: '20%' }}>
           <h2 className="text-lg md:text-xl font-medium text-gray-900 dark:text-white truncate">
-            {getGreeting()}, {user?.name?.split(' ')[0]}!
+            {user?.name?.split(' ')[0]}
           </h2>
           <p className="text-xs md:text-sm text-muted-foreground mt-0.5 truncate font-normal">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
 
-        {/* Search - Centered */}
+        {/* Search - Desktop centered */}
         <div className="flex-1 hidden lg:flex justify-center items-center px-4">
           <div className="w-full max-w-2xl">
             <GlobalSearch />
@@ -55,6 +51,15 @@ export function Topbar() {
         </div>
 
         <div className="flex-shrink-0 flex items-center gap-2 md:gap-3">
+          {/* Mobile Search Toggle */}
+          <button
+            onClick={() => setShowMobileSearch(!showMobileSearch)}
+            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            aria-label="Toggle search"
+          >
+            <Search className="h-5 w-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
+          </button>
+
           {/* Profile Switcher - For HR/Admin users */}
           <ProfileSwitcher />
 
@@ -82,12 +87,12 @@ export function Topbar() {
                 aria-label="User profile menu"
                 aria-haspopup="true"
               >
-                <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white overflow-hidden">
+                <div className={`h-9 w-9 rounded-full flex items-center justify-center text-white overflow-hidden bg-gradient-to-br ${getAvatarGradient(user?.name || '')}`}>
                   {user?.avatar ? (
                     <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
                   ) : (
-                    <span className="text-sm font-medium">
-                      {user?.name?.charAt(0)}
+                    <span className="text-sm font-semibold">
+                      {getInitials(user?.name || '')}
                     </span>
                   )}
                 </div>
@@ -128,6 +133,13 @@ export function Topbar() {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Mobile Search Bar */}
+      {showMobileSearch && (
+        <div className="lg:hidden border-t border-gray-200 dark:border-gray-700 px-4 py-2 bg-white dark:bg-gray-900">
+          <GlobalSearch />
+        </div>
+      )}
     </header>
   );
 }

@@ -41,9 +41,11 @@ export const useLeaveStore = create<LeaveStore>((set, get) => ({
         ? await leaveService.getByUserId(userId)
         : await leaveService.getAll();
       set({ leaves: data, isLoading: false });
-    } catch {
-      set({ error: 'Failed to load leaves', isLoading: false });
-      toast.error('Failed to load leaves');
+    } catch (error: any) {
+      console.error('Failed to load leaves:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load leaves';
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
     }
   },
 
@@ -143,6 +145,27 @@ export const useLeaveStore = create<LeaveStore>((set, get) => ({
             employeeName: userName,
             leaveType: leaveData.leaveType,
             actionUrl: '/manager/leave-approvals',
+          },
+        });
+      } catch (notifError) {
+        // Notification failed, but leave was created
+        // Notification creation failed, continue without it
+      }
+
+      // Create notification for HR
+      try {
+        await useNotificationStore.getState().createNotification({
+          title: 'New Leave Request',
+          description: `${userName} (${department}) has requested ${leaveData.leaveType} from ${format(new Date(leaveData.startDate), 'MMM dd')} to ${format(new Date(leaveData.endDate), 'MMM dd, yyyy')}`,
+          type: 'leave',
+          role: 'HR',
+          meta: {
+            leaveId: createdLeave.id || createdLeave._id,
+            employeeId: userId,
+            employeeName: userName,
+            department,
+            leaveType: leaveData.leaveType,
+            actionUrl: '/hr/leave-attendance-overview',
           },
         });
       } catch (notifError) {

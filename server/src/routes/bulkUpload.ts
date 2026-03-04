@@ -103,7 +103,7 @@ router.post('/process', upload.single('file'), async (req, res) => {
     await bulkUploadService.processEmployees(
       employees,
       (created, total, current) => {
-        console.log(`Progress: ${created}/${total} - Current: ${current?.firstName} ${current?.lastName}`);
+        console.log(`Progress: ${created}/${total} - Current: ${(current as any)?.firstName} ${(current as any)?.lastName}`);
         res.write(`data: ${JSON.stringify({ created, total, current })}\n\n`);
       }
     );

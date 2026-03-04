@@ -35,20 +35,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { differenceInMonths, differenceInYears, parseISO } from 'date-fns';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
-// Get time-based greeting
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return { text: 'Good Morning', emoji: '🌅', gradient: 'from-orange-400 to-yellow-400' };
-  if (hour < 17) return { text: 'Good Afternoon', emoji: '☀️', gradient: 'from-blue-400 to-cyan-400' };
-  return { text: 'Good Evening', emoji: '🌙', gradient: 'from-indigo-400 to-purple-400' };
-};
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export function WorkforceSummary() {
   const navigate = useNavigate();
   const { permissions } = useProfile();
   const [hoveredEmployee, setHoveredEmployee] = useState<string | null>(null);
   const user = useAuthStore((state) => state.user);
-  const greeting = getGreeting();
   const { checkIn, checkOut, getTodayRecord } = useAttendanceStore();
   const todayRecord = getTodayRecord(user?.employeeId || '');
 
@@ -134,7 +127,7 @@ export function WorkforceSummary() {
   // Fetch workforce statistics
   const fetchWorkforceStats = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/employees/stats/workforce');
+      const response = await fetch(`${API_URL}/employees/stats/workforce`);
       const result = await response.json();
       if (result.success) {
         setWorkforceStats(result.data);
@@ -179,7 +172,8 @@ export function WorkforceSummary() {
   const yearHolidays = useMemo(() => {
     return (allHolidays || [])
       .filter(holiday => {
-        const holidayYear = new Date(holiday.date).getFullYear();
+        const holidayDate = new Date(holiday.date);
+        const holidayYear = holidayDate.getUTCFullYear();
         return holidayYear === selectedYear;
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -192,18 +186,21 @@ export function WorkforceSummary() {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     
-    // 1. Check if today is a holiday
-    const todayHolidayIndex = yearHolidays.findIndex(holiday => 
-      holiday.date === todayStr
-    );
+    // 1. Check if today is a holiday (compare date strings directly)
+    const todayHolidayIndex = yearHolidays.findIndex(holiday => {
+      const holidayDate = new Date(holiday.date);
+      const holidayDateStr = `${holidayDate.getUTCFullYear()}-${String(holidayDate.getUTCMonth() + 1).padStart(2, '0')}-${String(holidayDate.getUTCDate()).padStart(2, '0')}`;
+      return holidayDateStr === todayStr;
+    });
     if (todayHolidayIndex !== -1) {
       return todayHolidayIndex;
     }
     
-    // 2. Find next upcoming holiday
+    // 2. Find next upcoming holiday (compare date strings, not timestamps)
     const upcomingHolidayIndex = yearHolidays.findIndex(holiday => {
       const holidayDate = new Date(holiday.date);
-      return holidayDate > today;
+      const holidayDateStr = `${holidayDate.getUTCFullYear()}-${String(holidayDate.getUTCMonth() + 1).padStart(2, '0')}-${String(holidayDate.getUTCDate()).padStart(2, '0')}`;
+      return holidayDateStr > todayStr;
     });
     if (upcomingHolidayIndex !== -1) {
       return upcomingHolidayIndex;
@@ -1227,50 +1224,17 @@ export function WorkforceSummary() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Enhanced Header with Greeting Banner */}
-      <div className="relative overflow-hidden rounded-xl bg-orange-50/50 dark:bg-orange-950/20 border p-6">
-        <div className="relative z-10">
-          {/* Greeting & User Info */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-950 dark:text-orange-300 border-2">
-                <Users className="h-6 w-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-                    {greeting.text}, {user?.name}! {greeting.emoji}
-                  </h1>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-950 dark:text-orange-300">
-                    HR
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    Workforce Summary Dashboard
-                  </span>
-                </div>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
-        </div>
-      </div>
-
+    <div className="page-container">
       {/* Employee Management Section */}
       {permissions.canEditEmployees && (
-        <div className="flex items-center justify-between">
+        <div className="page-header">
           <div className="flex items-start gap-3 flex-1">
             <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
               <Briefcase className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-foreground mb-1">Employee Management</h2>
-              <p className="text-sm text-muted-foreground">Filter by date range and manage employees</p>
+              <h2 className="page-title">Employee Management</h2>
+              <p className="page-description">Filter by date range and manage employees</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

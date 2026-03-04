@@ -70,6 +70,8 @@ const MODULE_DEFINITIONS = [
     { name: 'Finance', key: 'FINANCE', enabled: true, icon: '💰', color: 'bg-green-100 dark:bg-green-900 border-green-300', description: 'Financial Management' },
 ];
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 interface Employee {
     _id: string;
     employeeId: string;
@@ -126,7 +128,7 @@ export default function PermissionsMatrix() {
             }
 
             const response = await fetch(
-                'http://localhost:5000/api/employees',
+                `${API_URL}/employees`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -166,7 +168,7 @@ export default function PermissionsMatrix() {
             }
 
             const response = await fetch(
-                'http://localhost:5000/api/superadmin/permissions',
+                `${API_URL}/superadmin/permissions`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -231,7 +233,7 @@ export default function PermissionsMatrix() {
 
             // Get permissions for this module
             const permResponse = await fetch(
-                `http://localhost:5000/api/superadmin/permissions`,
+                `${API_URL}/superadmin/permissions`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -351,7 +353,7 @@ export default function PermissionsMatrix() {
             console.log('Saving permission for:', user.employeeId, 'Module:', selectedModule.key);
 
             const response = await fetch(
-                `http://localhost:5000/api/superadmin/permissions`,
+                `${API_URL}/superadmin/permissions`,
                 {
                     method: 'POST',
                     headers: {
@@ -386,7 +388,7 @@ export default function PermissionsMatrix() {
                 // Create notification if module is being newly enabled
                 if (!wasEnabled && isNowEnabled) {
                     try {
-                        await fetch(`http://localhost:5000/api/superadmin/notifications`, {
+                        await fetch(`${API_URL}/superadmin/notifications`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -454,16 +456,16 @@ export default function PermissionsMatrix() {
     });
 
     return (
-        <div className="space-y-6">
+        <div className="page-container">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="page-header">
                 <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-primary/10">
                         <Shield className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold">Module Permissions</h1>
-                        <p className="text-muted-foreground">View and manage module access permissions across all employees</p>
+                        <h1 className="page-title">Module Permissions</h1>
+                        <p className="page-description">View and manage module access permissions across all employees</p>
                     </div>
                 </div>
             </div>
@@ -606,7 +608,7 @@ export default function PermissionsMatrix() {
                                     </Badge>
                                 </div>
 
-                                {/* Users Table */}
+                                            {/* Users Table */}
                                 <div className="border rounded-lg">
                                     {filteredUsers.length === 0 ? (
                                         <div className="text-center py-12 text-muted-foreground">
@@ -619,6 +621,8 @@ export default function PermissionsMatrix() {
                                                     <TableHead className="w-[300px]">Employee</TableHead>
                                                     <TableHead className="w-[120px] text-center">Admin</TableHead>
                                                     <TableHead className="w-[100px] text-center">View</TableHead>
+                                                    <TableHead className="w-[100px] text-center">Add</TableHead>
+                                                    <TableHead className="w-[100px] text-center">Modify</TableHead>
                                                     <TableHead className="w-[120px] text-right">Actions</TableHead>
                                                 </TableRow>
                                             </TableHeader>
@@ -653,6 +657,24 @@ export default function PermissionsMatrix() {
                                                                     checked={user.permissions.view}
                                                                     onCheckedChange={(checked) =>
                                                                         handleTogglePermission(user.employeeId, 'view', checked as boolean)
+                                                                    }
+                                                                    disabled={!isEditing}
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell className="text-center">
+                                                                <Checkbox
+                                                                    checked={user.permissions.add}
+                                                                    onCheckedChange={(checked) =>
+                                                                        handleTogglePermission(user.employeeId, 'add', checked as boolean)
+                                                                    }
+                                                                    disabled={!isEditing}
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell className="text-center">
+                                                                <Checkbox
+                                                                    checked={user.permissions.modify}
+                                                                    onCheckedChange={(checked) =>
+                                                                        handleTogglePermission(user.employeeId, 'modify', checked as boolean)
                                                                     }
                                                                     disabled={!isEditing}
                                                                 />
@@ -734,6 +756,8 @@ export default function PermissionsMatrix() {
                                                     <TableHead className="w-[300px]">Employee</TableHead>
                                                     <TableHead className="w-[120px] text-center">Admin</TableHead>
                                                     <TableHead className="w-[100px] text-center">View</TableHead>
+                                                    <TableHead className="w-[100px] text-center">Add</TableHead>
+                                                    <TableHead className="w-[100px] text-center">Modify</TableHead>
                                                     <TableHead className="w-[120px] text-right">Actions</TableHead>
                                                 </TableRow>
                                             </TableHeader>
@@ -768,6 +792,23 @@ export default function PermissionsMatrix() {
                                                                     checked={user.permissions.view}
                                                                     onCheckedChange={(checked) =>
                                                                         handleTogglePermission(user.employeeId, 'view', checked as boolean)
+                                                                    }
+                                                                    disabled={!isEditing}
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell className="text-center">
+                                                                <Checkbox
+                                                                    checked={user.permissions.add}
+                                                                    onCheckedChange={(checked) =>
+                                                                        handleTogglePermission(user.employeeId, 'add', checked as boolean)
+                                                                    }
+                                                                    disabled={!isEditing}
+                                                                />\n                                                            </TableCell>
+                                                            <TableCell className="text-center">
+                                                                <Checkbox
+                                                                    checked={user.permissions.modify}
+                                                                    onCheckedChange={(checked) =>
+                                                                        handleTogglePermission(user.employeeId, 'modify', checked as boolean)
                                                                     }
                                                                     disabled={!isEditing}
                                                                 />

@@ -11,6 +11,7 @@ import CompanySettings from '../models/CompanySettings';
 import { FLResource } from '../models/FLResource';
 import { employeeValidation } from '../middleware/validation';
 import { authenticateToken } from '../middleware/auth';
+import { checkModulePermission } from '../middleware/permissions';
 import { NotificationService } from '../services/notificationService';
 
 const router = express.Router();
@@ -359,8 +360,8 @@ router.get('/stats/workforce', async (_req: Request, res: Response) => {
     
     // Calculate exits MTD (last working day in current month or status inactive this month)
     const exitsMTD = allEmployees.filter(emp => {
-      if (emp.lastWorkingDay) {
-        const exitDate = new Date(emp.lastWorkingDay);
+      if ((emp as any).lastWorkingDay) {
+        const exitDate = new Date((emp as any).lastWorkingDay);
         return exitDate >= startOfMonth && exitDate <= now;
       }
       return false;
@@ -368,8 +369,8 @@ router.get('/stats/workforce', async (_req: Request, res: Response) => {
     
     // Calculate exits YTD (last working day in current year or status inactive this year)
     const exitsYTD = allEmployees.filter(emp => {
-      if (emp.lastWorkingDay) {
-        const exitDate = new Date(emp.lastWorkingDay);
+      if ((emp as any).lastWorkingDay) {
+        const exitDate = new Date((emp as any).lastWorkingDay);
         return exitDate >= startOfYear && exitDate <= now;
       }
       return false;
@@ -390,8 +391,8 @@ router.get('/stats/workforce', async (_req: Request, res: Response) => {
     const lastMonthActiveCount = allEmployees.filter(emp => {
       if (emp.status !== 'active') {
         // Check if they were active last month
-        if (emp.lastWorkingDay) {
-          const exitDate = new Date(emp.lastWorkingDay);
+        if ((emp as any).lastWorkingDay) {
+          const exitDate = new Date((emp as any).lastWorkingDay);
           return exitDate > endOfLastMonth;
         }
         return false;
@@ -550,7 +551,7 @@ async function generateEmployeeIdByHireType(hireType: string): Promise<string> {
   }
 }
 
-router.post('/', employeeValidation.create, async (req: Request, res: Response) => {
+router.post('/', authenticateToken, checkModulePermission({ module: 'EMPLOYEE', action: 'add' }), employeeValidation.create, async (req: Request, res: Response) => {
   try {
     const employeeData = { ...req.body };
     
@@ -740,7 +741,7 @@ router.patch('/:id/activate', async (req: Request, res: Response) => {
 });
 
 // Update employee
-router.put('/:id', authenticateToken, employeeValidation.update, async (req: Request, res: Response) => {
+router.put('/:id', authenticateToken, checkModulePermission({ module: 'EMPLOYEE', action: 'modify' }), employeeValidation.update, async (req: Request, res: Response) => {
   try {
     // Authorization check: user can only edit their own profile or must be HR admin
     const requestingUser = (req as any).user;
@@ -828,7 +829,7 @@ router.put('/:id', authenticateToken, employeeValidation.update, async (req: Req
 });
 
 // Delete employee
-router.delete('/:id', employeeValidation.delete, async (req: Request, res: Response) => {
+router.delete('/:id', authenticateToken, checkModulePermission({ module: 'EMPLOYEE', action: 'modify' }), employeeValidation.delete, async (req: Request, res: Response) => {
   try {
     // Build query to handle both MongoDB IDs and custom employee IDs
     const query: any = { $or: [{ id: req.params.id }, { employeeId: req.params.id }] };

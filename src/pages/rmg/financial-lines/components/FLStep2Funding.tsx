@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
 import { useCustomerPOStore } from '@/store/customerPOStore';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { FLStep1Data, FLStep2Data, FundingAllocation, UOM } from '@/types/financialLine';
 import { useEffect } from 'react';
 import axios from 'axios';
@@ -21,7 +21,6 @@ interface FLStep2FundingProps {
 export function FLStep2Funding({ data, step1Data, onDataChange, onNext, onBack }: FLStep2FundingProps) {
   const [fundingRows, setFundingRows] = useState<FundingAllocation[]>(data.funding || []);
   const { pos, fetchPOs } = useCustomerPOStore();
-  const { toast } = useToast();
   const [poAllocations, setPOAllocations] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -132,11 +131,7 @@ export function FLStep2Funding({ data, step1Data, onDataChange, onNext, onBack }
         updated[index].fundingUnits = fundingValue / unitRate;
         updated[index].fundingAmountPoCurrency = fundingValue;
       } else if (unitRate === 0) {
-        toast({
-          title: 'Calculation Error',
-          description: 'Unit Rate must be greater than 0 to calculate Funding Units',
-          variant: 'destructive',
-        });
+        toast.error('Unit Rate must be greater than 0 to calculate Funding Units');
         // Reset to previous value or 0
         updated[index].fundingValueProject = 0;
         updated[index].fundingUnits = 0;
@@ -152,11 +147,7 @@ export function FLStep2Funding({ data, step1Data, onDataChange, onNext, onBack }
 
   const handleNext = () => {
     if (fundingRows.length === 0) {
-      toast({
-        title: 'Validation Error',
-        description: 'At least one PO funding allocation is required',
-        variant: 'destructive',
-      });
+      toast.error('At least one PO funding allocation is required');
       return;
     }
 
@@ -168,11 +159,7 @@ export function FLStep2Funding({ data, step1Data, onDataChange, onNext, onBack }
     });
     
     if (invalidRow) {
-      toast({
-        title: 'Validation Error',
-        description: 'All funding rows must have: PO selected, Unit Rate > 0, and Funding Value > 0',
-        variant: 'destructive',
-      });
+      toast.error('All funding rows must have: PO selected, Unit Rate > 0, and Funding Value > 0');
       return;
     }
 

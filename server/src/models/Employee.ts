@@ -485,7 +485,6 @@ employeeSchema.virtual('totalExperience').get(function() {
 
 // Indexes for faster lookups
 // Note: employeeId, email, and panNumber already have unique indexes from 'unique: true' in schema
-employeeSchema.index({ panNumber: 1 }, { unique: true });
 employeeSchema.index({ department: 1, status: 1 });
 employeeSchema.index({ role: 1 });
 employeeSchema.index({ hasLoginAccess: 1, isActive: 1 });

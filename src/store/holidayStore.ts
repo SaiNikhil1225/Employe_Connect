@@ -38,9 +38,11 @@ export const useHolidayStore = create<HolidayState>((set, get) => ({
           ? item.typeId.name 
           : 'Holiday';
         
+        // Store date in ISO format to avoid timezone issues
+        // This will be "2026-01-01T00:00:00.000Z" format
         return {
           id: item._id || '',
-          date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          date: item.date, // Keep ISO format
           name: item.name,
           type: typeName,
           backgroundImage: item.imageUrl || ''
@@ -65,10 +67,10 @@ export const useHolidayStore = create<HolidayState>((set, get) => ({
           const typeName = typeof newHoliday.typeId === 'object' && newHoliday.typeId && 'name' in newHoliday.typeId 
             ? newHoliday.typeId.name 
             : 'Holiday';
-          
+
           const transformed: Holiday = {
             id: newHoliday._id || `temp-${Date.now()}`,
-            date: new Date(newHoliday.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            date: newHoliday.date, // Keep ISO format
             name: newHoliday.name,
             type: typeName,
             backgroundImage: newHoliday.imageUrl || ''
@@ -128,45 +130,48 @@ export const useHolidayStore = create<HolidayState>((set, get) => ({
       getUpcomingHolidays: () => {
         const holidays = get().holidays;
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
 
-        // Parse and sort holidays by actual date
+        // Parse and sort holidays by actual date using UTC methods
         const sortedHolidays = holidays
-          .map(h => ({
-            ...h,
-            dateObj: new Date(h.date) // Parse the formatted date string back to Date
-          }))
-          .filter(h => h.dateObj >= today) // Remove past holidays
-          .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+          .map(h => {
+            const dateObj = new Date(h.date);
+            // Get UTC date string for comparison
+            const dateStr = `${dateObj.getUTCFullYear()}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${String(dateObj.getUTCDate()).padStart(2, '0')}`;
+            return {
+              ...h,
+              dateStr,
+              year: dateObj.getUTCFullYear(),
+              month: dateObj.getUTCMonth()
+            };
+          })
+          .filter(h => h.dateStr >= todayStr) // Remove past holidays
+          .sort((a, b) => a.dateStr.localeCompare(b.dateStr));
 
         if (sortedHolidays.length === 0) {
           return [];
         }
 
-        // Find current month holidays
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
+        // Find current month holidays using UTC
+        const currentMonth = today.getUTCMonth();
+        const currentYear = today.getUTCFullYear();
         const currentMonthHolidays = sortedHolidays.filter(h =>
-          h.dateObj.getMonth() === currentMonth &&
-          h.dateObj.getFullYear() === currentYear
+          h.month === currentMonth && h.year === currentYear
         );
 
         // If current month has holidays, return them
         if (currentMonthHolidays.length > 0) {
-          return currentMonthHolidays.map(({ dateObj, ...h }) => h);
+          return currentMonthHolidays.map(({ dateStr, year, month, ...h }) => h);
         }
 
         // Find next month with holidays
         const firstUpcoming = sortedHolidays[0];
-        const targetMonth = firstUpcoming.dateObj.getMonth();
-        const targetYear = firstUpcoming.dateObj.getFullYear();
+        const targetMonth = firstUpcoming.month;
+        const targetYear = firstUpcoming.year;
 
         return sortedHolidays
-          .filter(h =>
-            h.dateObj.getMonth() === targetMonth &&
-            h.dateObj.getFullYear() === targetYear
-          )
-          .map(({ dateObj: _, ...h }) => h);
+          .filter(h => h.month === targetMonth && h.year === targetYear)
+          .map(({ dateStr, year, month, ...h }) => h);
       }
     })
 );

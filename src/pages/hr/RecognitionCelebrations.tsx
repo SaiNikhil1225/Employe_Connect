@@ -81,6 +81,8 @@ interface Celebration {
   celebratedDate?: Date;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export function RecognitionCelebrations() {
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<Birthday[]>([]);
   const [monthBirthdays, setMonthBirthdays] = useState<any>(null);
@@ -146,7 +148,7 @@ export function RecognitionCelebrations() {
     if (employeeId.trim().length >= 4) {
       setIsLoadingEmployee(true);
       try {
-        const response = await fetch(`http://localhost:5000/api/employees/${employeeId.trim()}`);
+        const response = await fetch(`${API_URL}/employees/${employeeId.trim()}`);
         const result = await response.json();
         
         if (response.ok && result.success && result.data) {
@@ -171,7 +173,7 @@ export function RecognitionCelebrations() {
           }));
         }
       } catch (error) {
-        console.error('Error fetching employee:', error);
+        // Error handled silently
         // Only show error for complete IDs
         if (employeeId.trim().length >= 5) {
           toast.error('Failed to fetch employee details');
@@ -192,7 +194,7 @@ export function RecognitionCelebrations() {
         fetchCelebrations()
       ]);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      // Error handled silently
       toast.error('Failed to load celebration data');
     } finally {
       setIsLoading(false);
@@ -201,47 +203,44 @@ export function RecognitionCelebrations() {
 
   const fetchUpcomingBirthdays = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/celebrations/birthdays/upcoming?days=7');
+      const response = await fetch(`${API_URL}/celebrations/birthdays/upcoming?days=7`);
       const result = await response.json();
       if (result.success) {
-        console.log('Upcoming Birthdays:', result.data.length, 'employees');
         setUpcomingBirthdays(result.data);
       } else {
-        console.error('Failed to fetch birthdays:', result.message);
+        // Failed to fetch birthdays
       }
     } catch (error) {
-      console.error('Error fetching birthdays:', error);
+      // Error handled silently
     }
   };
 
   const fetchMonthBirthdays = async () => {
     try {
       const now = new Date();
-      const response = await fetch(`http://localhost:5000/api/celebrations/birthdays/month?month=${now.getMonth()}&year=${now.getFullYear()}`);
+      const response = await fetch(`${API_URL}/celebrations/birthdays/month?month=${now.getMonth()}&year=${now.getFullYear()}`);
       const result = await response.json();
       if (result.success) {
-        console.log('Month Birthdays:', result.data.total, 'total');
         setMonthBirthdays(result.data);
       } else {
-        console.error('Failed to fetch month birthdays:', result.message);
+        // Failed to fetch month birthdays
       }
     } catch (error) {
-      console.error('Error fetching month birthdays:', error);
+      // Error handled silently
     }
   };
 
   const fetchUpcomingAnniversaries = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/celebrations/anniversaries/upcoming?days=30');
+      const response = await fetch(`${API_URL}/celebrations/anniversaries/upcoming?days=30`);
       const result = await response.json();
       if (result.success) {
-        console.log('Upcoming Anniversaries:', result.data.length, 'employees');
         setUpcomingAnniversaries(result.data);
       } else {
-        console.error('Failed to fetch anniversaries:', result.message);
+        // Failed to fetch anniversaries
       }
     } catch (error) {
-      console.error('Error fetching anniversaries:', error);
+      // Error handled silently
     }
   };
 
@@ -251,16 +250,15 @@ export function RecognitionCelebrations() {
       if (eventTypeFilter !== 'all') params.append('eventType', eventTypeFilter);
       if (statusFilter !== 'all') params.append('status', statusFilter);
 
-      const response = await fetch(`http://localhost:5000/api/celebrations?${params}`);
+      const response = await fetch(`${API_URL}/celebrations?${params}`);
       const result = await response.json();
       if (result.success) {
-        console.log('Celebrations loaded:', result.data.length, 'events');
         setCelebrations(result.data);
       } else {
-        console.error('Failed to fetch celebrations:', result.message);
+        // Failed to fetch celebrations
       }
     } catch (error) {
-      console.error('Error fetching celebrations:', error);
+      // Error handled silently
     }
   };
 
@@ -346,7 +344,7 @@ export function RecognitionCelebrations() {
         createdBy: 'HR Admin' // TODO: Get from auth context
       };
 
-      const response = await fetch('http://localhost:5000/api/celebrations/create', {
+      const response = await fetch(`${API_URL}/celebrations/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -363,14 +361,14 @@ export function RecognitionCelebrations() {
         toast.error(result.message || 'Failed to create celebration event');
       }
     } catch (error) {
-      console.error('Error creating celebration:', error);
+      // Error handled silently
       toast.error('Failed to create celebration event');
     }
   };
 
   const handleMarkCelebrated = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/celebrations/${id}/mark-celebrated`, {
+      const response = await fetch(`${API_URL}/celebrations/${id}/mark-celebrated`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ celebratedBy: 'HR Admin' })
@@ -381,7 +379,7 @@ export function RecognitionCelebrations() {
         fetchCelebrations();
       }
     } catch (error) {
-      console.error('Error marking celebrated:', error);
+      // Error handled silently
       toast.error('Failed to update status');
     }
   };
@@ -389,7 +387,7 @@ export function RecognitionCelebrations() {
   const handleDeleteCelebration = async () => {
     if (!selectedCelebration) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/celebrations/${selectedCelebration._id}/delete`, {
+      const response = await fetch(`${API_URL}/celebrations/${selectedCelebration._id}/delete`, {
         method: 'DELETE'
       });
       const result = await response.json();
@@ -400,7 +398,7 @@ export function RecognitionCelebrations() {
         fetchCelebrations();
       }
     } catch (error) {
-      console.error('Error deleting celebration:', error);
+      // Error handled silently
       toast.error('Failed to delete celebration');
     }
   };
@@ -667,16 +665,16 @@ export function RecognitionCelebrations() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-container">
       {/* Header Section - Matching WorkforceSummary UI */}
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div className="flex items-start gap-3 flex-1">
           <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
             <PartyPopper className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-foreground mb-1">Recognition & Celebrations</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="page-title">Recognition & Celebrations</h2>
+            <p className="page-description">
               Manage employee celebrations and recognition events
             </p>
           </div>

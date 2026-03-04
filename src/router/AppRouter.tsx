@@ -24,7 +24,6 @@ import { ManagerLeaveApprovals } from '@/pages/manager/ManagerLeaveApprovals';
 // IT Admin Pages
 import { ITAdminDashboard } from '@/pages/itadmin/ITAdminDashboard';
 import { ITTicketManagement } from '@/pages/itadmin/ITTicketManagement';
-import { ITAnalytics } from '@/pages/itadmin/ITAnalytics';
 
 // Finance Admin Pages
 import { FinanceAdminDashboard } from '@/pages/financeadmin/FinanceAdminDashboard';
@@ -39,18 +38,12 @@ import ApproverPage from '@/pages/approver/ApproverPage';
 
 // HR Pages
 import AttendanceOverview from '@/pages/hr/AttendanceOverview';
-import { LeaveManagement } from '@/pages/hr/LeaveManagement';
 import { PayrollManagement } from '@/pages/hr/PayrollManagement';
-import { Recruitment } from '@/pages/hr/Recruitment';
 import { PerformanceManagement } from '@/pages/hr/PerformanceManagement';
 import { NewAnnouncement } from '@/pages/hr/NewAnnouncement';
 import { AdminAnnouncements } from '@/pages/hr/AdminAnnouncements';
 import { WorkforceSummary } from '@/pages/hr/WorkforceSummary';
-import { DiversityInclusion } from '@/pages/hr/DiversityInclusion';
 import { RecognitionCelebrations } from '@/pages/hr/RecognitionCelebrations';
-import { TrainingDashboard } from '@/pages/hr/TrainingDashboard';
-import { AddTrainingForm } from '@/pages/hr/AddTrainingForm';
-import { TeamsMembers } from '@/pages/hr/TeamsMembers';
 
 // RMG Pages
 import { Utilization } from '@/pages/rmg/Utilization';
@@ -58,6 +51,7 @@ import { CustomerListPage } from '@/pages/rmg/customers/CustomerListPage';
 import { ProjectListPage } from '@/pages/rmg/projects/ProjectListPage';
 import { ProjectDetailPage } from '@/pages/rmg/projects/ProjectDetailPage';
 import { FinancialLineListPage } from '@/pages/rmg/financial-lines/FinancialLineListPage';
+import { CustomerPOListPage } from '@/pages/rmg/customer-pos/CustomerPOListPage';
 import ConfigurationPage from '@/pages/rmg/ConfigurationPage';
 import WeeklyTimesheet from '@/pages/rmg/uda-configuration/WeeklyTimesheet';
 import { UDAConfigurationPage } from '@/pages/rmg/uda-configuration/UDAConfigurationPage';
@@ -248,15 +242,6 @@ export function AppRouter() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/itadmin/analytics"
-            element={
-              <ProtectedRoute requiredPath="/itadmin/analytics">
-                <ITAnalytics />
-              </ProtectedRoute>
-            }
-          />
-
           {/* Finance Admin Routes */}
           <Route
             path="/financeadmin/dashboard"
@@ -321,26 +306,10 @@ export function AppRouter() {
             }
           />
           <Route
-            path="/leave-management"
-            element={
-              <ProtectedRoute requiredPath="/leave-management">
-                <LeaveManagement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/payroll-management"
             element={
               <ProtectedRoute requiredPath="/payroll-management">
                 <PayrollManagement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/recruitment"
-            element={
-              <ProtectedRoute requiredPath="/recruitment">
-                <Recruitment />
               </ProtectedRoute>
             }
           />
@@ -377,14 +346,6 @@ export function AppRouter() {
             }
           />
           <Route
-            path="/hr/diversity-inclusion"
-            element={
-              <ProtectedRoute requiredPath="/hr/diversity-inclusion">
-                <DiversityInclusion />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/hr/leave-attendance-overview"
             element={
               <ProtectedRoute requiredPath="/hr/leave-attendance-overview">
@@ -397,30 +358,6 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/hr/recognition-celebrations">
                 <RecognitionCelebrations />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/hr/training"
-            element={
-              <ProtectedRoute requiredPath="/hr/training">
-                <TrainingDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/hr/training/add"
-            element={
-              <ProtectedRoute requiredPath="/hr/training">
-                <AddTrainingForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/hr/teams"
-            element={
-              <ProtectedRoute requiredPath="/hr/teams">
-                <TeamsMembers />
               </ProtectedRoute>
             }
           />
@@ -454,6 +391,14 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/rmg/financial-lines">
                 <FinancialLineListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rmg/customer-pos"
+            element={
+              <ProtectedRoute requiredPath="/rmg/customer-pos">
+                <CustomerPOListPage />
               </ProtectedRoute>
             }
           />

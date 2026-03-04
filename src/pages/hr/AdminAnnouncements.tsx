@@ -77,6 +77,8 @@ type SortColumn = 'title' | 'type' | 'priority' | 'author' | 'date' | 'engagemen
 type SortDirection = 'asc' | 'desc' | null;
 type StatusTab = 'all' | 'published' | 'draft' | 'scheduled' | 'archived';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export function AdminAnnouncements() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
@@ -124,7 +126,7 @@ export function AdminAnnouncements() {
     
     try {
       setTrackedViews(prev => new Set([...prev, announcementId]));
-      await fetch(`http://localhost:5000/api/announcements/${announcementId}/track-view`, {
+      await fetch(`${API_URL}/announcements/${announcementId}/track-view`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -138,7 +140,7 @@ export function AdminAnnouncements() {
         })
       });
     } catch (error) {
-      console.error('Failed to track view:', error);
+      // Error handled silently
     }
   };
 
@@ -316,12 +318,6 @@ export function AdminAnnouncements() {
     
     try {
       const userName = user.name || user.email || 'Unknown User';
-      console.log('Liking announcement with user details:', {
-        employeeId: user.employeeId,
-        userName,
-        department: user.department,
-        role: user.role
-      });
       
       await toggleLike(announcementId, user.employeeId, {
         userName,
@@ -329,7 +325,7 @@ export function AdminAnnouncements() {
         role: user.role || 'Employee',
       });
     } catch (error) {
-      console.error('Failed to toggle like:', error);
+      // Error handled silently
       toast.error('Failed to update like');
     }
   };
@@ -342,7 +338,7 @@ export function AdminAnnouncements() {
       toast.success(`Reacted with ${emoji}`);
       setShowReactionPicker(null);
     } catch (error) {
-      console.error('Failed to add reaction:', error);
+      // Error handled silently
       toast.error('Failed to add reaction');
     }
   };
@@ -363,13 +359,11 @@ export function AdminAnnouncements() {
         device: 'desktop',
       };
       
-      console.log('Adding comment with data:', commentData);
-      
       await addAnnouncementComment(announcementId, commentData);
       setNewComment(prev => ({ ...prev, [announcementId]: '' }));
       toast.success('Comment added');
     } catch (error) {
-      console.error('Failed to add comment:', error);
+      // Error handled silently
       toast.error('Failed to add comment');
     }
   };

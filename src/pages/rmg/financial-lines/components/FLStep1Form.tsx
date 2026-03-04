@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,8 +7,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle } from 'lucide-react';
 import { useProjectStore } from '@/store/projectStore';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { FLStep1Data, FLStep2Data, UOM, ContractType, LocationType } from '@/types/financialLine';
 import { format, isAfter, isBefore } from 'date-fns';
 
@@ -47,7 +50,6 @@ interface FLStep1FormProps {
 
 export function FLStep1Form({ data, step2Data, onDataChange, onNext, defaultProjectId }: FLStep1FormProps) {
   const { projects, fetchProjects } = useProjectStore();
-  const { toast } = useToast();
 
   const form = useForm<FLStep1Data>({
     resolver: zodResolver(step1Schema),
@@ -134,86 +136,66 @@ export function FLStep1Form({ data, step2Data, onDataChange, onNext, defaultProj
       const projEnd = new Date(project.projectEndDate);
 
       if (isBefore(flStart, projStart) || isAfter(flStart, projEnd)) {
-        toast({
-          title: 'Validation Error',
-          description: 'FL Schedule Start must be within project start and end dates',
-          variant: 'destructive',
-        });
+        toast.error('FL Schedule Start must be within project start and end dates');
         return false;
       }
 
       if (isBefore(flFinish, projStart) || isAfter(flFinish, projEnd)) {
-        toast({
-          title: 'Date Extension Required',
-          description: `FL end date (${format(flFinish, 'MMM dd, yyyy')}) extends beyond project end date (${format(projEnd, 'MMM dd, yyyy')}). Please extend the Project End Date first.`,
-          variant: 'destructive',
-        });
+        toast.error(`FL end date (${format(flFinish, 'MMM dd, yyyy')}) extends beyond project end date (${format(projEnd, 'MMM dd, yyyy')}). Please extend the Project End Date first.`);
         return false;
       }
     }
     return true;
   };
 
+  // State for FL date extension alert dialog
+  const [showExtensionAlert, setShowExtensionAlert] = useState(false);
+
   // Check if FL dates are being extended (for edit mode)
-  const checkDateExtension = () => {
-    if (!data.scheduleFinish) return true; // Not edit mode or no previous date
-    
+  const isDateExtended = (): boolean => {
+    if (!data.scheduleFinish) return false;
     const previousEndDate = new Date(data.scheduleFinish);
     const newEndDate = new Date(form.getValues('scheduleFinish'));
-    
-    if (isAfter(newEndDate, previousEndDate)) {
-      // FL end date is being extended
-      const confirmed = window.confirm(
-        'Financial Line duration is being extended.\n\n' +
-        'After saving, please remember to:\n' +
-        '• Add additional PO funding allocation for the extended period\n' +
-        '• Update planned revenue for the extended months\n\n' +
-        'Do you want to continue?'
-      );
-      
-      if (!confirmed) {
-        // Reset to original date
-        form.setValue('scheduleFinish', data.scheduleFinish);
-        return false;
-      }
-    }
-    
-    return true;
+    return isAfter(newEndDate, previousEndDate);
+  };
+
+  const proceedToNext = () => {
+    const values = form.getValues();
+    onDataChange(values);
+    onNext();
   };
 
   const handleNext = () => {
     const values = form.getValues();
-    console.log('FLStep1 - Form Values:', values);
-    
     const result = step1Schema.safeParse(values);
-    console.log('FLStep1 - Validation Result:', result);
 
     if (!result.success) {
       const firstError = result.error.issues[0];
-      console.error('FLStep1 - Validation Error:', JSON.stringify(firstError, null, 2));
-      console.error('FLStep1 - All validation errors:', result.error.issues);
-      toast({
-        title: 'Validation Error',
-        description: firstError.message,
-        variant: 'destructive',
-      });
+      toast.error(firstError.message);
       return;
     }
 
     if (!validateDatesWithinProject()) {
-      console.error('FLStep1 - Date validation failed');
       return;
     }
 
-    // Check for date extension and show warning
-    if (!checkDateExtension()) {
-      console.error('FLStep1 - Date extension cancelled by user');
+    // Check for date extension and show AlertDialog warning
+    if (isDateExtended()) {
+      setShowExtensionAlert(true);
       return;
     }
 
-    console.log('FLStep1 - Validation passed, calling onNext');
-    onDataChange(values);
-    onNext();
+    proceedToNext();
+  };
+
+  const handleConfirmExtension = () => {
+    setShowExtensionAlert(false);
+    proceedToNext();
+  };
+
+  const handleCancelExtension = () => {
+    setShowExtensionAlert(false);
+    form.setValue('scheduleFinish', data.scheduleFinish);
   };
 
   // Generate FL No for display
@@ -560,6 +542,34 @@ export function FLStep1Form({ data, step2Data, onDataChange, onNext, defaultProj
           id="step1-next" 
         />
       </div>
+
+      {/* FL Date Extension Alert Dialog */}
+      <AlertDialog open={showExtensionAlert} onOpenChange={setShowExtensionAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+              Financial Line Duration Extended
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>The Financial Line end date is being extended beyond the original schedule.</p>
+                <p className="font-medium">After saving, please remember to:</p>
+                <ul className="list-disc pl-5 space-y-1 text-sm">
+                  <li>Add additional PO funding allocation for the extended period</li>
+                  <li>Update planned revenue for the extended months</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelExtension}>Cancel</AlertDialogCancel>
+            <Button onClick={handleConfirmExtension} className="bg-amber-600 hover:bg-amber-700">
+              Continue
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Form>
   );
 }

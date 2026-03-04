@@ -8,7 +8,7 @@ import { FLStep2Funding } from './FLStep2Funding';
 import { FLStep3Planning } from './FLStep3Planning';
 import { FLStep4Milestones } from './FLStep4Milestones';
 import { useFinancialLineStore } from '@/store/financialLineStore';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { FLStep1Data, FLStep2Data, FLStep3Data, FLStep4Data, FinancialLineFormData } from '@/types/financialLine';
 import { format } from 'date-fns';
 
@@ -41,7 +41,6 @@ export function CreateFLForm({ open, onOpenChange, onSuccess, defaultProjectId, 
   const [isStepperLocked, setIsStepperLocked] = useState(false);
 
   const { createFL, updateFL } = useFinancialLineStore();
-  const { toast } = useToast();
 
   // Populate form data when editing
   useEffect(() => {
@@ -220,16 +219,10 @@ export function CreateFLForm({ open, onOpenChange, onSuccess, defaultProjectId, 
 
       if (isEditMode) {
         await updateFL(editData._id, flData);
-        toast({
-          title: 'Success',
-          description: 'Financial Line updated successfully',
-        });
+        toast.success('Financial Line updated successfully');
       } else {
         await createFL(flData);
-        toast({
-          title: 'Success',
-          description: 'Financial Line created successfully',
-        });
+        toast.success('Financial Line created successfully');
       }
 
       onSuccess?.();
@@ -250,11 +243,7 @@ export function CreateFLForm({ open, onOpenChange, onSuccess, defaultProjectId, 
         errorMessage = axiosError.response?.data?.message || errorMessage;
       }
       
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

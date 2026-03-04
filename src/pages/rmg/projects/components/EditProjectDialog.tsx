@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '@/store/projectStore';
 import type { Project, ProjectFormData } from '@/types/project';
 import {
@@ -10,8 +11,18 @@ import {
   SheetBody,
   SheetCloseButton,
 } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { ProjectForm } from './ProjectForm';
 import { toast } from 'sonner';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 
 interface EditProjectDialogProps {
   open: boolean;
@@ -24,35 +35,78 @@ export function EditProjectDialog({
   onOpenChange,
   project,
 }: EditProjectDialogProps) {
+  const navigate = useNavigate();
   const { updateProject } = useProjectStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [showEndDateAlert, setShowEndDateAlert] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<ProjectFormData | null>(null);
+
+  // Check if project end date has been extended
+  const isEndDateExtended = (newEndDate: string, originalEndDate: Date | string | undefined): boolean => {
+    if (!originalEndDate || !newEndDate) return false;
+    const original = new Date(originalEndDate);
+    const updated = new Date(newEndDate);
+    return updated > original;
+  };
 
   const handleSubmit = async (data: ProjectFormData) => {
     if (!project) {
-      console.error('❌ No project available for update');
       toast.error('Project not found');
       return;
     }
-    
+
+    // Check if end date was extended
+    if (isEndDateExtended(data.projectEndDate, project.projectEndDate)) {
+      // Store the form data and show the alert dialog
+      setPendingFormData(data);
+      setShowEndDateAlert(true);
+      return;
+    }
+
+    // No extension — save directly
+    await performUpdate(data);
+  };
+
+  const performUpdate = async (data: ProjectFormData) => {
+    if (!project) return;
+
     const projectId = project._id || project.id || '';
-    console.log('📤 EditProjectDialog handleSubmit called');
-    console.log('Project ID:', projectId);
-    console.log('Form data:', data);
-    
     setIsLoading(true);
     try {
-      console.log('🔄 Calling updateProject...');
       await updateProject(projectId, data);
-      console.log('✅ Update successful');
       toast.success('Project updated successfully');
       onOpenChange(false);
     } catch (error: unknown) {
-      console.error('❌ Update failed:', error);
       const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update project';
       toast.error(message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleConfirmExtension = async () => {
+    setShowEndDateAlert(false);
+    if (pendingFormData) {
+      await performUpdate(pendingFormData);
+      setPendingFormData(null);
+    }
+  };
+
+  const handleGoToFinancialLines = async () => {
+    setShowEndDateAlert(false);
+    if (pendingFormData) {
+      await performUpdate(pendingFormData);
+      setPendingFormData(null);
+      // Navigate to the project detail page, financials tab
+      const projectId = project?._id || project?.id || '';
+      onOpenChange(false);
+      navigate(`/rmg/projects/${projectId}?tab=financials&subtab=fls`);
+    }
+  };
+
+  const handleCancelExtension = () => {
+    setShowEndDateAlert(false);
+    setPendingFormData(null);
   };
 
   // Helper function to convert date to YYYY-MM-DD format
@@ -103,29 +157,11 @@ export function EditProjectDialog({
 
   // Debug logging for customer fields
   if (project && open) {
-    console.log('🔍 Edit Project Debug Info:', {
-      projectId: project.projectId,
-      projectName: project.projectName,
-      customerId: project.customerId,
-      accountName: project.accountName,
-      'customerId type': typeof project.customerId,
-      'accountName type': typeof project.accountName,
-      dealOwner: project.dealOwner,
-      regionHead: project.regionHead,
-      leadSource: project.leadSource,
-      defaultValues: {
-        customerId: defaultValues.customerId,
-        accountName: defaultValues.accountName,
-        'customerId type': typeof defaultValues.customerId,
-        'accountName type': typeof defaultValues.accountName,
-        dealOwner: defaultValues.dealOwner,
-        regionHead: defaultValues.regionHead,
-        leadSource: defaultValues.leadSource,
-      }
-    });
+    // Debug: Edit Project Info available
   }
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex flex-col h-full overflow-hidden w-full sm:max-w-6xl p-0">
         <SheetHeader>
@@ -153,5 +189,40 @@ export function EditProjectDialog({
         </SheetBody>
       </SheetContent>
     </Sheet>
+
+    {/* End Date Extension Alert Dialog */}
+    <AlertDialog open={showEndDateAlert} onOpenChange={setShowEndDateAlert}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+            </div>
+            <AlertDialogTitle className="text-lg">Project Timeline Extended</AlertDialogTitle>
+          </div>
+          <AlertDialogDescription className="mt-3 text-sm leading-relaxed">
+            Project timeline extended. Please extend the <strong>Planned Cost</strong> and <strong>Planned Revenue</strong> for the extended duration.
+          </AlertDialogDescription>
+          <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 space-y-1">
+            <p>• Update Planned Revenue in Financial Lines for the new months</p>
+            <p>• Verify PO Funding covers the extended timeline</p>
+            <p>• Adjust Planned Costs to reflect additional resources/duration</p>
+          </div>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+          <Button variant="outline" onClick={handleCancelExtension} className="sm:order-1">
+            Cancel
+          </Button>
+          <Button variant="default" onClick={handleConfirmExtension} className="sm:order-2">
+            Save & Review Later
+          </Button>
+          <Button onClick={handleGoToFinancialLines} className="sm:order-3 gap-2 bg-amber-600 hover:bg-amber-700 text-white">
+            <ArrowRight className="h-4 w-4" />
+            Save & Go to Financial Lines
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

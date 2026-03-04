@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, X, Pencil, Calendar } from 'lucide-react';
@@ -35,7 +35,7 @@ const getDateCardColor = (monthIndex: number) => {
   return DATE_CARD_COLORS[monthIndex % DATE_CARD_COLORS.length];
 };
 
-// Parse date string and return date parts
+// Parse date string and return date parts (using UTC to avoid timezone shifts)
 const parseHolidayDate = (dateStr: string) => {
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) {
@@ -43,22 +43,46 @@ const parseHolidayDate = (dateStr: string) => {
     const parsed = Date.parse(dateStr);
     if (!isNaN(parsed)) {
       const d = new Date(parsed);
+      const year = d.getUTCFullYear();
+      const month = d.getUTCMonth();
+      const day = d.getUTCDate();
+      
+      // Month names array
+      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      
+      // Create a date at midnight in local timezone for day of week calculation
+      const localDate = new Date(year, month, day);
+      
       return {
-        day: d.getDate(),
-        month: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
-        monthIndex: d.getMonth(),
-        dayOfWeek: d.toLocaleString('en-US', { weekday: 'long' }),
-        year: d.getFullYear(),
+        day: day,
+        month: monthNames[month],
+        monthIndex: month,
+        dayOfWeek: weekdayNames[localDate.getDay()],
+        year: year,
       };
     }
     return null;
   }
+  
+  // Extract UTC components directly
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  
+  // Month names array
+  const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  
+  // Create a date at midnight in local timezone for day of week calculation
+  const localDate = new Date(year, month, day);
+  
   return {
-    day: date.getDate(),
-    month: date.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
-    monthIndex: date.getMonth(),
-    dayOfWeek: date.toLocaleString('en-US', { weekday: 'long' }),
-    year: date.getFullYear(),
+    day: day,
+    month: monthNames[month],
+    monthIndex: month,
+    dayOfWeek: weekdayNames[localDate.getDay()],
+    year: year,
   };
 };
 
@@ -162,15 +186,15 @@ export function HolidaysDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="max-w-3xl p-0 gap-0 bg-background border overflow-hidden [&>button]:hidden"
-        aria-labelledby="holidays-dialog-title"
       >
+        <DialogTitle className="sr-only">Holidays Calendar</DialogTitle>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-500/20">
               <Calendar className="h-5 w-5 text-blue-500" />
             </div>
-            <h2 id="holidays-dialog-title" className="text-xl font-semibold text-foreground">
+            <h2 className="text-xl font-semibold text-foreground">
               Holidays
             </h2>
           </div>

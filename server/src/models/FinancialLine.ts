@@ -234,12 +234,41 @@ financialLineSchema.index({ projectId: 1 });
 // Note: flNo already has an index from 'unique: true' in schema
 financialLineSchema.index({ status: 1 });
 
-// Pre-save validation: scheduleStart < scheduleFinish
+/**
+ * Compute FL status based on scheduleStart / scheduleFinish dates:
+ *  - If today >= scheduleStart AND today <= scheduleFinish → Active
+ *  - If today < scheduleStart → Draft
+ *  - If today > scheduleFinish → Completed
+ *  - Cancelled stays Cancelled (manual override)
+ */
+function computeStatusByDate(start?: Date, finish?: Date, currentStatus?: string): string | null {
+  // Never override a manually-cancelled FL
+  if (currentStatus === 'Cancelled') return null;
+
+  if (!start || !finish) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const s = new Date(start);  s.setHours(0, 0, 0, 0);
+  const f = new Date(finish); f.setHours(0, 0, 0, 0);
+
+  if (today < s) return 'Draft';
+  if (today > f) return 'Completed';
+  return 'Active';
+}
+
+// Pre-save validation: scheduleStart < scheduleFinish + auto-status by date
 financialLineSchema.pre('save', function(next) {
   if (this.scheduleStart && this.scheduleFinish) {
     if (this.scheduleStart >= this.scheduleFinish) {
       next(new Error('Schedule start date must be before schedule finish date'));
       return;
+    }
+
+    // Auto-set status based on dates
+    const computed = computeStatusByDate(this.scheduleStart, this.scheduleFinish, this.status);
+    if (computed) {
+      this.status = computed as 'Active' | 'Draft' | 'Completed' | 'Cancelled';
     }
   }
   
@@ -248,7 +277,6 @@ financialLineSchema.pre('save', function(next) {
     this.totalPlannedRevenue = this.revenuePlanning.reduce((sum, item) => {
       return sum + (item.plannedRevenue || 0);
     }, 0);
-    console.log('Calculated totalPlannedRevenue:', this.totalPlannedRevenue);
   } else {
     this.totalPlannedRevenue = 0;
   }
@@ -281,5 +309,26 @@ financialLineSchema.pre('findOneAndUpdate', function(next) {
 });
 
 const FinancialLine = mongoose.model('FinancialLine', financialLineSchema);
+
+/**
+ * Sync all FL statuses based on their scheduleStart / scheduleFinish dates.
+ * Called before fetching FLs or syncing project statuses.
+ */
+export async function syncFLStatusesByDate() {
+  const fls = await FinancialLine.find({ status: { $ne: 'Cancelled' } });
+  let updated = 0;
+  for (const fl of fls) {
+    const computed = computeStatusByDate(fl.scheduleStart, fl.scheduleFinish, fl.status);
+    if (computed && computed !== fl.status) {
+      fl.status = computed as 'Active' | 'Draft' | 'Completed' | 'Cancelled';
+      await fl.save();
+      updated++;
+    }
+  }
+  if (updated > 0) {
+    console.log(`syncFLStatusesByDate: updated ${updated} FL(s)`);
+  }
+  return updated;
+}
 
 export default FinancialLine;

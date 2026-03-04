@@ -286,7 +286,7 @@ export default function AdminAttendanceOverview() {
   const attendanceActions: DataTableAction<AttendanceLog>[] = [
     {
       label: 'View Details',
-      onClick: (log) => console.log('View log:', log),
+      onClick: () => {},
     },
   ];
 
@@ -403,7 +403,7 @@ export default function AdminAttendanceOverview() {
     },
     {
       label: 'View Details',
-      onClick: (request) => console.log('View request:', request),
+      onClick: () => {},
     },
   ];
 
@@ -527,7 +527,7 @@ export default function AdminAttendanceOverview() {
     },
     {
       label: 'View Details',
-      onClick: (request) => console.log('View request:', request),
+      onClick: () => {},
     },
   ];
 
@@ -565,16 +565,16 @@ export default function AdminAttendanceOverview() {
   // };
 
   return (
-    <div className="space-y-6">
+    <div className="page-container">
       {/* Attendance Management Section */}
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div className="flex items-start gap-3 flex-1">
           <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
             <Calendar className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-foreground mb-1">Attendance Management</h2>
-            <p className="text-sm text-muted-foreground">Monitor and manage team attendance</p>
+            <h2 className="page-title">Attendance Management</h2>
+            <p className="page-description">Monitor and manage team attendance</p>
           </div>
         </div>
         <div className="flex items-center gap-3">

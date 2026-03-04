@@ -33,6 +33,8 @@ interface InitiateExitDrawerProps {
   employeeId: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export default function InitiateExitDrawer({
   open,
   onClose,
@@ -112,7 +114,7 @@ export default function InitiateExitDrawer({
 
     setIsSubmitting(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/exit-requests/initiate', {
+      const response = await axios.post(`${API_URL}/exit-requests/initiate`, {
         employeeId,
         exitReason,
         discussionHeld,

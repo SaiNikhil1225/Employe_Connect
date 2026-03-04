@@ -26,6 +26,7 @@ export interface EmployeeHoursData {
   pendingApprovedHours: number;
   rejectedHours: number;
   revisionRequestedHours: number;
+  pendingDetails?: Array<{ date: string; projectName: string; projectId: string; projectManagerName: string }>;
 }
 
 export interface ReportSummary {

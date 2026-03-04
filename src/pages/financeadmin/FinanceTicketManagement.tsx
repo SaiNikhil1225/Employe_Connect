@@ -159,7 +159,7 @@ export function FinanceTicketManagement() {
     if (!user?.name) return;
 
     try {
-      await helpdeskService.addMessage(ticketId, 'itadmin', user.name, message);
+      await helpdeskService.addMessage(ticketId, 'financeadmin', user.name, message);
       toast.success('Message sent successfully');
       await loadTickets();
     } catch (error) {

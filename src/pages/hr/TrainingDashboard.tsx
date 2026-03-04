@@ -101,6 +101,8 @@ interface SkillGap {
   category: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export function TrainingDashboard() {
   const user = useAuthStore((state) => state.user);
   
@@ -198,7 +200,7 @@ export function TrainingDashboard() {
   
   const fetchEmployees = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/employees');
+      const response = await fetch(`${API_URL}/employees`);
       const result = await response.json();
       if (result.success) {
         setEmployees(result.data);
@@ -210,7 +212,7 @@ export function TrainingDashboard() {
   
   const fetchTrainings = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/training');
+      const response = await fetch(`${API_URL}/training`);
       const result = await response.json();
       if (result.success) {
         setTrainings(result.data);
@@ -234,7 +236,7 @@ export function TrainingDashboard() {
       if (user?.role) params.append('role', user.role);
       if (user?.employeeId) params.append('userId', user.employeeId);
       
-      const response = await fetch(`http://localhost:5000/api/training/enrollments/all?${params}`);
+      const response = await fetch(`${API_URL}/training/enrollments/all?${params}`);
       const result = await response.json();
       if (result.success) {
         setEnrollments(result.data);
@@ -258,7 +260,7 @@ export function TrainingDashboard() {
       if (user?.role) params.append('role', user.role);
       if (user?.employeeId) params.append('userId', user.employeeId);
       
-      const response = await fetch(`http://localhost:5000/api/training/analytics/metrics?${params}`);
+      const response = await fetch(`${API_URL}/training/analytics/metrics?${params}`);
       const result = await response.json();
       if (result.success) {
         setMetrics(result.data);
@@ -276,7 +278,7 @@ export function TrainingDashboard() {
       if (selectedGrades.length) params.append('grade', selectedGrades[0]);
       if (selectedEmploymentTypes.length) params.append('employmentType', selectedEmploymentTypes[0]);
       
-      const response = await fetch(`http://localhost:5000/api/training/skill-gaps/analytics/summary?${params}`);
+      const response = await fetch(`${API_URL}/training/skill-gaps/analytics/summary?${params}`);
       const result = await response.json();
       if (result.success) {
         setSkillGaps(result.data.skillGaps || []);
@@ -630,7 +632,7 @@ export function TrainingDashboard() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost:5000/api/training/enroll', {
+      const response = await fetch(`${API_URL}/training/enroll`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -677,7 +679,7 @@ export function TrainingDashboard() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/training/enrollments/${selectedEnrollment.enrollmentId}`, {
+      const response = await fetch(`${API_URL}/training/enrollments/${selectedEnrollment.enrollmentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -749,8 +751,8 @@ export function TrainingDashboard() {
     setIsSubmitting(true);
     try {
       const url = isEditMode && selectedTrainingForEdit 
-        ? `http://localhost:5000/api/training/${selectedTrainingForEdit.trainingId}`
-        : 'http://localhost:5000/api/training';
+        ? `${API_URL}/training/${selectedTrainingForEdit.trainingId}`
+        : `${API_URL}/training`;
       
       const method = isEditMode ? 'PUT' : 'POST';
       

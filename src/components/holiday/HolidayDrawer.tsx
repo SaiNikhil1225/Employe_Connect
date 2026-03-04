@@ -60,13 +60,27 @@ export function HolidayDrawer({
     const [imagePreview, setImagePreview] = useState<string>('');
     const [saving, setSaving] = useState(false);
 
+    // Helper to extract UTC date without timezone conversion
+    const getUTCDateString = (dateValue: string | Date): string => {
+        if (typeof dateValue === 'string') {
+            // If already a string, extract date portion
+            return dateValue.split('T')[0];
+        }
+        // If it's a Date object, get UTC date components
+        const date = new Date(dateValue);
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     // Reset form when drawer opens/closes or holiday changes
     useEffect(() => {
         if (open && holiday) {
             // Edit mode
             setFormData({
                 name: holiday.name,
-                date: new Date(holiday.date).toISOString().split('T')[0],
+                date: getUTCDateString(holiday.date),
                 typeId: typeof holiday.typeId === 'object' ? holiday.typeId._id : holiday.typeId,
                 observanceTypeId: typeof holiday.observanceTypeId === 'object' ? holiday.observanceTypeId._id : holiday.observanceTypeId,
                 groupIds: holiday.groupIds ? holiday.groupIds.map(g => typeof g === 'object' ? g._id : g) : [],

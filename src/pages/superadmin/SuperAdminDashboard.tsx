@@ -115,16 +115,16 @@ export function SuperAdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-container">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10">
             <LayoutDashboard className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">System overview and real-time analytics</p>
+            <h1 className="page-title">Dashboard</h1>
+            <p className="page-description">System overview and real-time analytics</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={fetchData}>

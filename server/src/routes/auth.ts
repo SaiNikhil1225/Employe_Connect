@@ -92,11 +92,13 @@ router.post('/login', authValidation.login, async (req: Request, res: Response) 
       token,
       refreshToken: token
     });
-  } catch (error) {
-    console.error('Login error:', error);
+  } catch (error: any) {
+    console.error('Login error:', error?.message, error?.stack);
     res.status(500).json({
       success: false,
-      message: 'Login failed. Please try again.'
+      message: process.env.NODE_ENV === 'production' 
+        ? `Login failed: ${error?.message || 'Unknown error'}` 
+        : 'Login failed. Please try again.'
     });
   }
 });

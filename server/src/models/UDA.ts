@@ -67,7 +67,7 @@ const UDASchema: Schema = new Schema(
 );
 
 // Create indexes for better query performance
-UDASchema.index({ udaNumber: 1 });
+// Note: udaNumber already has a unique index from 'unique: true' in schema
 UDASchema.index({ name: 1 });
 UDASchema.index({ active: 1 });
 UDASchema.index({ type: 1 });

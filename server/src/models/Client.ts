@@ -67,7 +67,7 @@ const ClientSchema: Schema = new Schema(
 
 // Compound unique index
 ClientSchema.index({ name: 1, regionId: 1 }, { unique: true });
-ClientSchema.index({ code: 1 });
+// Note: code already has a unique index from 'unique: true' in schema
 ClientSchema.index({ regionId: 1 });
 ClientSchema.index({ countryId: 1 });
 ClientSchema.index({ isActive: 1 });

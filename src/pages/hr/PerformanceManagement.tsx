@@ -19,7 +19,8 @@ import {
   MessageSquare,
   Eye,
   Edit,
-  BarChart3
+  BarChart3,
+  AlertTriangle
 } from 'lucide-react';
 import {
   Select,
@@ -312,6 +313,7 @@ export function PerformanceManagement() {
 
   return (
     <div className="page-container">
+      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 flex items-center gap-2 text-amber-800 dark:text-amber-200 text-sm"><AlertTriangle className="h-4 w-4 flex-shrink-0" /><span>This page displays demo data. API integration pending.</span></div>
       {/* Header */}
       <div className="page-header">
         <div className="page-header-content">

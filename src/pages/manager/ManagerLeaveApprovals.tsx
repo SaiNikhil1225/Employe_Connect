@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getAvatarColor } from '@/lib/avatarUtils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { getAvatarGradient, getInitials } from '@/constants/design-system';
 import { Progress } from '@/components/ui/progress';
 import {
   Table,
@@ -52,9 +52,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CheckCircle, XCircle, Eye, Search, Filter, MoreVertical, Calendar, Clock, FileText, Mail, Building2, User, Palmtree, CircleDot, Circle, CalendarCheck } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Search, Filter, MoreVertical, Calendar, Clock, FileText, Mail, Building2, User, Palmtree, CircleDot, Circle, CalendarCheck, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { getInitials } from '@/constants/design-system';
 import type { LeaveRequest } from '@/types/leave';
 import { format } from 'date-fns';
 
@@ -71,6 +70,8 @@ export function ManagerLeaveApprovals() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [requestStatusFilter, setRequestStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   const loadLeaveRequests = useCallback(async () => {
     try {
@@ -101,12 +102,20 @@ export function ManagerLeaveApprovals() {
       const isTeamMember = reportingIds.has(leave.employeeId || leave.userId);
       // Filter by manager ID as well
       const isMyTeam = leave.managerId === user?.employeeId;
-      return isTeamMember || isMyTeam;
+      // Filter by year
+      const leaveYear = new Date(leave.startDate).getFullYear();
+      const matchesYear = leaveYear === selectedYear;
+      return (isTeamMember || isMyTeam) && matchesYear;
     });
 
     // Apply status filter
     if (requestStatusFilter !== 'all') {
       filtered = filtered.filter(req => req.status === requestStatusFilter);
+    }
+
+    // Apply department filter
+    if (departmentFilter !== 'all') {
+      filtered = filtered.filter(req => req.department === departmentFilter);
     }
 
     // Apply search
@@ -120,7 +129,16 @@ export function ManagerLeaveApprovals() {
     }
 
     return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [leaves, reportingEmployees, requestStatusFilter, searchQuery, user]);
+  }, [leaves, reportingEmployees, requestStatusFilter, departmentFilter, searchQuery, user, selectedYear]);
+
+  // Unique departments from all team leaves (pre-filter)
+  const availableDepartments = useMemo(() => {
+    const depts = new Set<string>();
+    leaves.forEach(leave => {
+      if (leave.department) depts.add(leave.department);
+    });
+    return Array.from(depts).sort();
+  }, [leaves]);
 
   const handleApproveRequest = (request: LeaveRequest) => {
     setActionRequest(request);
@@ -191,50 +209,126 @@ export function ManagerLeaveApprovals() {
     <div className="page-container">
       {/* Header */}
       <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <CalendarCheck className="h-7 w-7 text-primary" />
-            Leave Approvals
-          </h1>
-          <p className="page-description">
-            Review and approve leave requests from your team
-          </p>
+        <div className="page-header-content flex items-start justify-between">
+          <div>
+            <h1 className="page-title">
+              <CalendarCheck className="h-7 w-7 text-primary" />
+              Leave Approvals
+            </h1>
+            <p className="page-description">
+              Review and approve leave requests from your team
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-medium whitespace-nowrap">Department:</Label>
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {availableDepartments.map(dept => (
+                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="year-filter" className="text-sm font-medium whitespace-nowrap">
+                Year:
+              </Label>
+              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                <SelectTrigger id="year-filter" className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {teamLeaveRequests.filter(r => r.status === 'pending').length}
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Pending for Approval</p>
+                <h3 className="text-2xl font-bold mt-2">
+                  {teamLeaveRequests.filter(r => r.status === 'pending').length}
+                </h3>
+              </div>
+              <Clock className="h-8 w-8 text-orange-500" />
             </div>
-            <p className="text-xs text-muted-foreground">Awaiting your approval</p>
           </CardContent>
         </Card>
+        
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Approved</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {teamLeaveRequests.filter(r => r.status === 'approved').length}
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Approved</p>
+                <h3 className="text-2xl font-bold mt-2 text-green-600">
+                  {teamLeaveRequests.filter(r => r.status === 'approved').length}
+                </h3>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
-            <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
+        
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {teamLeaveRequests.length}
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Requests</p>
+                <h3 className="text-2xl font-bold mt-2">
+                  {teamLeaveRequests.length}
+                </h3>
+              </div>
+              <FileText className="h-8 w-8 text-blue-500" />
             </div>
-            <p className="text-xs text-muted-foreground">All time</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Overdue</p>
+                <h3 className="text-2xl font-bold mt-2 text-red-600">
+                  {teamLeaveRequests.filter(r => {
+                    if (r.status !== 'pending') return false;
+                    const daysOld = Math.floor((new Date().getTime() - new Date(r.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+                    return daysOld > 3; // Consider overdue if pending > 3 days
+                  }).length}
+                </h3>
+              </div>
+              <AlertCircle className="h-8 w-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Rejected</p>
+                <h3 className="text-2xl font-bold mt-2 text-red-600">
+                  {teamLeaveRequests.filter(r => r.status === 'rejected').length}
+                </h3>
+              </div>
+              <XCircle className="h-8 w-8 text-red-500" />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -277,7 +371,7 @@ export function ManagerLeaveApprovals() {
         <CardContent>
           {teamLeaveRequests.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {searchQuery || requestStatusFilter !== 'all'
+              {searchQuery || requestStatusFilter !== 'all' || departmentFilter !== 'all'
                 ? 'No leave requests found matching your filters.'
                 : 'No leave requests from your team.'}
             </div>
@@ -462,13 +556,8 @@ export function ManagerLeaveApprovals() {
               <div className="bg-primary/5 rounded-xl p-5 border">
                 <div className="flex items-start gap-4">
                   <Avatar className="h-16 w-16 border-2 border-primary/20">
-                    <AvatarImage src={employees.find(e => e.employeeId === (selectedRequest.employeeId || selectedRequest.userId))?.avatar} />
                     <AvatarFallback 
-                      className="text-lg font-semibold"
-                      style={{
-                        backgroundColor: getAvatarColor(selectedRequest.employeeId || selectedRequest.userId || '').bg,
-                        color: getAvatarColor(selectedRequest.employeeId || selectedRequest.userId || '').text,
-                      }}
+                      className={`text-lg font-semibold text-white ${getAvatarGradient(selectedRequest.employeeName || selectedRequest.userName || 'U')}`}
                     >
                       {getInitials(selectedRequest.employeeName || selectedRequest.userName || 'U')}
                     </AvatarFallback>

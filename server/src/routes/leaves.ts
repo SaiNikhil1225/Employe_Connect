@@ -1,11 +1,32 @@
 import express, { Request, Response } from 'express';
 import Leave from '../models/Leave';
 import LeaveBalance from '../models/LeaveBalance';
+import { LeavePolicy } from '../models/LeavePolicy';
+import Employee from '../models/Employee';
 import { leaveValidation } from '../middleware/validation';
+import { checkModulePermission } from '../middleware/permissions';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
-router.get('/', async (req: Request, res: Response) => {
+// Helper function to calculate allocated leaves based on distribution
+const calculateAllocation = (totalAllocation: number, distribution: string, currentDate: Date): number => {
+  const month = currentDate.getMonth(); // 0-11
+  
+  switch (distribution) {
+    case 'QUARTERLY':
+      const quarter = Math.floor(month / 3) + 1;
+      return (totalAllocation / 4) * quarter;
+    case 'HALF_YEARLY':
+      const half = month < 6 ? 1 : 2;
+      return (totalAllocation / 2) * half;
+    case 'ANNUAL':
+    default:
+      return totalAllocation;
+  }
+};
+
+router.get('/', authenticateToken, checkModulePermission({ module: 'LEAVE', action: 'view' }), async (req: Request, res: Response) => {
   try {
     const { employeeId, status } = req.query;
     const query: Record<string, unknown> = {};
@@ -22,7 +43,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // Get leaves by user ID (supports both userId and employeeId)
-router.get('/user/:userId', async (req: Request, res: Response) => {
+router.get('/user/:userId', authenticateToken, checkModulePermission({ module: 'LEAVE', action: 'view' }), async (req: Request, res: Response) => {
   try {
     const leaves = await Leave.find({
       employeeId: req.params.userId
@@ -35,7 +56,7 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
 });
 
 // Get pending leaves
-router.get('/pending', async (_req: Request, res: Response) => {
+router.get('/pending', authenticateToken, checkModulePermission({ module: 'LEAVE', action: 'view' }), async (_req: Request, res: Response) => {
   try {
     const leaves = await Leave.find({ status: 'pending' }).sort({ appliedOn: -1 });
     res.json({ success: true, data: leaves });
@@ -50,17 +71,49 @@ router.get('/balance/:userId', async (req: Request, res: Response) => {
   try {
     const currentYear = new Date().getFullYear();
 
+    // Get employee to fetch their country/location
+    const employee = await Employee.findOne({ employeeId: req.params.userId });
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee not found' });
+    }
+
+    // Get leave policies for employee's location (using location as country)
+    const employeeCountry = employee.location || 'India'; // Default to India
+    const policies = await LeavePolicy.find({ 
+      country: employeeCountry, 
+      isActive: true 
+    });
+
     // Try to get existing balance record for current year
-    let leaveBalance = await LeaveBalance.findOne({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let leaveBalance: any = await LeaveBalance.findOne({
       employeeId: req.params.userId,
       year: currentYear
     });
 
-    // If no balance found, create default one
+    // If no balance found, create default one with policy-based allocations
     if (!leaveBalance) {
+      const policyMap: any = {};
+      const currentDate = new Date();
+      
+      // Build balance from policies
+      policies.forEach(policy => {
+        const allocated = calculateAllocation(policy.allocation, policy.distribution, currentDate);
+        policyMap[policy.leaveType] = {
+          total: allocated,
+          used: 0,
+          remaining: allocated
+        };
+      });
+
+      // Create balance with dynamic fields or fallback to defaults
       leaveBalance = new LeaveBalance({
         employeeId: req.params.userId,
-        year: currentYear
+        year: currentYear,
+        earnedLeave: policyMap['Earned Leave'] || { total: 15, used: 0, remaining: 15 },
+        sabbaticalLeave: policyMap['Sabbatical Leave'] || { total: 5, used: 0, remaining: 5 },
+        compOff: policyMap['Comp Off'] || { total: 0, used: 0, remaining: 0 },
+        paternityLeave: policyMap['Paternity Leave'] || { total: 5, used: 0, remaining: 5 }
       });
       await leaveBalance.save();
     }
@@ -150,7 +203,28 @@ router.get('/balance/:userId', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id', async (req: Request, res: Response) => {
+// Get leave policies for an employee (based on their location/country)
+router.get('/policies/:userId', async (req: Request, res: Response) => {
+  try {
+    const employee = await Employee.findOne({ employeeId: req.params.userId });
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee not found' });
+    }
+
+    const employeeCountry = employee.location || 'India';
+    const policies = await LeavePolicy.find({ 
+      country: employeeCountry, 
+      isActive: true 
+    }).select('leaveType allocation distribution carryForward maxCarryForward encashable requiresApproval minDaysNotice maxConsecutiveDays description');
+
+    res.json({ success: true, data: policies });
+  } catch (error) {
+    console.error('Failed to fetch leave policies:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch leave policies' });
+  }
+});
+
+router.put('/:id', authenticateToken, checkModulePermission({ module: 'LEAVE', action: 'modify' }), async (req: Request, res: Response) => {
   try {
     const leave = await Leave.findById(req.params.id);
     if (!leave) {
@@ -163,9 +237,50 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', leaveValidation.create, async (req: Request, res: Response) => {
+router.post('/', authenticateToken, checkModulePermission({ module: 'LEAVE', action: 'add' }), leaveValidation.create, async (req: Request, res: Response) => {
   try {
-    const { employeeId, startDate, endDate } = req.body;
+    const { employeeId, startDate, endDate, leaveType, days } = req.body;
+    
+    // Get employee to fetch their country/location
+    const employee = await Employee.findOne({ employeeId });
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee not found' });
+    }
+
+    // Get leave policy for this leave type and employee's location
+    const employeeCountry = employee.location || 'India';
+    const policy = await LeavePolicy.findOne({ 
+      leaveType, 
+      country: employeeCountry, 
+      isActive: true 
+    });
+
+    // If policy exists, validate against it
+    if (policy) {
+      // Check minimum days notice
+      if (policy.minDaysNotice) {
+        const daysUntilLeave = Math.floor(
+          (new Date(startDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (daysUntilLeave < policy.minDaysNotice) {
+          return res.status(400).json({
+            success: false,
+            message: `This leave type requires at least ${policy.minDaysNotice} days notice. You are applying ${daysUntilLeave} days in advance.`
+          });
+        }
+      }
+
+      // Check maximum consecutive days
+      if (policy.maxConsecutiveDays && days > policy.maxConsecutiveDays) {
+        return res.status(400).json({
+          success: false,
+          message: `This leave type allows maximum ${policy.maxConsecutiveDays} consecutive days. You are requesting ${days} days.`
+        });
+      }
+
+      // Set requiresApproval based on policy
+      req.body.requiresApproval = policy.requiresApproval;
+    }
     
     // Check for overlapping leaves (prevent duplicate applications)
     const newStart = new Date(startDate);
@@ -216,7 +331,7 @@ router.put('/:id', leaveValidation.update, async (req: Request, res: Response) =
 });
 
 // Approve leave
-router.patch('/:id/approve', async (req: Request, res: Response) => {
+router.patch('/:id/approve', authenticateToken, checkModulePermission({ module: 'LEAVE', action: 'modify' }), async (req: Request, res: Response) => {
   try {
     const { approvedBy } = req.body;
 
@@ -242,7 +357,7 @@ router.patch('/:id/approve', async (req: Request, res: Response) => {
 });
 
 // Reject leave
-router.patch('/:id/reject', async (req: Request, res: Response) => {
+router.patch('/:id/reject', authenticateToken, checkModulePermission({ module: 'LEAVE', action: 'modify' }), async (req: Request, res: Response) => {
   try {
     const { rejectedBy, rejectionReason } = req.body;
 
@@ -269,7 +384,7 @@ router.patch('/:id/reject', async (req: Request, res: Response) => {
 });
 
 // Cancel leave
-router.patch('/:id/cancel', async (req: Request, res: Response) => {
+router.patch('/:id/cancel', authenticateToken, checkModulePermission({ module: 'LEAVE', action: 'modify' }), async (req: Request, res: Response) => {
   try {
     const { cancellationReason, cancelledBy } = req.body;
 
@@ -295,7 +410,7 @@ router.patch('/:id/cancel', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const leave = await Leave.findByIdAndDelete(req.params.id);
     if (!leave) {

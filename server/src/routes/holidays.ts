@@ -138,8 +138,28 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
  */
 router.post('/', authenticateToken, authorizeRoles('SUPER_ADMIN', 'HR_ADMIN'), async (req: Request, res: Response) => {
   try {
+    console.log('🎯 Backend received date:', {
+      originalDate: req.body.date,
+      dateType: typeof req.body.date,
+      holidayName: req.body.name
+    });
+
+    // Parse date string and convert to UTC midnight to avoid timezone issues
+    let dateValue = req.body.date;
+    if (typeof dateValue === 'string') {
+      // If date is in YYYY-MM-DD format, convert to UTC midnight
+      const dateMatch = dateValue.match(/^\d{4}-\d{2}-\d{2}$/);
+      if (dateMatch) {
+        dateValue = new Date(dateValue + 'T00:00:00.000Z');
+        console.log('✅ Converted to UTC midnight:', dateValue.toISOString());
+      } else {
+        console.log('⚠️ Date format not YYYY-MM-DD, using as-is');
+      }
+    }
+
     const holidayData = {
       ...req.body,
+      date: dateValue,
       status: HolidayStatus.DRAFT,
       createdBy: req.user?.id,
       isActive: true
@@ -147,6 +167,12 @@ router.post('/', authenticateToken, authorizeRoles('SUPER_ADMIN', 'HR_ADMIN'), a
 
     const holiday = new Holiday(holidayData);
     await holiday.save();
+    
+    console.log('💾 Saved to DB:', {
+      name: holiday.name,
+      storedDate: holiday.date,
+      storedDateISO: new Date(holiday.date).toISOString()
+    });
 
     const populatedHoliday = await Holiday.findById(holiday._id)
       .populate('countryId', 'name code')
@@ -173,6 +199,14 @@ router.put('/:id', authenticateToken, authorizeRoles('SUPER_ADMIN', 'HR_ADMIN'),
   try {
     const { id } = req.params;
     const updateData = { ...req.body };
+
+    // Parse date string and convert to UTC midnight to avoid timezone issues
+    if (updateData.date && typeof updateData.date === 'string') {
+      const dateMatch = updateData.date.match(/^\d{4}-\d{2}-\d{2}$/);
+      if (dateMatch) {
+        updateData.date = new Date(updateData.date + 'T00:00:00.000Z');
+      }
+    }
 
     // Don't allow changing status via this endpoint (use publish endpoint)
     delete updateData.status;
@@ -224,7 +258,7 @@ router.post('/:id/publish', authenticateToken, authorizeRoles('SUPER_ADMIN', 'HR
 
     holiday.status = HolidayStatus.PUBLISHED;
     holiday.publishedAt = new Date();
-    holiday.approvedBy = req.user?.id;
+    holiday.approvedBy = req.user?.id as any;
 
     await holiday.save();
 
@@ -242,6 +276,35 @@ router.post('/:id/publish', authenticateToken, authorizeRoles('SUPER_ADMIN', 'HR
   } catch (error) {
     console.error('Failed to publish holiday:', error);
     res.status(500).json({ success: false, message: 'Failed to publish holiday' });
+  }
+});
+
+/**
+ * POST /api/holidays/bulk-delete
+ * Bulk soft delete holidays (set isActive to false)
+ * Access: SUPER_ADMIN only
+ */
+router.post('/bulk-delete', authenticateToken, authorizeRoles('SUPER_ADMIN'), async (req: Request, res: Response) => {
+  try {
+    const { holidayIds } = req.body;
+
+    if (!Array.isArray(holidayIds) || holidayIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Holiday IDs are required' });
+    }
+
+    const result = await Holiday.updateMany(
+      { _id: { $in: holidayIds } },
+      { $set: { isActive: false } }
+    );
+
+    res.json({ 
+      success: true, 
+      message: `${result.modifiedCount} holiday(s) deleted successfully`,
+      deletedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Failed to bulk delete holidays:', error);
+    res.status(500).json({ success: false, message: 'Failed to bulk delete holidays' });
   }
 });
 
@@ -276,7 +339,7 @@ router.delete('/:id', authenticateToken, authorizeRoles('SUPER_ADMIN'), async (r
  */
 router.get('/employee/visible', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const employeeId = req.user?.userId;
+    const employeeId = req.user?.id;
 
     // Fetch employee details (you'll need to implement this based on your Employee model)
     // For now, assuming employee details are passed or available

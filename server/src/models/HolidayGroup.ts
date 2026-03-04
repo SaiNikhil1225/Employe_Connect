@@ -42,7 +42,7 @@ const HolidayGroupSchema: Schema = new Schema(
 );
 
 // Indexes
-HolidayGroupSchema.index({ name: 1 });
+// Note: name already has a unique index from 'unique: true' in schema
 HolidayGroupSchema.index({ isActive: 1 });
 HolidayGroupSchema.index({ employeeIds: 1 });
 

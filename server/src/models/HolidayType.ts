@@ -37,7 +37,7 @@ const HolidayTypeSchema: Schema = new Schema(
 );
 
 // Indexes
-HolidayTypeSchema.index({ name: 1 });
+// Note: name already has a unique index from 'unique: true' in schema
 HolidayTypeSchema.index({ isActive: 1 });
 
 export default mongoose.model<IHolidayType>('HolidayType', HolidayTypeSchema);

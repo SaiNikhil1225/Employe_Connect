@@ -37,17 +37,22 @@ import {
   Activity,
   LineChart,
   BarChart3,
+  BarChart,
   CircleDot,
   FolderKanban,
   Building,
+  Building2,
   Briefcase,
   Settings,
+  Settings2,
+  CheckSquare,
   Award,
   GraduationCap,
   Megaphone,
   FolderCog,
   Headset,
   Globe,
+  Network,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -84,17 +89,22 @@ const iconMap: Record<string, LucideIcon> = {
   Activity,
   LineChart,
   BarChart3,
+  BarChart,
   CircleDot,
   FolderKanban,
   Building,
+  Building2,
   Briefcase,
   Settings,
+  Settings2,
+  CheckSquare,
   Award,
   GraduationCap,
   Megaphone,
   FolderCog,
   Headset,
   Globe,
+  Network,
 };
 
 interface MenuItem {
@@ -103,6 +113,7 @@ interface MenuItem {
   icon: string;
   action?: () => void;
   children?: MenuItem[];
+  roles?: string[];
 }
 
 interface MenuSection {
@@ -148,6 +159,10 @@ export function Sidebar() {
         return 'L2_APPROVER';
       case 'L3_APPROVER':
         return 'L3_APPROVER';
+      case 'FINANCE_ADMIN':
+        return 'FINANCE_ADMIN';
+      case 'FACILITIES_ADMIN':
+        return 'FACILITIES_ADMIN';
       case 'EMPLOYEE':
       default:
         return user?.role || 'EMPLOYEE'; // Use actual role as fallback
@@ -202,11 +217,13 @@ export function Sidebar() {
         path: item.path,
         label: item.label,
         icon: item.icon || 'CircleDot',
-        children: item.children?.map(child => ({
-          path: child.path,
-          label: child.label,
-          icon: child.icon || 'CircleDot',
-        })),
+        children: item.children
+          ?.filter(child => !child.roles || child.roles.includes(effectiveRole))
+          .map(child => ({
+            path: child.path,
+            label: child.label,
+            icon: child.icon || 'CircleDot',
+          })),
       })),
     },
   ];

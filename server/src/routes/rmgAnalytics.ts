@@ -52,7 +52,7 @@ interface BenchResource {
   designation: string;
   utilization: number;
   skills: string[];
-  availableSince: Date | null;
+  availableSince: Date | string | null;
 }
 
 interface UserAllocation {
@@ -179,7 +179,7 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
     console.log('Employees Found:', employees.length);
     console.log('Global Employee Count:', globalEmployeeCount);
     console.log('Projects Found:', projects.length);
-    console.log('Project IDs to fetch:', projectIds.map(id => id.toString()));
+    console.log('Project IDs to fetch:', projectIds.map(id => id!.toString()));
     if (projects.length > 0) {
       console.log('Sample Project:', JSON.stringify(projects[0], null, 2));
       console.log('ProjectMap keys:', Array.from(projectMap.keys()));
@@ -316,7 +316,7 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
       
       // Debug: Log project mapping
       if (flResource.projectId) {
-        console.log('Looking for project:', flResource.projectId.toString(), 'Found:', project ? project.name : 'NOT FOUND');
+        console.log('Looking for project:', flResource.projectId.toString(), 'Found:', project ? (project as any).projectName : 'NOT FOUND');
       }
       
       return {
@@ -328,7 +328,7 @@ router.get('/resource-utilization', async (req: Request, res: Response) => {
         endDate: flResource.requestedToDate,
         utilization: flResource.utilizationPercentage || 0,
         projectId: project ? project.projectId : 'N/A',
-        projectName: project ? project.name : flResource.flName,
+        projectName: project ? (project as any).projectName : flResource.flName,
         billablePercentage: flResource.billable ? 100 : 0
       };
     });
@@ -475,7 +475,7 @@ router.get('/allocation-efficiency', async (req: Request, res: Response) => {
 
       return {
         projectId: proj.projectId,
-        projectName: proj.name,
+        projectName: (proj as any).projectName,
         resourceCount,
         totalAllocation: Math.round(totalAllocation * 100) / 100,
         avgAllocation: Math.round(avgAllocation * 100) / 100,
@@ -693,11 +693,11 @@ router.get('/cost-summary', async (req: Request, res: Response) => {
     }>();
 
     projects.forEach(proj => {
-      const projAllocs = allocations.filter(a => a.projectId === proj.projectId && a.billable !== false);
-      const resourceIds = new Set(projAllocs.map(a => a.employeeId));
+      const projAllocs = flResources.filter((a: any) => a.projectId === proj.projectId && a.billable !== false);
+      const resourceIds = new Set(projAllocs.map((a: any) => a.employeeId));
       
       let projectCost = 0;
-      projAllocs.forEach(alloc => {
+      projAllocs.forEach((alloc: any) => {
         const empCost = employeeCosts.get(alloc.employeeId);
         if (empCost) {
           // Cost = (Monthly Salary * Months * Allocation %)
@@ -713,7 +713,7 @@ router.get('/cost-summary', async (req: Request, res: Response) => {
       if (resourceIds.size > 0) {
         projectCostMap.set(proj.projectId, {
           projectId: proj.projectId,
-          projectName: proj.name,
+          projectName: (proj as any).projectName,
           budget,
           actualCost: Math.round(projectCost * 100) / 100,
           resourceCount: resourceIds.size,
@@ -1014,8 +1014,8 @@ router.get('/demand-forecast', async (req: Request, res: Response) => {
     // Upcoming project timeline
     const upcomingProjects = projects.map(proj => ({
       projectId: proj.projectId,
-      projectName: proj.name,
-      startDate: proj.startDate,
+      projectName: (proj as any).projectName,
+      startDate: (proj as any).projectStartDate,
       estimatedTeamSize: proj.teamSize || 5,
       requiredSkills: proj.requiredSkills || [],
       status: proj.status

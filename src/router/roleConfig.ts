@@ -9,6 +9,7 @@ export type RoutePermission = {
     path: string;
     label: string;
     icon?: string;
+    roles?: UserRole[];
   }[];
 };
 
@@ -17,7 +18,6 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/dashboard',
     '/profile',
     '/my-team',
-    '/attendance',
     '/employee/my-attendance',
     '/leave',
     '/payroll',
@@ -32,11 +32,9 @@ export const rolePermissions: Record<UserRole, string[]> = {
   ],
   MANAGER: [
     '/dashboard',
-    '/manager/dashboard',
     '/manager/leave-approvals',
     '/profile',
     '/my-team',
-    '/attendance',
     '/employee/my-attendance',
     '/leave',
     '/payroll',
@@ -46,17 +44,13 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/employees-directory',
     '/rmg/timesheet',
     '/rmg/employee-hours-report',
-    '/hr/training',
-    '/hr/teams',
   ],
   IT_ADMIN: [
     '/dashboard',
     '/itadmin/dashboard',
     '/itadmin/tickets',
-    '/itadmin/analytics',
     '/profile',
     '/my-team',
-    '/attendance',
     '/employee/my-attendance',
     '/leave',
     '/payroll',
@@ -67,10 +61,9 @@ export const rolePermissions: Record<UserRole, string[]> = {
   IT_EMPLOYEE: [
     '/dashboard',
     '/itadmin/tickets',
-    '/itadmin/analytics',
     '/profile',
     '/my-team',
-    '/attendance',
+    '/employee/my-attendance',
     '/leave',
     '/payroll',
     '/performance',
@@ -101,7 +94,6 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/superadmin/categories',
     '/superadmin/approvers',
     '/superadmin/users',
-    '/superadmin/configuration',
     '/superadmin/permissions',
     '/superadmin/leave-policies',
     '/superadmin/holidays',
@@ -112,7 +104,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/employees-directory',
     // Full access to all routes
     '/my-team',
-    '/attendance',
+    '/employee/my-attendance',
     '/leave',
     '/payroll',
     '/performance',
@@ -123,7 +115,6 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/itadmin/tickets',
     '/manager/dashboard',
     '/manager/leave-approvals',
-    '/attendance-management',
     '/payroll-management',
     '/performance-management',
     '/utilization',
@@ -131,6 +122,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/rmg/customers',
     '/rmg/projects',
     '/rmg/financial-lines',
+    '/rmg/customer-pos',
   ],
   HR: [
     '/dashboard',
@@ -138,18 +130,14 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/my-team',
     '/employees-directory',
     '/employees',
-    '/attendance-management',
     '/hr/attendance-overview',
     '/payroll-management',
     '/performance-management',
     '/new-announcement',
     '/admin-announcements',
     '/hr/workforce-summary',
-    '/hr/diversity-inclusion',
     '/hr/leave-attendance-overview',
     '/hr/recognition-celebrations',
-    '/hr/training',
-    '/hr/teams',
   ],
   RMG: [
     '/dashboard',
@@ -157,6 +145,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/rmg/customers',
     '/rmg/projects',
     '/rmg/financial-lines',
+    '/rmg/customer-pos',
     '/rmg/configuration',
     '/rmg/uda-configuration',
     '/rmg/timesheet',
@@ -167,7 +156,6 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/dashboard',
     '/financeadmin/dashboard',
     '/financeadmin/tickets',
-    '/financeadmin/analytics',
     '/profile',
     '/employees-directory',
   ],
@@ -175,7 +163,6 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/dashboard',
     '/facilitiesadmin/dashboard',
     '/facilitiesadmin/tickets',
-    '/facilitiesadmin/analytics',
     '/profile',
     '/employees-directory',
   ],
@@ -194,6 +181,12 @@ export const navigationConfig: RoutePermission[] = [
     path: '/superadmin/dashboard',
     label: 'Dashboard',
     icon: 'LayoutDashboard',
+    roles: ['SUPER_ADMIN'],
+  },
+  {
+    path: '/superadmin/users',
+    label: 'User Management',
+    icon: 'Users',
     roles: ['SUPER_ADMIN'],
   },
   {
@@ -301,7 +294,7 @@ export const navigationConfig: RoutePermission[] = [
   {
     path: '/organization',
     label: 'Organization',
-    icon: 'Building2',
+    icon: 'Network',
     roles: ['EMPLOYEE', 'MANAGER', 'IT_ADMIN', 'IT_EMPLOYEE'],
     children: [
       {
@@ -330,12 +323,6 @@ export const navigationConfig: RoutePermission[] = [
   },
   // Manager Routes
   {
-    path: '/manager/dashboard',
-    label: 'Manager Dashboard',
-    icon: 'LayoutDashboard',
-    roles: ['MANAGER'],
-  },
-  {
     path: '/manager/leave-approvals',
     label: 'Leave Approvals',
     icon: 'ClipboardCheck',
@@ -354,12 +341,6 @@ export const navigationConfig: RoutePermission[] = [
     icon: 'Ticket',
     roles: ['IT_ADMIN', 'IT_EMPLOYEE'],
   },
-  {
-    path: '/itadmin/analytics',
-    label: 'Analytics',
-    icon: 'BarChart',
-    roles: ['IT_ADMIN', 'IT_EMPLOYEE'],
-  },
   // Finance Admin Routes
   {
     path: '/financeadmin/dashboard',
@@ -373,12 +354,7 @@ export const navigationConfig: RoutePermission[] = [
     icon: 'Ticket',
     roles: ['FINANCE_ADMIN', 'EMPLOYEE'],
   },
-  {
-    path: '/financeadmin/analytics',
-    label: 'Analytics',
-    icon: 'BarChart',
-    roles: ['FINANCE_ADMIN'],
-  },
+
   // Facilities Admin Routes
   {
     path: '/facilitiesadmin/dashboard',
@@ -392,17 +368,12 @@ export const navigationConfig: RoutePermission[] = [
     icon: 'Ticket',
     roles: ['FACILITIES_ADMIN', 'EMPLOYEE'],
   },
-  {
-    path: '/facilitiesadmin/analytics',
-    label: 'Analytics',
-    icon: 'BarChart',
-    roles: ['FACILITIES_ADMIN'],
-  },
+
   // HR Routes
   {
     path: '/hr/workforce-summary',
-    label: 'Workforce Summary',
-    icon: 'Users',
+    label: 'Dashboard',
+    icon: 'LayoutDashboard',
     roles: ['HR'],
   },
   {
@@ -424,28 +395,10 @@ export const navigationConfig: RoutePermission[] = [
     roles: ['HR'],
   },
   {
-    path: '/hr/diversity-inclusion',
-    label: 'Diversity & Inclusion',
-    icon: 'UsersRound',
-    roles: ['HR'],
-  },
-  {
-    path: '/hr/training',
-    label: 'Training & Development',
-    icon: 'GraduationCap',
-    roles: ['HR', 'MANAGER'],
-  },
-  {
     path: '/hr/recognition-celebrations',
     label: 'Recognition & Celebrations',
     icon: 'Award',
     roles: ['HR'],
-  },
-  {
-    path: '/hr/teams',
-    label: 'Teams & Members',
-    icon: 'Users',
-    roles: ['HR', 'MANAGER'],
   },
   {
     path: '/admin-announcements',

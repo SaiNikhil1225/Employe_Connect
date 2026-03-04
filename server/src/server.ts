@@ -4,7 +4,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import connectDB from './config/database';
+import connectDB, { lastDbError, dbConnectionAttempts } from './config/database';
 import logger, { morganStream } from './config/logger';
 
 // MongoDB Route imports
@@ -49,8 +49,9 @@ dotenv.config();
 
 const app: Application = express();
 
-// Connect to MongoDB
-connectDB();
+// Increase Mongoose buffering timeout (default 10s is too short for cold starts)
+import mongoose from 'mongoose';
+mongoose.set('bufferTimeoutMS', 30000);
 
 // Security Middleware
 app.use(helmet({
@@ -84,9 +85,37 @@ const apiLimiter = rateLimit({
 });
 
 // Middleware
+const devOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
+
+const getAllowedOrigins = (): string[] => {
+  if (process.env.NODE_ENV !== 'production') return devOrigins;
+  const origins: string[] = [];
+  // Support comma-separated list in CORS_ORIGIN
+  if (process.env.CORS_ORIGIN) {
+    origins.push(...process.env.CORS_ORIGIN.split(',').map(o => o.trim()).filter(Boolean));
+  }
+  if (process.env.ALLOWED_ORIGINS) {
+    origins.push(...process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean));
+  }
+  // Hardcoded fallback for the known Static Web App URL
+  origins.push('https://white-island-0c747ea00.4.azurestaticapps.net');
+  return [...new Set(origins)];
+};
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
-  credentials: true
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    const allowedOrigins = getAllowedOrigins();
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    logger.warn(`CORS blocked origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+    return callback(new Error(`CORS policy: origin ${origin} not allowed`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -147,9 +176,33 @@ app.use('/api/surveys', surveysRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/polls', pollsRoutes);
 
-// Health check
+// Health check with DB status
 app.get('/api/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', message: 'Server is running' });
+  const dbState = mongoose.connection.readyState;
+  const dbStates: Record<number, string> = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+  res.json({ 
+    status: 'ok', 
+    message: 'Server is running',
+    database: dbStates[dbState] || 'unknown',
+    dbReadyState: dbState,
+    lastDbError: lastDbError || null,
+    dbConnectionAttempts,
+    nodeVersion: process.version,
+    env: process.env.NODE_ENV || 'not set',
+    mongoUriSet: !!process.env.MONGODB_URI,
+    port: process.env.PORT || 'not set'
+  });
+});
+
+// Retry DB connection endpoint
+app.get('/api/retry-db', async (req: Request, res: Response) => {
+  try {
+    await connectDB();
+    const dbState = mongoose.connection.readyState;
+    res.json({ status: dbState === 1 ? 'connected' : 'failed', readyState: dbState, lastError: lastDbError || null });
+  } catch (err: any) {
+    res.json({ status: 'error', message: err?.message });
+  }
 });
 
 // Error handling middleware
@@ -171,10 +224,30 @@ app.use((req: Request, res: Response) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  logger.info(`🚀 MongoDB Server running on http://localhost:${PORT}`);
+// Start listening FIRST so Azure sees port open immediately, then connect DB
+const server = app.listen(PORT, () => {
+  logger.info(`🚀 Server listening on port ${PORT}`);
   logger.info(`📊 Database: MongoDB (rmg-portal)`);
   logger.info(`🔐 JWT Authentication enabled`);
+  
+  // Connect to DB after server is listening (non-blocking for Azure health check)
+  connectDB()
+    .then(() => logger.info('✅ Database connected successfully'))
+    .catch((err) => logger.error('⚠️ Database connection failed:', err));
 });
+
+// Graceful shutdown for ts-node-dev restarts and process termination
+const gracefulShutdown = (signal: string) => {
+  logger.info(`🛑 ${signal} received. Closing server...`);
+  server.close(() => {
+    logger.info('✅ Server closed.');
+    process.exit(0);
+  });
+  // Force close after 3s if still not closed
+  setTimeout(() => process.exit(0), 3000).unref();
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // ts-node-dev uses SIGUSR2
 
 export default app;

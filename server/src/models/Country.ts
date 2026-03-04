@@ -47,8 +47,7 @@ const CountrySchema: Schema = new Schema(
 );
 
 // Indexes for better query performance
-CountrySchema.index({ name: 1 });
-CountrySchema.index({ code: 1 });
+// Note: name and code already have unique indexes from 'unique: true' in schema
 CountrySchema.index({ isActive: 1 });
 
 export default mongoose.model<ICountry>('Country', CountrySchema);

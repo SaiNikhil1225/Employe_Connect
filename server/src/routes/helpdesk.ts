@@ -8,6 +8,7 @@ import { asyncHandler } from '../utils/errorHandler';
 import { helpdeskValidation, sanitizeInputs } from '../middleware/validation';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
 import { ticketCreationRateLimiter, messageRateLimiter, generalRateLimiter } from '../middleware/rateLimiter';
+import { checkModulePermission } from '../middleware/permissions';
 import helpdeskService from '../services/helpdeskService';
 
 const router = express.Router();
@@ -131,6 +132,7 @@ router.post(
   '/workflow',
   authenticateToken,
   authorizeRoles('EMPLOYEE', 'MANAGER'),
+  checkModulePermission({ module: 'HELPDESK', action: 'add' }),
   ticketCreationRateLimiter,
   helpdeskValidation.createTicket,
   asyncHandler(async (req: Request, res: Response) => {
@@ -213,6 +215,7 @@ router.put(
   '/:id',
   authenticateToken,
   authorizeRoles('IT_ADMIN', 'ADMIN'),
+  checkModulePermission({ module: 'HELPDESK', action: 'modify' }),
   helpdeskValidation.updateTicket,
   asyncHandler(async (req: Request, res: Response) => {
     // For now, redirect to status update if status is being changed
@@ -669,6 +672,7 @@ router.delete(
   '/:id',
   authenticateToken,
   authorizeRoles('ADMIN'),
+  checkModulePermission({ module: 'HELPDESK', action: 'modify' }),
   asyncHandler(async (req: Request, res: Response) => {
     await helpdeskService.deleteTicket(req.params.id);
 

@@ -119,7 +119,7 @@ router.post('/:id/vote', async (req: Request, res: Response) => {
         ...option.toObject(),
         voters: option.voters.filter((v: any) => v.employeeId !== employeeId),
         votes: option.votes - (option.voters.some((v: any) => v.employeeId === employeeId) ? 1 : 0)
-      }));
+      })) as any;
     }
 
     // Add new votes
@@ -132,7 +132,7 @@ router.post('/:id/vote', async (req: Request, res: Response) => {
         };
       }
       return option.toObject();
-    });
+    }) as any;
 
     // Update total votes and calculate percentages
     if (!hasVoted) {
@@ -143,7 +143,7 @@ router.post('/:id/vote', async (req: Request, res: Response) => {
     poll.options = poll.options.map((option: any) => ({
       ...option,
       percentage: poll.totalVotes > 0 ? (option.votes / poll.totalVotes * 100) : 0
-    }));
+    })) as any;
 
     // Track first vote
     if (!poll.firstVotedBy) {

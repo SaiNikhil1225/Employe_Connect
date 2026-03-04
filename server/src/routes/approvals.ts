@@ -93,7 +93,7 @@ router.post('/l1/:ticketId', checkApproverRole('L1_APPROVER'), async (req: Reque
     });
 
     // Add to history timeline
-    if (!ticket.history) ticket.history = [];
+    if (!ticket.history) ticket.history = [] as any;
 
     if (status === 'Approved') {
       // ========== L1 APPROVED → MOVE TO L2 (NEW ARCHITECTURE) ==========
@@ -206,7 +206,7 @@ router.post('/l2/:ticketId', checkApproverRole('L2_APPROVER'), async (req: Reque
     });
 
     // Add to history timeline
-    if (!ticket.history) ticket.history = [];
+    if (!ticket.history) ticket.history = [] as any;
 
     if (status === 'Approved') {
       // ========== L2 APPROVED → MOVE TO L3 (NEW ARCHITECTURE) ==========
@@ -319,7 +319,7 @@ router.post('/l3/:ticketId', checkApproverRole('L3_APPROVER'), async (req: Reque
     });
 
     // Add to history timeline
-    if (!ticket.history) ticket.history = [];
+    if (!ticket.history) ticket.history = [] as any;
 
     if (status === 'Approved') {
       // ========== L3 APPROVED (FINAL) → ROUTE TO MODULE ADMIN (NEW ARCHITECTURE) ==========
@@ -433,7 +433,7 @@ router.get('/pending/:approverId', async (req: Request, res: Response) => {
 
     // Add metadata to indicate if user can act on each ticket
     const ticketsWithMetadata = allApprovalTickets.map(ticket => {
-      const ticketObj = ticket.toObject();
+      const ticketObj = ticket.toObject() as any;
       ticketObj.id = ticket._id.toString();
 
       const currentLevel = ticket.currentApprovalLevel || ticket.approvalLevel;
@@ -499,7 +499,7 @@ router.get('/all/:approverId', async (req: Request, res: Response) => {
 
     // Add metadata to indicate if user can act on each ticket
     const ticketsWithMetadata = allTickets.map(ticket => {
-      const ticketObj = ticket.toObject();
+      const ticketObj = ticket.toObject() as any;
       ticketObj.id = ticket._id.toString();
 
       const currentLevel = ticket.currentApprovalLevel || ticket.approvalLevel;

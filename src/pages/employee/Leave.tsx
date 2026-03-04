@@ -112,9 +112,17 @@ interface LeaveStatsProps {
   leaves: LeaveRequest[];
   leaveBalance: LeaveBalance | null;
   selectedMonthYear: string;
+  selectedYear: number;
 }
 
-function LeaveStats({ leaves }: LeaveStatsProps) {
+function LeaveStats({ leaves, selectedYear }: LeaveStatsProps) {
+  // Filter leaves to only the selected year for all stats
+  const yearLeaves = useMemo(() => {
+    return leaves.filter(leave => {
+      const leaveYear = new Date(leave.startDate).getFullYear();
+      return leaveYear === selectedYear;
+    });
+  }, [leaves, selectedYear]);
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
   const [hoveredMonth, setHoveredMonth] = useState<string | null>(null);
   const [hoveredType, setHoveredType] = useState<string | null>(null);
@@ -124,7 +132,7 @@ function LeaveStats({ leaves }: LeaveStatsProps) {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const pattern = days.map(day => ({ day, count: 0 }));
 
-    leaves.forEach(leave => {
+    yearLeaves.forEach(leave => {
       if (leave.status === 'cancelled' || leave.status === 'rejected') return;
       const start = new Date(leave.startDate);
       const end = new Date(leave.endDate);
@@ -139,14 +147,14 @@ function LeaveStats({ leaves }: LeaveStatsProps) {
 
     const maxCount = Math.max(...pattern.map(p => p.count), 1);
     return { pattern, maxCount };
-  }, [leaves]);
+  }, [yearLeaves]);
 
   // Calculate monthly pattern (Jan-Dec)
   const monthlyPattern = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const pattern = months.map(month => ({ month, count: 0 }));
 
-    leaves.forEach(leave => {
+    yearLeaves.forEach(leave => {
       if (leave.status === 'cancelled' || leave.status === 'rejected') return;
       const start = new Date(leave.startDate);
       const monthIndex = start.getMonth();
@@ -155,7 +163,7 @@ function LeaveStats({ leaves }: LeaveStatsProps) {
 
     const maxCount = Math.max(...pattern.map(p => p.count), 1);
     return { pattern, maxCount };
-  }, [leaves]);
+  }, [yearLeaves]);
 
   // Calculate leave types for donut chart - includes approved and pending
   const consumedByType = useMemo(() => {
@@ -168,7 +176,7 @@ function LeaveStats({ leaves }: LeaveStatsProps) {
     };
 
     // Sum up all approved and pending leaves by type (exclude cancelled/rejected)
-    leaves.forEach(leave => {
+    yearLeaves.forEach(leave => {
       if (leave.status === 'cancelled' || leave.status === 'rejected') return;
       const days = leave.days || 0;
       if (consumed.hasOwnProperty(leave.leaveType)) {
@@ -203,7 +211,7 @@ function LeaveStats({ leaves }: LeaveStatsProps) {
     });
 
     return { segments, total };
-  }, [leaves]);
+  }, [yearLeaves]);
 
   // Helper to create SVG arc path
   const createArcPath = (startAngle: number, endAngle: number, radius: number, innerRadius: number) => {
@@ -416,11 +424,28 @@ export function Leave() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMonthYear, setSelectedMonthYear] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const itemsPerPage = 10;
 
   // View/Edit states
   const [viewLeave, setViewLeave] = useState<typeof leaves[0] | null>(null);
   const [editLeave, setEditLeave] = useState<typeof leaves[0] | null>(null);
+
+  // Generate year options dynamically
+  const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const years: { value: number; label: string }[] = [];
+    
+    // Generate options for current year and 2 years back
+    for (let year = currentYear; year >= currentYear - 2; year--) {
+      years.push({
+        value: year,
+        label: `Jan ${year} – Dec ${year}`
+      });
+    }
+    
+    return years;
+  }, []);
 
   // Generate month options for 2024-2025
   const monthOptions = useMemo(() => {
@@ -447,10 +472,8 @@ export function Leave() {
     return undefined;
   }, [user, employees]);
 
-  // Calculate dynamic leave balance from approved AND pending leaves (current year only)
+  // Calculate dynamic leave balance from approved AND pending leaves (selected year only)
   const dynamicLeaveBalance = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    
     const consumed: Record<string, number> = {
       'Earned Leave': 0,
       'Sabbatical Leave': 0,
@@ -465,11 +488,11 @@ export function Leave() {
       'Paternity Leave': 0
     };
 
-    // Sum up all approved and pending leaves by type (current year only)
+    // Sum up all approved and pending leaves by type (selected year only)
     leaves.forEach(leave => {
-      // Only count leaves from the current year
+      // Only count leaves from the selected year
       const leaveYear = new Date(leave.startDate).getFullYear();
-      if (leaveYear !== currentYear) return;
+      if (leaveYear !== selectedYear) return;
       
       const days = leave.days || 0;
       if (leave.status === 'approved') {
@@ -516,7 +539,7 @@ export function Leave() {
         remaining: paternityTotal - consumed['Paternity Leave'] - pending['Paternity Leave']
       }
     };
-  }, [leaves, leaveBalance, user]);
+  }, [leaves, leaveBalance, user, selectedYear]);
 
   useEffect(() => {
     if (user?.employeeId) {
@@ -579,14 +602,23 @@ export function Leave() {
     return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
   };
 
-  // Check if there are any pending requests
-  const pendingLeaves = leaves.filter(leave => leave.status === 'pending');
+  // Check if there are any pending requests (filtered by selected year)
+  const pendingLeaves = leaves.filter(leave => {
+    const leaveYear = new Date(leave.startDate).getFullYear();
+    return leave.status === 'pending' && leaveYear === selectedYear;
+  });
   const hasPendingRequests = pendingLeaves.length > 0;
 
   // Filter and sort leaves
   const filteredLeaves = useMemo(() => {
     return leaves
       .filter(leave => {
+        // Year filter - only show leaves from selected year
+        const leaveYear = new Date(leave.startDate).getFullYear();
+        if (leaveYear !== selectedYear) {
+          return false;
+        }
+        
         // Month/Year filter
         if (selectedMonthYear !== 'all') {
           const [year, month] = selectedMonthYear.split('-').map(Number);
@@ -620,7 +652,7 @@ export function Leave() {
         return true;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [leaves, leaveTypeFilter, statusFilter, searchQuery, selectedMonthYear]);
+  }, [leaves, leaveTypeFilter, statusFilter, searchQuery, selectedMonthYear, selectedYear]);
 
   // Pagination
   const totalPages = Math.ceil(filteredLeaves.length / itemsPerPage);
@@ -645,27 +677,55 @@ export function Leave() {
               </div>
             </div>
           </div>
-          <Button
-            onClick={() => setIsApplyLeaveOpen(true)}
-            disabled={!currentEmployee}
-            size="lg"
-            className="shadow-lg shadow-primary/25"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Apply Leave
-          </Button>
+          <div className="flex items-center gap-3">
+            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select year" />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value.toString()}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={() => setIsApplyLeaveOpen(true)}
+              disabled={!currentEmployee}
+              size="lg"
+              className="shadow-lg shadow-primary/25"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Apply Leave
+            </Button>
+          </div>
         </div>
         
         {/* Quick Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
           <div className="bg-background/80 backdrop-blur rounded-lg p-3 border flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <TrendingUp className="h-4 w-4 text-blue-500" />
+            <div className="h-9 w-9 rounded-lg bg-purple-500/10 flex items-center justify-center">
+              <Sparkles className="h-4 w-4 text-purple-500" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Total Used</p>
+              <p className="text-xs text-muted-foreground">Available</p>
               <p className="text-lg font-semibold text-foreground">
-                {dynamicLeaveBalance.earnedLeave.used + dynamicLeaveBalance.sabbaticalLeave.used + dynamicLeaveBalance.compOff.used + dynamicLeaveBalance.paternityLeave.used} days
+                {dynamicLeaveBalance.earnedLeave.remaining + dynamicLeaveBalance.compOff.remaining} days
+              </p>
+            </div>
+          </div>
+          <div className="bg-background/80 backdrop-blur rounded-lg p-3 border flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Approved</p>
+              <p className="text-lg font-semibold text-foreground">
+                {leaves.filter(l => {
+                  const leaveYear = new Date(l.startDate).getFullYear();
+                  return l.status === 'approved' && leaveYear === selectedYear;
+                }).length} this year
               </p>
             </div>
           </div>
@@ -679,24 +739,13 @@ export function Leave() {
             </div>
           </div>
           <div className="bg-background/80 backdrop-blur rounded-lg p-3 border flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-green-500/10 flex items-center justify-center">
-              <CheckCircle className="h-4 w-4 text-green-500" />
+            <div className="h-9 w-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <TrendingUp className="h-4 w-4 text-blue-500" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Approved</p>
+              <p className="text-xs text-muted-foreground">Total Used</p>
               <p className="text-lg font-semibold text-foreground">
-                {leaves.filter(l => l.status === 'approved').length} this year
-              </p>
-            </div>
-          </div>
-          <div className="bg-background/80 backdrop-blur rounded-lg p-3 border flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-purple-500/10 flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-purple-500" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Available</p>
-              <p className="text-lg font-semibold text-foreground">
-                {dynamicLeaveBalance.earnedLeave.remaining + dynamicLeaveBalance.compOff.remaining} days
+                {dynamicLeaveBalance.earnedLeave.used + dynamicLeaveBalance.sabbaticalLeave.used + dynamicLeaveBalance.compOff.used + dynamicLeaveBalance.paternityLeave.used} days
               </p>
             </div>
           </div>
@@ -944,7 +993,7 @@ export function Leave() {
               </div>
               <div className="space-y-1">
                 <Progress 
-                  value={(dynamicLeaveBalance.paternityLeave.remaining / dynamicLeaveBalance.paternityLeave.total) * 100} 
+                  value={dynamicLeaveBalance.paternityLeave.total > 0 ? (dynamicLeaveBalance.paternityLeave.remaining / dynamicLeaveBalance.paternityLeave.total) * 100 : 0} 
                   className="h-2 bg-green-100 dark:bg-green-950/30"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
@@ -954,7 +1003,7 @@ export function Leave() {
                       <span className="text-orange-500 ml-1">(+{dynamicLeaveBalance.paternityLeave.pending} pending)</span>
                     )}
                   </span>
-                  <span>{Math.round((dynamicLeaveBalance.paternityLeave.remaining / dynamicLeaveBalance.paternityLeave.total) * 100)}%</span>
+                  <span>{dynamicLeaveBalance.paternityLeave.total > 0 ? Math.round((dynamicLeaveBalance.paternityLeave.remaining / dynamicLeaveBalance.paternityLeave.total) * 100) : 0}%</span>
                 </div>
               </div>
             </div>
@@ -967,6 +1016,7 @@ export function Leave() {
         leaves={leaves}
         leaveBalance={dynamicLeaveBalance}
         selectedMonthYear={selectedMonthYear}
+        selectedYear={selectedYear}
       />
 
       {/* Leave History */}
@@ -981,25 +1031,6 @@ export function Leave() {
                 </CardTitle>
                 <CardDescription>Your recent leave requests ({filteredLeaves.length} total)</CardDescription>
               </div>
-
-              {/* Month/Year Filter */}
-              <Select value={selectedMonthYear} onValueChange={(value) => {
-                setSelectedMonthYear(value);
-                setCurrentPage(1);
-              }}>
-                <SelectTrigger className="w-[160px]">
-                  <CalendarDays className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Select Month" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  <SelectItem value="all">All Time</SelectItem>
-                  {monthOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Filter Bar */}

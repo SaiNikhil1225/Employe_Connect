@@ -91,6 +91,8 @@ interface Stats {
   avgGroupSize: number;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export function TeamsMembers() {
   const { permissions } = useProfile();
   const user = useAuthStore((state) => state.user);
@@ -434,7 +436,7 @@ export function TeamsMembers() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/teams/stats');
+      const response = await fetch(`${API_URL}/teams/stats`);
       const result = await response.json();
       if (result.success) {
         setStats(result.data);
@@ -446,7 +448,7 @@ export function TeamsMembers() {
 
   const fetchGroups = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/teams/groups?limit=100');
+      const response = await fetch(`${API_URL}/teams/groups?limit=100`);
       const result = await response.json();
       if (result.success) {
         setGroups(result.data);
@@ -460,7 +462,7 @@ export function TeamsMembers() {
 
   const fetchMembers = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/teams/members?limit=100');
+      const response = await fetch(`${API_URL}/teams/members?limit=100`);
       const result = await response.json();
       if (result.success) {
         setMembers(result.data);
@@ -474,7 +476,7 @@ export function TeamsMembers() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/employees');
+      const response = await fetch(`${API_URL}/employees`);
       const result = await response.json();
       
       console.log('Employees API response:', result);
@@ -509,7 +511,7 @@ export function TeamsMembers() {
   const fetchGroupMembers = async (groupId: string) => {
     setLoadingGroupMembers(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/teams/groups/${groupId}/members`);
+      const response = await fetch(`${API_URL}/teams/groups/${groupId}/members`);
       const result = await response.json();
       
       if (result.success) {
@@ -532,7 +534,7 @@ export function TeamsMembers() {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/teams/groups', {
+      const response = await fetch(`${API_URL}/teams/groups`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -570,7 +572,7 @@ export function TeamsMembers() {
     if (!selectedGroup) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/teams/groups/${selectedGroup.groupId}`, {
+      const response = await fetch(`${API_URL}/teams/groups/${selectedGroup.groupId}`, {
         method: 'DELETE',
       });
 
@@ -598,7 +600,7 @@ export function TeamsMembers() {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/teams/groups/${memberForm.groupId}/members`, {
+      const response = await fetch(`${API_URL}/teams/groups/${memberForm.groupId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -909,7 +911,7 @@ export function TeamsMembers() {
             
             try {
               const response = await fetch(
-                `http://localhost:5000/api/teams/groups/${selectedGroup?.groupId}/members/${row.employeeId}`,
+                `${API_URL}/teams/groups/${selectedGroup?.groupId}/members/${row.employeeId}`,
                 { method: 'DELETE' }
               );
               const result = await response.json();

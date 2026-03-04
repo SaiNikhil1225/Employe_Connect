@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Plus, MoreVertical, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
 import { configService, type ConfigMaster } from '@/services/configService';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import ConfigFormSheet from './ConfigFormSheet';
 import {
@@ -42,7 +42,6 @@ const ConfigSection: React.FC<ConfigSectionProps> = ({ type, label }) => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<ConfigMaster | null>(null);
   const [deletingConfig, setDeletingConfig] = useState<ConfigMaster | null>(null);
-  const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
   
   // Check if user is RMG or SUPER_ADMIN (both can manage configs)
@@ -55,11 +54,7 @@ const ConfigSection: React.FC<ConfigSectionProps> = ({ type, label }) => {
       setConfigs(data);
     } catch (error) {
       console.error('Failed to fetch configurations:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load configurations',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load configurations');
     } finally {
       setLoading(false);
     }
@@ -85,18 +80,11 @@ const ConfigSection: React.FC<ConfigSectionProps> = ({ type, label }) => {
 
     try {
       await configService.delete(type, deletingConfig._id!);
-      toast({
-        title: 'Success',
-        description: 'Configuration deleted successfully',
-      });
+      toast.success('Configuration deleted successfully');
       fetchConfigs();
     } catch (error) {
       console.error('Failed to delete configuration:', error);
-      toast({
-        title: 'Error',
-        description: (error as Error).message || 'Failed to delete configuration',
-        variant: 'destructive',
-      });
+      toast.error((error as Error).message || 'Failed to delete configuration');
     } finally {
       setDeletingConfig(null);
     }
@@ -110,18 +98,11 @@ const ConfigSection: React.FC<ConfigSectionProps> = ({ type, label }) => {
         description: config.description,
         status: newStatus,
       });
-      toast({
-        title: 'Success',
-        description: `Configuration ${newStatus === 'Active' ? 'activated' : 'deactivated'} successfully`,
-      });
+      toast.success(`Configuration ${newStatus === 'Active' ? 'activated' : 'deactivated'} successfully`);
       fetchConfigs();
     } catch (error) {
       console.error('Failed to update status:', error);
-      toast({
-        title: 'Error',
-        description: (error as Error).message || 'Failed to update status',
-        variant: 'destructive',
-      });
+      toast.error((error as Error).message || 'Failed to update status');
     }
   };
 

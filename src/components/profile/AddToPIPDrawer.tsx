@@ -40,6 +40,8 @@ interface AddToPIPDrawerProps {
   onSuccess?: () => void;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export default function AddToPIPDrawer({
   isOpen,
   onClose,
@@ -148,7 +150,7 @@ export default function AddToPIPDrawer({
       // TODO: Upload attachments first if any
       const attachmentIds: string[] = [];
 
-      const response = await axios.post('http://localhost:5000/api/pip/start', {
+      const response = await axios.post(`${API_URL}/pip/start`, {
         employeeId,
         reason,
         attachments: attachmentIds,

@@ -1,6 +1,7 @@
 import express from 'express';
 import { Request, Response } from 'express';
 import HelpdeskTicket from '../models/HelpdeskTicket';
+import { checkModulePermission } from '../middleware/permissions';
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ interface AgentPerformanceData {
 }
 
 // GET /api/analytics/weekly-pattern - Get weekly pattern analytics
-router.get('/weekly-pattern', async (req: Request, res: Response) => {
+router.get('/weekly-pattern', checkModulePermission({ module: 'RMG', action: 'view' }), async (req: Request, res: Response) => {
   try {
     const {
       startDate,
@@ -294,7 +295,7 @@ router.get('/weekly-pattern', async (req: Request, res: Response) => {
 });
 
 // GET /api/analytics/weekly-pattern/export - Export weekly pattern as CSV
-router.get('/weekly-pattern/export', async (req: Request, res: Response) => {
+router.get('/weekly-pattern/export', checkModulePermission({ module: 'RMG', action: 'view' }), async (req: Request, res: Response) => {
   try {
     const {
       startDate,
@@ -417,7 +418,7 @@ router.get('/weekly-pattern/export', async (req: Request, res: Response) => {
 });
 
 // GET /api/analytics/monthly-statistics - Get monthly statistics
-router.get('/monthly-statistics', async (req: Request, res: Response) => {
+router.get('/monthly-statistics', checkModulePermission({ module: 'RMG', action: 'view' }), async (req: Request, res: Response) => {
   try {
     const {
       year,

@@ -38,6 +38,8 @@ interface TrainingFormData {
   location: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 const categories = [
   'Technical',
   'Soft Skills',
@@ -95,7 +97,7 @@ export function AddTrainingForm() {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/employees');
+        const response = await fetch(`${API_URL}/employees`);
         const result = await response.json();
         if (result.success) {
           const empData = result.data;
@@ -222,7 +224,7 @@ export function AddTrainingForm() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/training', {
+      const response = await fetch(`${API_URL}/training`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
