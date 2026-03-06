@@ -183,6 +183,10 @@ app.use('/api/pip', pipRoutes);
 app.get('/api/health', (req: Request, res: Response) => {
   const dbState = mongoose.connection.readyState;
   const dbStates: Record<number, string> = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+  const uri = process.env.MONGODB_URI || '';
+  // Show only the host part for diagnostics (no credentials)
+  const uriHost = uri ? uri.split('@')[1]?.split('/')[0] || 'parse-error' : 'not-set';
+  const uriUser = uri ? uri.split('//')[1]?.split(':')[0] || 'unknown' : 'not-set';
   res.json({ 
     status: 'ok', 
     message: 'Server is running',
@@ -193,6 +197,8 @@ app.get('/api/health', (req: Request, res: Response) => {
     nodeVersion: process.version,
     env: process.env.NODE_ENV || 'not set',
     mongoUriSet: !!process.env.MONGODB_URI,
+    mongoUriHost: uriHost,
+    mongoUriUser: uriUser,
     port: process.env.PORT || 'not set'
   });
 });
