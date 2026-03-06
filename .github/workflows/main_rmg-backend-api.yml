@@ -69,7 +69,7 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'rmg-backend-api-axa9cpfqd6a5g6gb'
+          app-name: 'rmg-backend-api'
           slot-name: 'Production'
           package: backend-deploy.zip
           startup-command: node dist/server.js
