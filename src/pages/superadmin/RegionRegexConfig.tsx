@@ -46,6 +46,7 @@ import {
     Globe
 } from 'lucide-react';
 import type { Region, FieldConfig, FieldType } from '@/types/superAdmin';
+import { PageHeader } from '@/components/ui/page-header';
 
 const REGIONS: Region[] = ['INDIA', 'US', 'UK', 'MIDDLE_EAST', 'OTHER'];
 const FIELD_TYPES: FieldType[] = ['text', 'number', 'date', 'select', 'file'];
@@ -256,37 +257,33 @@ export default function RegionRegexConfig() {
     return (
         <div className="page-container">
             {/* Header with Region Filter */}
-            <div className="page-header">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                        <Globe className="h-6 w-6 text-primary" />
+            <PageHeader
+                icon={Globe}
+                title="Regex Validation"
+                description="Configure region-specific custom fields and validation rules"
+                actions={
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <Label className="text-sm font-medium">Filter Region:</Label>
+                            <Select value={filterRegion} onValueChange={(value) => setFilterRegion(value as Region)}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {REGIONS.map((region) => (
+                                        <SelectItem key={region} value={region}>
+                                            {region.replace('_', ' ')}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Badge variant="secondary">
+                            {fields.length} field{fields.length !== 1 ? 's' : ''}
+                        </Badge>
                     </div>
-                    <div>
-                        <h1 className="page-title">Regex Validation</h1>
-                        <p className="page-description">Configure region-specific custom fields and validation rules</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                        <Label className="text-sm font-medium">Filter Region:</Label>
-                        <Select value={filterRegion} onValueChange={(value) => setFilterRegion(value as Region)}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {REGIONS.map((region) => (
-                                    <SelectItem key={region} value={region}>
-                                        {region.replace('_', ' ')}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <Badge variant="secondary">
-                        {fields.length} field{fields.length !== 1 ? 's' : ''}
-                    </Badge>
-                </div>
-            </div>
+                }
+            />
 
             {loading ? (
                 <div className="space-y-3">

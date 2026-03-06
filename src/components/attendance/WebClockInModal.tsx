@@ -1,14 +1,15 @@
-import { useState } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
+import { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
   DialogTitle,
-  DialogDescription 
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut, MapPin, Wifi, Clock } from 'lucide-react';
+import { LogIn, LogOut, Globe, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { getCachedIPAddress } from '@/lib/ipUtils';
 
 interface WebClockInModalProps {
   open: boolean;
@@ -19,8 +20,15 @@ interface WebClockInModalProps {
 
 export function WebClockInModal({ open, onClose, onClockIn, onClockOut }: WebClockInModalProps) {
   const [action, setAction] = useState<'clock-in' | 'clock-out'>('clock-in');
-  const [location, setLocation] = useState<string>('Fetching location...');
+  const [ipAddress, setIpAddress] = useState<string>('Fetching...');
   const [loading, setLoading] = useState(false);
+
+  // Fetch IP address when modal opens
+  useEffect(() => {
+    if (open) {
+      getCachedIPAddress().then(ip => setIpAddress(ip));
+    }
+  }, [open]);
 
   const handleAction = async () => {
     setLoading(true);
@@ -91,18 +99,10 @@ export function WebClockInModal({ open, onClose, onClockIn, onClockOut }: WebClo
             </div>
 
             <div className="flex items-center gap-3">
-              <MapPin className="h-5 w-5 text-gray-500" />
+              <Globe className="h-5 w-5 text-gray-500" />
               <div>
-                <p className="text-sm text-gray-600">Location</p>
-                <p className="font-semibold text-sm">Office - Main Building</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Wifi className="h-5 w-5 text-gray-500" />
-              <div>
-                <p className="text-sm text-gray-600">Network</p>
-                <p className="font-semibold text-sm">Office WiFi</p>
+                <p className="text-sm text-gray-600">IP Address</p>
+                <p className="font-semibold font-mono text-sm">{ipAddress}</p>
               </div>
             </div>
           </div>
@@ -110,7 +110,7 @@ export function WebClockInModal({ open, onClose, onClockIn, onClockOut }: WebClo
           {/* Confirmation */}
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-blue-900">
-              {action === 'clock-in' 
+              {action === 'clock-in'
                 ? '⏱️ You are about to clock in. Make sure you are at your designated work location.'
                 : '⏱️ You are about to clock out. This will end your work session for today.'
               }

@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Save, Trash2, Edit2, Calendar } from 'lucide-react';
 import type { LeavePolicy, Distribution } from '@/types/superAdmin';
+import { PageHeader } from '@/components/ui/page-header';
 
 const DISTRIBUTIONS: Distribution[] = ['QUARTERLY', 'HALF_YEARLY', 'ANNUAL'];
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -134,37 +135,32 @@ export default function LeavePolicyConfig() {
     return (
         <div className="page-container">
             {/* Header */}
-            <div className="page-header">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                        <Calendar className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                        <h1 className="page-title">Leave Policy Configuration</h1>
-                        <p className="page-description">Configure leave types, allocations, and policies</p>
-                    </div>
-                </div>
-                <Button onClick={() => {
-                    setEditingPolicy(null);
-                    setIsDialogOpen(true);
-                }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Leave Policy
-                </Button>
-
-                <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <SheetContent className="flex flex-col h-full overflow-hidden w-full sm:max-w-2xl p-0">
-                        <PolicyDialog
-                            policy={editingPolicy}
-                            onSave={savePolicy}
-                            onClose={() => {
-                                setIsDialogOpen(false);
-                                setEditingPolicy(null);
-                            }}
-                        />
-                    </SheetContent>
-                </Sheet>
-            </div>
+            <PageHeader
+                icon={Calendar}
+                title="Leave Policy Configuration"
+                description="Configure leave types, allocations, and policies"
+                actions={
+                    <Button onClick={() => {
+                        setEditingPolicy(null);
+                        setIsDialogOpen(true);
+                    }}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Leave Policy
+                    </Button>
+                }
+            />
+            <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <SheetContent className="flex flex-col h-full overflow-hidden w-full sm:max-w-2xl p-0">
+                    <PolicyDialog
+                        policy={editingPolicy}
+                        onSave={savePolicy}
+                        onClose={() => {
+                            setIsDialogOpen(false);
+                            setEditingPolicy(null);
+                        }}
+                    />
+                </SheetContent>
+            </Sheet>
 
             {loading ? (
                 <div className="text-center py-8">Loading...</div>

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/ui/page-header';
 import {
   Select,
   SelectContent,
@@ -405,37 +406,33 @@ export function FinanceAdminDashboard() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <Wallet className="h-7 w-7 text-primary" />
-            Finance Admin Dashboard
-          </h1>
-          <p className="page-description">
-            Manage Finance ticket assignments and monitor queue status
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchTickets()}
-            disabled={isLoading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/financeadmin/tickets')}
-            className="flex items-center gap-2"
-          >
-            <Activity className="h-4 w-4" />
-            View All Tickets
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Wallet}
+        title="Finance Admin Dashboard"
+        description="Manage Finance ticket assignments and monitor queue status"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchTickets()}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/financeadmin/tickets')}
+              className="flex items-center gap-2"
+            >
+              <Activity className="h-4 w-4" />
+              View All Tickets
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">

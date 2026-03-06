@@ -1,0 +1,3236 @@
+﻿=== FILE: src\pages\hr\WorkforceSummary.tsx (return at line 1226) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { DataTable, type DataTableColumn, type DataTableAction } from '@/components/ui/data-table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetCloseButton } from '@/components/ui/sheet';
+import { Calendar, Clock, TrendingUp, FileText, Users, CalendarDays, Plane, LogIn, LogOut, Megaphone, Cake, Gift, UserPlus, Heart, MessageCircle, Send, Plus, Flame, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Sparkles, Tag, BadgeCheck, Eye, Share2, Pin, BarChart3, CheckCircle2, Pencil, AlertCircle, Trash2, MoreVertical, Palmtree, Award, Baby, Briefcase, Circle, Upload, Search, Filter, Download, X, ArrowUpDown, ArrowUp, ArrowDown, Minus, ExternalLink, Edit3, Columns3 } from 'lucide-react';
+import { EmployeeAvatar } from '@/components/ui/employee-avatar';
+import { Progress } from '@/components/ui/progress';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Employee Management Section */}
+      {permissions.canEditEmployees && (
+        <div className="page-header">
+          <div className="flex items-start gap-3 flex-1">
+            <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+              <Briefcase className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h2 className="page-title">Employee Management</h2>
+              <p className="page-description">Filter by date range and manage employees</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+                {/* Filter Button */}
+                <Button 
+                  variant="outline" 
+                  className="h-10"
+                  onClick={() => setShowFilterPopover(!showFilterPopover)}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  {showFilterPopover ? 'Hide Filters' : 'Show Filters'}
+                  {filterApplied && (
+                    <span className="ml-2 flex h-2 w-2 rounded-full bg-green-500" />
+                  )}
+                </Button>
+
+                <Button variant="outline" onClick={() => setShowBulkUploadModal(true)} className="h-10">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Bulk Upload
+                </Button>
+                <Button onClick={() => setShowAddEmployeeModal(true)} className="h-10">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Employee
+                </Button>
+              </div>
+        </div>
+      )}
+
+      {/* Expandable Filter Section */}
+      {permissions.canEditEmployees && showFilterPopover && (
+        <Card className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold text-sm">Filter Employees</h4>
+              <Button variant="ghost" size="sm" onClick={() => {
+                clearDateFilters();
+                clearAllFilters();
+                setFilterApplied(false);
+              }} className="h-7 px-2 text-xs">
+                <X className="h-3 w-3 mr-1" />
+                Clear All
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Date Pickers */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">From Date</label>
+                <Popover open={showFromCalendar} onOpenChange={setShowFromCalendar}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {fromDate ? format(fromDate, 'MMM dd, yyyy') : 'Select from date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      selected={fromDate}
+                      onSelect={(date) => {
+                        setFromDate(date);
+                        setShowFromCalendar(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+=== FILE: src\pages\hr\EmployeeManagement.tsx (return at line 189) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Search, UserPlus, Mail, Phone, MoreVertical, Edit, UserX, UserCheck, Trash2, Upload, Users } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <Users className="h-7 w-7 text-primary" />
+            Employee Management
+          </h1>
+          <p className="page-description">Manage employee profiles and information</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowUploadModal(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Excel
+          </Button>
+          <Button onClick={() => setShowAddModal(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add Employee
+          </Button>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="active">
+            Active Employees ({activeEmployees.length})
+          </TabsTrigger>
+          <TabsTrigger value="inactive">
+            Inactive Employees ({inactiveEmployees.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active" className="mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Active Employees</CardTitle>
+                  <CardDescription>
+                    {filteredActiveEmployees.length} of {activeEmployees.length} employees
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search employees..." 
+                    className="w-64"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="p-4 border rounded-lg animate-pulse">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-full bg-muted-color" />
+                        <div className="space-y-2">
+                          <div className="h-4 w-32 bg-muted-color rounded" />
+                          <div className="h-3 w-24 bg-muted-color rounded" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredActiveEmployees.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {searchQuery ? 'No employees found matching your search' : 'No active employees'}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredActiveEmployees.map((employee) => (
+                    <EmployeeCard key={employee._id || employee.employeeId} employee={employee} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+
+=== FILE: src\pages\hr\AttendanceOverview.tsx (return at line 567) ===
+IMPORTS: import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DataTable, type DataTableColumn, type DataTableAction } from '@/components/ui/data-table';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Attendance Management Section */}
+      <div className="page-header">
+        <div className="flex items-start gap-3 flex-1">
+          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+            <Calendar className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h2 className="page-title">Attendance Management</h2>
+            <p className="page-description">Monitor and manage team attendance</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Filter Button */}
+          <Button 
+            variant="outline" 
+            className="h-10"
+            onClick={() => setShowFilterPopover(!showFilterPopover)}
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            {showFilterPopover ? 'Hide Filters' : 'Show Filters'}
+            {filterApplied && (
+              <span className="ml-2 flex h-2 w-2 rounded-full bg-green-500" />
+            )}
+          </Button>
+          <Button onClick={handleExport} variant="outline" className="h-10">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button onClick={handleRefresh} variant="outline" className="h-10" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Expandable Filter Section */}
+      {showFilterPopover && (
+        <Card className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold text-sm">Filter Attendance Data</h4>
+              <Button variant="ghost" size="sm" onClick={() => {
+                clearDateFilters();
+                setDepartmentFilter('all');
+                setStatusFilter('all');
+                setFilterApplied(false);
+              }} className="h-7 px-2 text-xs">
+                <X className="h-3 w-3 mr-1" />
+                Clear All
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Date Pickers */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">From Date</label>
+                <Popover open={showFromCalendar} onOpenChange={setShowFromCalendar}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {fromDate ? format(fromDate, 'MMM dd, yyyy') : 'Select from date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      selected={fromDate}
+                      onSelect={(date) => {
+                        setFromDate(date);
+                        setShowFromCalendar(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+
+=== FILE: src\pages\hr\PayrollManagement.tsx (return at line 654) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+---HEADER JSX---
+  return (
+    <div className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+          <DollarSign className="h-5 w-5 text-green-600" />
+        </div>
+        <div>
+          <p className="font-medium">{description}</p>
+          <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {date}
+          </p>
+        </div>
+      </div>
+      <div className="text-right flex items-center gap-4">
+        <p className="text-lg font-semibold">${amount.toLocaleString()}</p>
+        <Badge variant="outline" className="bg-green-100 text-green-700">
+          {status}
+        </Badge>
+      </div>
+    </div>
+  );
+}
+
+function Label({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <label className={`text-sm font-medium ${className}`}>{children}</label>;
+}
+
+=== FILE: src\pages\hr\PerformanceManagement.tsx (return at line 314) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 flex items-center gap-2 text-amber-800 dark:text-amber-200 text-sm"><AlertTriangle className="h-4 w-4 flex-shrink-0" /><span>This page displays demo data. API integration pending.</span></div>
+      {/* Header */}
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <BarChart3 className="h-7 w-7 text-primary" />
+            Performance Management
+          </h1>
+          <p className="page-description">Track goals, reviews, and employee performance</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowGoalDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Goal
+          </Button>
+          <Button onClick={() => setShowReviewDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Review
+          </Button>
+        </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Goals</CardTitle>
+            <Target className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalGoals}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.goalCompletionRate}% completion rate
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Completed Goals</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{stats.completedGoals}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.onTrackGoals} on track, {stats.atRiskGoals} at risk
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Reviews Completed</CardTitle>
+            <Award className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{stats.completedReviews}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.pendingReviews} pending reviews
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Avg Rating</CardTitle>
+            <Star className="h-4 w-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{stats.avgRating}/5</div>
+            <p className="text-xs text-muted-foreground">Overall performance</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+
+=== FILE: src\pages\hr\Recruitment.tsx (return at line 366) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 flex items-center gap-2 text-amber-800 dark:text-amber-200 text-sm"><AlertTriangle className="h-4 w-4 flex-shrink-0" /><span>This page displays demo data. API integration pending.</span></div>
+      {/* Header */}
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <Briefcase className="h-7 w-7 text-primary" />
+            Recruitment
+          </h1>
+          <p className="page-description">Manage job openings and candidate pipeline</p>
+        </div>
+        <Button onClick={() => setShowJobDialog(true)}>
+          <UserPlus className="h-4 w-4 mr-2" />
+          Post New Job
+        </Button>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Open Positions</CardTitle>
+            <Briefcase className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.openPositions}</div>
+            <p className="text-xs text-muted-foreground">Active postings</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Applicants</CardTitle>
+            <Users className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalApplicants}</div>
+            <p className="text-xs text-muted-foreground">This month</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">In Interview</CardTitle>
+            <Clock className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{stats.inInterviewCount}</div>
+            <p className="text-xs text-muted-foreground">Active interviews</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Offers Made</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{stats.offersCount}</div>
+            <p className="text-xs text-muted-foreground">Pending acceptance</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Hired</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{stats.hiredCount}</div>
+            <p className="text-xs text-muted-foreground">This month</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="candidates">
+        <TabsList>
+          <TabsTrigger value="candidates">Candidates</TabsTrigger>
+
+=== FILE: src\pages\hr\DiversityInclusion.tsx (return at line 860) ===
+IMPORTS: import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+---HEADER JSX---
+  return (
+    <div className="space-y-6">
+      {/* Diversity Management Section */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-start gap-3 flex-1">
+          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+            <Users className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-foreground mb-1">Diversity Analytics</h2>
+            <p className="text-sm text-muted-foreground">Filter by gender and date range to analyze diversity metrics
+              {filterApplied && (
+                <span className="ml-2 text-orange-600 font-medium">
+                  (Filtered: 
+                  {genderFilter !== 'all' && (
+                    <span> Gender: {genderFilter}</span>
+                  )}
+                  {genderFilter !== 'all' && (fromDate || toDate) && ' â€¢ '}
+                  {fromDate && toDate 
+                    ? `${format(fromDate, 'MMM dd, yyyy')} â†’ ${format(toDate, 'MMM dd, yyyy')}`
+                    : fromDate 
+                    ? `From ${format(fromDate, 'MMM dd, yyyy')}`
+                    : toDate ? `Until ${format(toDate, 'MMM dd, yyyy')}` : ''})
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Filter Button */}
+          <Button 
+            variant="outline" 
+            className="h-10"
+            onClick={() => setShowFilterPopover(!showFilterPopover)}
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            {showFilterPopover ? 'Hide Filters' : 'Show Filters'}
+            {filterApplied && (
+              <span className="ml-2 flex h-2 w-2 rounded-full bg-green-500" />
+            )}
+          </Button>
+
+          {/* Export Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-10 gap-2">
+                <Download className="h-4 w-4" />
+                Export Report
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={exportFullReportExcel} className="gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportFullReportCSV} className="gap-2">
+                <FileText className="h-4 w-4 text-blue-600" />
+                CSV (.csv)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportFullReportPDF} className="gap-2">
+                <FileDown className="h-4 w-4 text-red-600" />
+                PDF (Print)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Expandable Filter Section */}
+      {showFilterPopover && (
+        <Card className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold text-sm">Filter Options</h4>
+              <Button variant="ghost" size="sm" onClick={() => {
+                setGenderFilter('all');
+                setFromDate(undefined);
+
+=== FILE: src\pages\hr\RecognitionCelebrations.tsx (return at line 667) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetBody, SheetCloseButton } from '@/components/ui/sheet';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { EmployeeAvatar } from '@/components/ui/employee-avatar';
+import { DataTable } from '@/components/ui/data-table';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Header Section - Matching WorkforceSummary UI */}
+      <div className="page-header">
+        <div className="flex items-start gap-3 flex-1">
+          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+            <PartyPopper className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h2 className="page-title">Recognition & Celebrations</h2>
+            <p className="page-description">
+              Manage employee celebrations and recognition events
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowFilters(!showFilters)} 
+            className="gap-2 h-10"
+          >
+            <Filter className="h-4 w-4" />
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+            {(eventTypeFilter !== 'all' || statusFilter !== 'all' || dateFrom || dateTo) && (
+              <span className="ml-1 flex h-2 w-2 rounded-full bg-green-500" />
+            )}
+          </Button>
+          <Button onClick={() => setShowAddDialog(true)} className="h-10">
+            <Plus className="h-4 w-4 mr-2" />
+            Add New Event
+          </Button>
+        </div>
+      </div>
+
+      {/* Expandable Filter Section */}
+      {showFilters && (
+        <Card className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold text-sm">Filter Celebrations</h4>
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 px-2 text-xs">
+                <X className="h-3 w-3 mr-1" />
+                Clear All
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Event Type</Label>
+                <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="birthday">Birthday</SelectItem>
+                    <SelectItem value="anniversary">Anniversary</SelectItem>
+                    <SelectItem value="achievement">Achievement</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="upcoming">Upcoming</SelectItem>
+                    <SelectItem value="celebrated">Celebrated</SelectItem>
+                    <SelectItem value="missed">Missed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date From</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+
+=== FILE: src\pages\hr\TeamsMembers.tsx (return at line 939) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DataTable } from '@/components/ui/data-table';
+import { EmployeeAvatar } from '@/components/ui/employee-avatar';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+---HEADER JSX---
+  return (
+    <div className="space-y-6">
+      {/* Header Section - Matching WorkforceSummary UI */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-start gap-3 flex-1">
+          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+            <Users className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-foreground mb-1">Teams & Members</h2>
+            <p className="text-sm text-muted-foreground">
+              {isHRUser 
+                ? 'Manage organizational departments and team assignments'
+                : 'View your departments and team members'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowFilters(!showFilters)} 
+            className="gap-2 h-10"
+          >
+            <Filter className="h-4 w-4" />
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+            {(departmentTypeFilter !== 'all' || departmentFilter !== 'all' || statusFilter !== 'all' || fromDate || toDate) && (
+              <span className="ml-1 flex h-2 w-2 rounded-full bg-green-500" />
+            )}
+          </Button>
+
+          {/* HR-only actions */}
+          {isHRUser && (
+            <>
+              <Button onClick={() => setShowAddMemberDialog(true)} variant="outline" className="h-10">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Member
+              </Button>
+              <Button onClick={() => setShowAddGroupDialog(true)} className="h-10">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Department
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Expandable Filter Section */}
+      {showFilters && (
+        <Card className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold text-sm">Filter Departments & Members</h4>
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 px-2 text-xs">
+                <X className="h-3 w-3 mr-1" />
+                Clear All
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Department Type</Label>
+                <Select value={departmentTypeFilter} onValueChange={setDepartmentTypeFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    {uniqueGroupTypes.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Department</Label>
+                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+
+=== FILE: src\pages\hr\TrainingDashboard.tsx (return at line 814) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
+import { DataTable } from '@/components/ui/data-table';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetCloseButton } from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+---HEADER JSX---
+  return (
+    <div className="space-y-6">
+      {/* Header Section - Matching WorkforceSummary UI */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-start gap-3 flex-1">
+          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+            <GraduationCap className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-foreground mb-1">Training & Development</h2>
+            <p className="text-sm text-muted-foreground">
+              {isEmployee 
+                ? 'View your training programs, track progress, and manage certifications'
+                : isManager
+                ? 'Manage team training programs and track team progress'
+                : 'Manage employee training programs, track progress, and analyze skill gaps'
+              }
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Date Range Filter */}
+          <Popover open={showDateFilter} onOpenChange={setShowDateFilter}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="h-10"
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                  {filterApplied && (
+                    <span className="ml-2 flex h-2 w-2 rounded-full bg-green-500" />
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[380px] p-4" align="end">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-sm mb-3">Filter by Date Range</h4>
+                    <p className="text-xs text-muted-foreground mb-4">Filter training data by date range</p>
+                  </div>
+                  
+                  <div className="grid gap-3">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-muted-foreground">From Date</label>
+                      <DatePicker
+                        value={dateFrom}
+                        onChange={setDateFrom}
+                        placeholder="Select from date"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-muted-foreground">To Date</label>
+                      <DatePicker
+                        value={dateTo}
+                        onChange={setDateTo}
+                        placeholder="Select to date"
+                      />
+                    </div>
+                  </div>
+
+                  {(dateFrom || dateTo) && (
+                    <div className="p-2 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        {dateFrom && dateTo
+                          ? `${dateFrom} â†’ ${dateTo}`
+                          : dateFrom
+                          ? `From ${dateFrom}`
+                          : `Until ${dateTo}`}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <Button
+                      onClick={applyDateFilter}
+                      className="flex-1"
+                      size="sm"
+                    >
+
+=== FILE: src\pages\hr\HRDashboard.tsx (return at line 426) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetBody, SheetCloseButton } from '@/components/ui/sheet';
+import { Calendar, Clock, TrendingUp, FileText, Users, CalendarDays, Plane, LogIn, LogOut, Megaphone, Cake, Gift, UserPlus, Heart, MessageCircle, Send, Plus, Flame, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Sparkles, Tag, BadgeCheck, Eye, Share2, Pin, BarChart3, CheckCircle2, Pencil, AlertCircle } from 'lucide-react';
+---HEADER JSX---
+  return (
+    <div className="space-y-8">
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={stat.label} className="relative overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
+              <div className="absolute inset-0 bg-primary/5 dark:bg-primary/10" />
+              <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
+                <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
+                <div className="h-8 w-8 rounded-lg bg-background/80 flex items-center justify-center shadow-sm">
+                  <Icon className={`h-4 w-4 ${stat.color} group-hover:scale-110 transition-transform`} />
+                </div>
+              </CardHeader>
+              <CardContent className="relative">
+                <div className="text-2xl font-bold">{stat.value}</div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* 2-Column Layout: 4 cols (left) + 8 cols (right) */}
+      <div className="grid gap-8 lg:grid-cols-12">
+        {/* LEFT COLUMN - 4 columns */}
+        <div className="lg:col-span-4 space-y-8 animate-in slide-in-from-left-6 duration-500">
+          {/* Quick Actions */}
+          <Card className="border-2 border-dashed">
+            <CardContent className="p-4">
+              <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Quick Actions
+              </h2>
+              <div className="flex flex-col gap-2">
+                {[
+                  { label: 'Add Announcement', icon: Megaphone, path: '/hr/announcements', color: 'bg-orange-500 hover:bg-orange-600' },
+                  { label: 'View Employees', icon: Users, path: '/employees', color: 'bg-blue-500 hover:bg-blue-600' },
+                  { label: 'Manage Leaves', icon: Calendar, path: '/hr/leave-attendance-overview', color: 'bg-green-500 hover:bg-green-600' },
+                ].map((action, index) => {
+                  const ActionIcon = action.icon;
+                  return (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      className="h-auto py-3 justify-start gap-3 hover:shadow-md transition-all duration-200 group w-full"
+                      onClick={() => navigate(action.path)}
+                    >
+                      <div className={`p-1.5 rounded-lg text-white ${action.color} group-hover:scale-110 transition-transform`}>
+                        <ActionIcon className="h-4 w-4" />
+                      </div>
+                      <span className="font-medium text-sm">{action.label}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Holiday Calendar - Enhanced */}
+          <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl border-2">
+            <CardHeader className="bg-primary/5 dark:bg-primary/10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold">
+                    Holidays
+                  </CardTitle>
+                  <CardDescription className="mt-1">Upcoming company holidays</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAllHolidaysModal(true)}
+                    className="text-xs hover:bg-primary/10 dark:hover:bg-primary/20 text-primary font-medium"
+                  >
+                    View All
+                  </Button>
+                  <Button onClick={() => setShowHolidayModal(true)} size="sm" className="bg-primary hover:bg-primary/90">
+                    <Plus className="h-4 w-4 mr-2" />
+
+=== FILE: src\pages\hr\NewAnnouncement.tsx (return at line 707) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+---HEADER JSX---
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-background border-b">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/admin-announcements')}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold">{editingAnnouncementId ? 'Edit Announcement' : 'Create New'}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {editingAnnouncementId ? 'Update your announcement' : 'Create announcements or polls for your organization'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={handleSaveDraft} disabled={isPublishing}>
+                <Save className="h-4 w-4 mr-2" />
+                Save as Draft
+              </Button>
+              {activeTab === 'announcement' ? (
+                <Button onClick={handlePublish} disabled={isPublishing}>
+                  <Send className="h-4 w-4 mr-2" />
+                  {isPublishing ? (editingAnnouncementId ? 'Updating...' : 'Publishing...') : (editingAnnouncementId ? 'Update' : 'Publish')}
+                </Button>
+              ) : (
+                <Button onClick={handlePublishPoll} disabled={isPublishing}>
+                  <Send className="h-4 w-4 mr-2" />
+                  {isPublishing ? 'Publishing...' : 'Publish'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content with Tabs */}
+      <div className="container mx-auto px-6 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="announcement" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Announcements
+            </TabsTrigger>
+            <TabsTrigger value="polls" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Polls
+            </TabsTrigger>
+            <TabsTrigger value="surveys" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Surveys
+            </TabsTrigger>
+            <TabsTrigger value="events" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Events
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Announcement Tab */}
+          <TabsContent value="announcement">
+            <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+              {/* LEFT SECTION - Form */}
+              <div className="space-y-4">
+                {/* Content & Layout */}
+                <Card>
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+                      Content & Layout
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <>
+                      {/* Layout Type Selector */}
+
+=== FILE: src\pages\employee\MyAttendance.tsx (return at line 518) ===
+IMPORTS: import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DataTable, type DataTableColumn, type DataTableAction } from '@/components/ui/data-table';
+---HEADER JSX---
+  return (
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex items-start gap-2">
+        <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400 mt-1" />
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+            My Attendance
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Track your attendance and work hours
+          </p>
+        </div>
+      </div>
+
+
+      {/* Stats Cards */}
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="hover:shadow-md transition-shadow rounded-xl shadow-sm">
+          <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">My Hours Today</CardTitle>
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-blue-100 dark:bg-blue-900/30">
+              <Clock className="h-4 w-4 text-blue-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl font-bold">{stats?.me?.avgHoursPerDay || '7.5'}h</div>
+            <p className="text-xs text-muted-foreground mt-1">Working time</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow rounded-xl shadow-sm">
+          <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Avg Hours/Day</CardTitle>
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-green-100 dark:bg-green-900/30">
+              <User className="h-4 w-4 text-green-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl font-bold">{stats?.me?.avgHoursPerDay || '8.5'}h</div>
+            <p className="text-xs text-muted-foreground mt-1">{selectedDateRange.replace('-', ' ')}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow rounded-xl shadow-sm">
+          <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">On-Time Rate</CardTitle>
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-emerald-100 dark:bg-emerald-900/30">
+              <CheckCircle className="h-4 w-4 text-emerald-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl font-bold text-green-600">{stats?.me?.onTimeArrivalPercentage || 95}%</div>
+            <p className="text-xs text-muted-foreground mt-1">Punctuality score</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow rounded-xl shadow-sm">
+          <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Team Average</CardTitle>
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-purple-100 dark:bg-purple-900/30">
+              <Users className="h-4 w-4 text-purple-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl font-bold">{stats?.myTeam?.avgHoursPerDay || '8.2'}h</div>
+            <p className="text-xs text-muted-foreground mt-1">Team performance</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Date Range Selector */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+            <Calendar className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Filter by Date Range</h2>
+            <p className="text-sm text-muted-foreground">Select period</p>
+
+=== FILE: src\pages\employee\MyAttendanceEnhanced.tsx (return at line 490) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
+---HEADER JSX---
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                    <Clock className="h-8 w-8 text-blue-600 mt-1" />
+                    <div>
+                        <h1 className="text-3xl font-bold">My Attendance</h1>
+                        <p className="text-sm text-muted-foreground mt-1">Track your attendance and work hours</p>
+                    </div>
+                </div>
+
+                {/* Date Range Filter */}
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Date Range:</span>
+                    <Select value={dateFilter} onValueChange={setDateFilter}>
+                        <SelectTrigger className="w-[280px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="this-week">Current Week</SelectItem>
+                            <SelectItem value="this-month">Current Month</SelectItem>
+                            <SelectItem value="last-3-months">Last 3 Months</SelectItem>
+                            <SelectItem value="last-6-months">Last 6 Months</SelectItem>
+                            <SelectItem value="last-year">Last Year</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            {/* Web Check-in Section */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                            <h3 className="text-lg font-semibold mb-2">Today's Attendance</h3>
+                            {todayRecord?.hasOpenSession ? (
+                                <div>
+                                    <p className="text-sm font-semibold text-primary bg-primary/10 inline-block px-3 py-1 rounded-md">
+                                        Clocked in at {todayRecord.checkIn} â€¢ Session #{todayRecord.completedSessionCount + 1}
+                                    </p>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                    {todayRecord ?
+                                        `Completed ${todayRecord.sessionCount} session(s) - ${todayRecord.effectiveHours}` :
+                                        'Not clocked in yet'
+                                    }
+                                </p>
+                            )}
+                        </div>
+                        <div className="flex gap-3">
+                            {todayRecord?.hasOpenSession && (
+                                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-md border border-blue-200">
+                                    <Clock className="h-4 w-4 text-blue-600 animate-pulse" />
+                                    <span className="text-sm font-medium text-blue-700">{elapsedTime}</span>
+                                </div>
+                            )}
+                            <Button
+                                onClick={() => setShowClockInModal(true)}
+                                disabled={isClocking || todayRecord?.hasOpenSession || todayRecord?.maxHoursReached}
+                                className="min-w-[120px]"
+                            >
+                                <LogIn className="h-4 w-4 mr-2" />
+                                Clock In
+                            </Button>
+
+                            <Button
+                                onClick={handleClockOut}
+                                disabled={isClocking || !todayRecord?.hasOpenSession}
+                                variant="outline"
+                                className="min-w-[120px]"
+                            >
+                                <LogOut className="h-4 w-4 mr-2" />
+                                Clock Out
+                            </Button>
+                            <Button
+                                onClick={() => setShowWFHDrawer(true)}
+                                variant="outline"
+                            >
+
+=== FILE: src\pages\employee\Documents.tsx (return at line 5) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { FolderOpen, Construction } from 'lucide-react';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <FolderOpen className="h-7 w-7 text-primary" />
+            Documents
+          </h1>
+          <p className="page-description">Access company policies and personal documents</p>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderOpen className="h-5 w-5" />
+            Document Management
+          </CardTitle>
+          <CardDescription>
+            Access and manage your company documents
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="min-h-[500px] flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Construction className="h-16 w-16 mx-auto text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold">Coming Soon</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                This feature is currently under development.
+                <br />
+                Access company policies, personal documents, and important files.
+              </p>
+              <p className="text-xs text-muted-foreground mt-4 italic">
+                Work in progress...
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+=== FILE: src\pages\employee\Helpdesk.tsx (return at line 340) ===
+IMPORTS: import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <Headphones className="h-7 w-7 text-primary" />
+            Helpdesk
+          </h1>
+          <p className="page-description">
+            {isSpecialist
+              ? 'Manage and resolve helpdesk tickets'
+              : 'Submit and track your helpdesk requests'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {(isEmployee || isManager) && (
+            <Button
+              onClick={() => setIsDrawerOpen(true)}
+              size="lg"
+              className="bg-primary hover:bg-primary/90 text-white"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Raise a Request
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Statistics Cards with Department Filter Tabs */}
+      <div className="space-y-3">
+        {/* KPI Filter Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setKpiFilter('All')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              kpiFilter === 'All'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setKpiFilter('IT')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              kpiFilter === 'IT'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            IT
+          </button>
+          <button
+            onClick={() => setKpiFilter('Finance')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              kpiFilter === 'Finance'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            Finance
+          </button>
+          <button
+            onClick={() => setKpiFilter('Facilities')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              kpiFilter === 'Facilities'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            Facilities
+          </button>
+        </div>
+
+        {/* KPI Bar */}
+        <HelpdeskKpiBar
+          title="Requests"
+          total={stats.total}
+          items={[
+
+=== FILE: src\pages\employee\MyTeam.tsx (return at line 296) ===
+IMPORTS: import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Dashboard Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-foreground">
+          Good Morning, {user?.name?.split(" ")[0] || "User"}!
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Wednesday, March 4, 2026
+        </p>
+      </div>
+
+      {/* Attendance Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Who is off today */}
+        <Card className="border border-border">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2">
+              Who is off today
+            </h3>
+            {attendanceStats.off > 0 ? (
+              <div className="flex items-center gap-3">
+                {employees
+                  .filter((emp) => {
+                    return leaves.some((leave) => {
+                      if (leave.employeeId !== emp.employeeId) return false;
+                      const leaveStart = new Date(leave.startDate)
+                        .toISOString()
+                        .split("T")[0];
+                      const leaveEnd = new Date(leave.endDate)
+                        .toISOString()
+                        .split("T")[0];
+                      return (
+                        currentDate >= leaveStart && currentDate <= leaveEnd
+                      );
+                    });
+                  })
+                  .slice(0, 3)
+                  .map((emp: Employee) => (
+                    <div
+                      key={emp.employeeId}
+                      className="flex flex-col items-center"
+                    >
+                      {emp.profilePhoto ? (
+                        <img
+                          src={emp.profilePhoto}
+                          alt={emp.name}
+                          className="h-10 w-10 rounded-full object-cover border-2 border-border"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold border-2 border-border">
+                          {emp.name
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)}
+                        </div>
+                      )}
+                      <span className="text-xs text-muted-foreground mt-1">
+                        {emp.name.split(" ")[0]}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-3">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  No employees is off today.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Not in yet today */}
+        <Card className="border border-border">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2">
+              Not in yet today
+
+=== FILE: src\pages\employee\Payroll.tsx (return at line 5) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Wallet, Construction } from 'lucide-react';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <Wallet className="h-7 w-7 text-primary" />
+            My Payroll
+          </h1>
+          <p className="page-description">View your salary and payslips</p>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wallet className="h-5 w-5" />
+            Payroll Information
+          </CardTitle>
+          <CardDescription>
+            Access your salary details and payslips
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="min-h-[500px] flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Construction className="h-16 w-16 mx-auto text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold">Coming Soon</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                This feature is currently under development.
+                <br />
+                View your salary breakdown, download payslips, and tax documents.
+              </p>
+              <p className="text-xs text-muted-foreground mt-4 italic">
+                Work in progress...
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
+=== FILE: src\pages\employee\Performance.tsx (return at line 5) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TrendingUp, Construction } from 'lucide-react';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <TrendingUp className="h-7 w-7 text-primary" />
+            Performance
+          </h1>
+          <p className="page-description">Track your goals and performance metrics</p>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Performance Management
+          </CardTitle>
+          <CardDescription>
+            Track your performance, goals, and feedback
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="min-h-[500px] flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Construction className="h-16 w-16 mx-auto text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold">Coming Soon</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                This feature is currently under development.
+                <br />
+                Track your performance, goals, reviews, and feedback all in one place.
+              </p>
+              <p className="text-xs text-muted-foreground mt-4 italic">
+                Work in progress...
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+=== FILE: src\pages\employee\EmployeeDirectory.tsx (return at line 711) ===
+IMPORTS: import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <Users className="h-7 w-7 text-primary" />
+            Employee Directory
+          </h1>
+          <p className="page-description">
+            Browse employee profiles and information
+          </p>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full max-w-[48rem] grid-cols-3 mb-6">
+          <TabsTrigger value="directory" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Employee Directory
+          </TabsTrigger>
+          <TabsTrigger value="org-tree" className="flex items-center gap-2">
+            <Network className="h-4 w-4" />
+            Organization Tree
+          </TabsTrigger>
+          <TabsTrigger value="org-chart" className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4" />
+            Organization Chart
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="directory" className="mt-0">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Employees</CardTitle>
+                  <CardDescription>
+                    Showing {filteredEmployees.length} of{" "}
+                    {activeEmployees.length} employees
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search employees..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Popover
+                    open={showFiltersPopover}
+                    onOpenChange={setShowFiltersPopover}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="relative"
+                      >
+                        <Filter className="h-4 w-4" />
+                        {activeFilterCount > 0 && (
+                          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                            {activeFilterCount}
+                          </span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-semibold text-sm">Filters</h4>
+                          {activeFilterCount > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={clearAllFilters}
+                              className="h-8 text-xs"
+                            >
+
+=== FILE: src\pages\itadmin\ITAdminDashboard.tsx (return at line 822) ===
+IMPORTS: import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MultiSelect, type MultiSelectOption } from '@/components/ui/multi-select';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Header */}
+      <div className="bg-primary/5 rounded-xl p-6 border mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">IT Admin Dashboard</h1>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Manage IT ticket assignments and monitor queue status
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchTickets()}
+              disabled={isLoading}
+              className="flex items-center gap-2 shadow-sm"
+            >
+              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button
+              onClick={() => navigate('/itadmin/tickets')}
+              className="flex items-center gap-2 shadow-lg shadow-primary/25"
+            >
+              <Activity className="h-4 w-4" />
+              View All Tickets
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Card className="group hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 border-l-4 border-l-blue-500 bg-background/80 backdrop-blur">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                <Activity className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              Total IT Tickets
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="kpi-value text-blue-700 dark:text-blue-300">{stats.total}</div>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">All IT helpdesk requests</p>
+          </CardContent>
+        </Card>
+
+        <Card className="group hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-300 border-l-4 border-l-orange-500 bg-background/80 backdrop-blur">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300 flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-orange-500/10 flex items-center justify-center group-hover:bg-orange-500/20 transition-colors">
+                <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              </div>
+              Unassigned
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="kpi-value text-orange-600 dark:text-orange-400">{stats.unassigned}</div>
+            <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">Awaiting assignment</p>
+          </CardContent>
+        </Card>
+
+        <Card className="group hover:shadow-lg hover:shadow-cyan-500/10 transition-all duration-300 border-l-4 border-l-cyan-500 bg-background/80 backdrop-blur">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-cyan-700 dark:text-cyan-300 flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-cyan-500/10 flex items-center justify-center group-hover:bg-cyan-500/20 transition-colors">
+                <UserPlus className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+              </div>
+              Assigned
+            </CardTitle>
+
+=== src\pages\itadmin\ITAnalytics.tsx : NO RETURN FOUND ===
+
+=== FILE: src\pages\itadmin\ITTicketManagement.tsx (return at line 327) ===
+IMPORTS: import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <Headphones className="h-7 w-7 text-primary" />
+            {isITAdmin ? 'IT Tickets - View Only' : 'IT Ticket Management'}
+          </h1>
+          <p className="page-description">
+            {isITAdmin 
+              ? 'View all IT helpdesk tickets. Use IT Admin Dashboard to assign tickets.'
+              : 'Manage and resolve IT helpdesk tickets across all teams'
+            }
+          </p>
+        </div>
+      </div>
+
+      {/* IT Admin Notice */}
+      {isITAdmin && (
+        <div className="notice-info">
+          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-blue-800 dark:text-blue-300">
+            As an IT Admin, please use the <strong>IT Admin Dashboard</strong> to assign tickets to specialists.
+            This page is for viewing ticket details only.
+          </p>
+        </div>
+      )}
+
+      {/* Statistics Cards - User-focused KPIs */}
+      <div className="kpi-grid-5">
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">All IT Tickets</p>
+                <p className="kpi-value">
+                  {stats.total}
+                </p>
+              </div>
+              <FileText className="h-8 w-8 text-primary opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">Available</p>
+                <p className="kpi-value">
+                  {stats.inQueue}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-orange-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">My Active</p>
+                <p className="kpi-value">
+                  {stats.assigned}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-blue-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">My Completed</p>
+                <p className="kpi-value">
+                  {stats.completed}
+
+=== FILE: src\pages\manager\ManagerDashboard.tsx (return at line 90) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <LayoutDashboard className="h-7 w-7 text-primary" />
+            Manager Dashboard
+          </h1>
+          <p className="page-description">
+            Manage your team and approve leave requests
+          </p>
+        </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              Pending Approvals
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.pending}</div>
+            <p className="text-xs text-muted-foreground mt-1">Awaiting your action</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              Approved Today
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{stats.approvedToday}</div>
+            <p className="text-xs text-muted-foreground mt-1">Leaves approved</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-blue-500" />
+              Upcoming Leaves
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{stats.upcoming}</div>
+            <p className="text-xs text-muted-foreground mt-1">Next 7 days</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Users className="h-4 w-4 text-purple-500" />
+              Team Size
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{stats.totalTeam}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.activeEmployees} active
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              Pending Leave Requests
+            </CardTitle>
+
+=== FILE: src\pages\facilitiesadmin\FacilitiesAdminDashboard.tsx (return at line 405) ===
+IMPORTS: import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <Building2 className="h-7 w-7 text-primary" />
+            Facilities Admin Dashboard
+          </h1>
+          <p className="page-description">
+            Manage Facilities ticket assignments and monitor queue status
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchTickets()}
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/facilitiesadmin/tickets')}
+            className="flex items-center gap-2"
+          >
+            <Activity className="h-4 w-4" />
+            View All Tickets
+          </Button>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Card className="card-compact">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" />
+              Total Facilities Tickets
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="kpi-value">{stats.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">All Facilities helpdesk requests</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact border-orange-200 dark:border-orange-900/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              Unassigned
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="kpi-value text-orange-600">{stats.unassigned}</div>
+            <p className="text-xs text-muted-foreground mt-1">Awaiting assignment</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact border-blue-200 dark:border-blue-900/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-blue-600" />
+              Assigned
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="kpi-value text-blue-600">{stats.assigned}</div>
+            <p className="text-xs text-muted-foreground mt-1">Assigned to Facilities staff</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact border-purple-200 dark:border-purple-900/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4 text-purple-600" />
+
+=== FILE: src\pages\facilitiesadmin\FacilitiesTicketManagement.tsx (return at line 278) ===
+IMPORTS: import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <Building2 className="h-7 w-7 text-primary" />
+            {isFacilitiesAdmin ? 'Facilities Tickets - View Only' : 'Facilities Ticket Management'}
+          </h1>
+          <p className="page-description">
+            {isFacilitiesAdmin 
+              ? 'View all Facilities helpdesk tickets. Use Facilities Admin Dashboard to assign tickets.'
+              : 'Manage and resolve Facilities helpdesk tickets across all teams'
+            }
+          </p>
+        </div>
+      </div>
+
+      {/* Facilities Admin Notice */}
+      {isFacilitiesAdmin && (
+        <div className="notice-info">
+          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-blue-800 dark:text-blue-300">
+            As a Facilities Admin, please use the <strong>Facilities Admin Dashboard</strong> to assign tickets to specialists.
+            This page is for viewing ticket details only.
+          </p>
+        </div>
+      )}
+
+      {/* Statistics Cards - User-focused KPIs */}
+      <div className="kpi-grid-5">
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">All Facilities Tickets</p>
+                <p className="kpi-value">
+                  {stats.total}
+                </p>
+              </div>
+              <FileText className="h-8 w-8 text-primary opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">Available</p>
+                <p className="kpi-value">
+                  {stats.inQueue}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-orange-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">My Active</p>
+                <p className="kpi-value">
+                  {stats.assigned}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-blue-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">My Completed</p>
+                <p className="kpi-value">
+                  {stats.completed}
+
+=== FILE: src\pages\financeadmin\FinanceAdminDashboard.tsx (return at line 405) ===
+IMPORTS: import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <Wallet className="h-7 w-7 text-primary" />
+            Finance Admin Dashboard
+          </h1>
+          <p className="page-description">
+            Manage Finance ticket assignments and monitor queue status
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchTickets()}
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/financeadmin/tickets')}
+            className="flex items-center gap-2"
+          >
+            <Activity className="h-4 w-4" />
+            View All Tickets
+          </Button>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Card className="card-compact">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" />
+              Total Finance Tickets
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="kpi-value">{stats.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">All Finance helpdesk requests</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact border-orange-200 dark:border-orange-900/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              Unassigned
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="kpi-value text-orange-600">{stats.unassigned}</div>
+            <p className="text-xs text-muted-foreground mt-1">Awaiting assignment</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact border-blue-200 dark:border-blue-900/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-blue-600" />
+              Assigned
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="kpi-value text-blue-600">{stats.assigned}</div>
+            <p className="text-xs text-muted-foreground mt-1">Assigned to Finance staff</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact border-purple-200 dark:border-purple-900/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4 text-purple-600" />
+
+=== FILE: src\pages\financeadmin\FinanceTicketManagement.tsx (return at line 277) ===
+IMPORTS: import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <Wallet className="h-7 w-7 text-primary" />
+            {isFinanceAdmin ? 'Finance Tickets - View Only' : 'Finance Ticket Management'}
+          </h1>
+          <p className="page-description">
+            {isFinanceAdmin 
+              ? 'View all Finance helpdesk tickets. Use Finance Admin Dashboard to assign tickets.'
+              : 'Manage and resolve Finance helpdesk tickets across all teams'
+            }
+          </p>
+        </div>
+      </div>
+
+      {/* Finance Admin Notice */}
+      {isFinanceAdmin && (
+        <div className="notice-info">
+          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-blue-800 dark:text-blue-300">
+            As a Finance Admin, please use the <strong>Finance Admin Dashboard</strong> to assign tickets to specialists.
+            This page is for viewing ticket details only.
+          </p>
+        </div>
+      )}
+
+      {/* Statistics Cards - User-focused KPIs */}
+      <div className="kpi-grid-5">
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">All Finance Tickets</p>
+                <p className="kpi-value">
+                  {stats.total}
+                </p>
+              </div>
+              <FileText className="h-8 w-8 text-primary opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">Available</p>
+                <p className="kpi-value">
+                  {stats.inQueue}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-orange-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">My Active</p>
+                <p className="kpi-value">
+                  {stats.assigned}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-blue-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-compact">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kpi-label mb-1">My Completed</p>
+                <p className="kpi-value">
+                  {stats.completed}
+
+=== FILE: src\pages\rmg\Forecasting.tsx (return at line 316) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { LineChart, AlertTriangle, TrendingUp, RefreshCw, Loader2, Users } from 'lucide-react';
+---HEADER JSX---
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">{skill}</span>
+        <span className="text-sm text-muted-foreground">
+          {available}/{required} available
+          {status === 'shortage' && (
+            <Badge variant="destructive" className="ml-2">
+              Gap: {gap}
+            </Badge>
+          )}
+          {status === 'sufficient' && (
+            <Badge variant="default" className="ml-2">
+              Sufficient
+            </Badge>
+          )}
+        </span>
+      </div>
+      <div className="w-full bg-secondary rounded-full h-2">
+        <div
+          className={`h-2 rounded-full transition-all ${
+            percentage >= 80 ? 'bg-primary' : percentage >= 50 ? 'bg-yellow-500' : 'bg-destructive'
+          }`}
+          style={{ width: `${Math.min(percentage, 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+=== FILE: src\pages\rmg\ConfigurationPage.tsx (return at line 15) ===
+IMPORTS: import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Settings, Info } from 'lucide-react';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      <div className="page-header mb-6">
+        <div className="page-header-content">
+          <div className="flex items-start gap-3">
+            <Settings className="h-7 w-7 text-primary mt-1" />
+            <div>
+              <h1 className="page-title">Configuration</h1>
+              <p className="page-description">Manage system master data for dropdowns and configuration values</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Non-Admin Notice */}
+      {!isAdmin && (
+        <Alert className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            You have read-only access to this page. Only Admin users can add, edit, or delete configurations.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Tabs */}
+      <Card className="p-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-5">
+            {CONFIG_TYPES.map((type) => (
+              <TabsTrigger key={type.value} value={type.value}>
+                {type.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {CONFIG_TYPES.map((type) => (
+            <TabsContent key={type.value} value={type.value} className="mt-6">
+              <ConfigSection type={type.value} label={type.label} />
+            </TabsContent>
+          ))}
+        </Tabs>
+      </Card>
+    </div>
+  );
+};
+
+export default ConfigurationPage;
+
+=== FILE: src\pages\rmg\customer-pos\CustomerPOListPage.tsx (return at line 73) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Plus, FileText, CheckCircle2, XCircle, Clock, DollarSign } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+---HEADER JSX---
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      {/* Enhanced Header Section */}
+      <div className="bg-primary/5 rounded-xl p-6 border">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-semibold text-foreground">Customer POs</h1>
+                <p className="text-sm text-muted-foreground">Manage purchase orders and contracts</p>
+              </div>
+            </div>
+          </div>
+          <Button onClick={() => setIsCreateOpen(true)} size="lg" className="shadow-lg shadow-primary/25">
+            <Plus className="mr-2 h-4 w-4" />
+            New PO
+          </Button>
+        </div>
+        
+        {/* Quick Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6">
+          <StatCard
+            label="Total"
+            value={totalPOs}
+            icon={FileText}
+            color="blue"
+            trend={trends.total}
+            tooltip="Total number of purchase orders. Click to clear filters."
+            onClick={() => handleStatClick()}
+          />
+          <StatCard
+            label="Active"
+            value={activePOs}
+            icon={CheckCircle2}
+            color="green"
+            trend={trends.active}
+            tooltip={`${activePOs} active purchase orders (${totalPOs > 0 ? Math.round((activePOs / totalPOs) * 100) : 0}% of total). Click to filter.`}
+            onClick={() => handleStatClick('Active')}
+          />
+          <StatCard
+            label="Closed"
+            value={closedPOs}
+            icon={XCircle}
+            color="purple"
+            trend={trends.closed}
+            tooltip={`${closedPOs} closed purchase orders. Click to filter.`}
+            onClick={() => handleStatClick('Closed')}
+          />
+          <StatCard
+            label="Expired"
+            value={expiredPOs}
+            icon={Clock}
+            color={expiredPOs > 0 ? 'orange' : 'green'}
+            trend={trends.expired}
+            tooltip={`${expiredPOs} expired purchase orders. Trend down is positive. Click to filter.`}
+            onClick={() => handleStatClick('Expired')}
+          />
+          <StatCard
+            label="Total Value"
+            value={formatCurrency(totalPOValue)}
+            icon={DollarSign}
+            color="blue"
+            trend={trends.value}
+            tooltip={`Combined value of all purchase orders: ${formatCurrency(totalPOValue)}`}
+          />
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+          <CardDescription>Search and filter customer POs</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <Input
+              placeholder="Search by contract no, PO no..."
+
+=== FILE: src\pages\rmg\customers\CustomerListPage.tsx (return at line 130) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Search, Users, UserCheck, UserX, TrendingUp, MapPin, X, Filter } from 'lucide-react';
+import { MultiSelect, type Option } from '@/components/ui/multi-select';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      <div className="page-header mb-6">
+        <div className="page-header-content">
+          <div className="flex items-start gap-3">
+            <Users className="h-7 w-7 text-primary mt-1" />
+            <div>
+              <h1 className="page-title">Customers</h1>
+              <p className="page-description">Manage your customer database</p>
+            </div>
+          </div>
+        </div>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Customer
+        </Button>
+      </div>
+
+      {/* Quick Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <StatCard
+            label="Total"
+            value={totalCustomers}
+            icon={Users}
+            color="blue"
+            trend={trends.total}
+            tooltip="Total number of customers in the database. Click to clear filters."
+            onClick={() => handleStatClick()}
+          />
+          <StatCard
+            label="Active"
+            value={activeCustomers}
+            icon={UserCheck}
+            color="green"
+            trend={trends.active}
+            tooltip={`${activeCustomers} active customers (${totalCustomers > 0 ? Math.round((activeCustomers / totalCustomers) * 100) : 0}% of total). Click to filter active customers.`}
+            onClick={() => handleStatClick('Active')}
+          />
+          <StatCard
+            label="Inactive"
+            value={inactiveCustomers}
+            icon={UserX}
+            color="orange"
+            trend={trends.inactive}
+            tooltip={`${inactiveCustomers} inactive customers. Trend down is positive. Click to filter inactive customers.`}
+            onClick={() => handleStatClick('Inactive')}
+          />
+          <StatCard
+            label="Regions"
+            value={regions}
+            icon={MapPin}
+            color="purple"
+            trend={regions > 0 ? trends.regions : undefined}
+            tooltip={`Customers across ${regions} different regions: UK, India, USA, ME, Other.`}
+          />
+        </div>
+
+      {/* Customer Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div>
+              <CardTitle>All Customers</CardTitle>
+              <CardDescription>
+                {customers.length} customer{customers.length !== 1 ? 's' : ''} found
+              </CardDescription>
+            </div>
+            <div className="flex gap-2 self-start sm:self-auto">
+              <ColumnToggle 
+                columns={columnVisibility} 
+                onToggle={setColumnVisibility}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+
+=== FILE: src\pages\rmg\financial-lines\FinancialLineListPage.tsx (return at line 70) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Plus, DollarSign, CheckCircle2, Clock, TrendingUp, AlertCircle, Filter } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+---HEADER JSX---
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      {/* Enhanced Header Section */}
+      <div className="bg-primary/5 rounded-xl p-6 border">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-semibold text-foreground">Financial Lines</h1>
+                <p className="text-sm text-muted-foreground">Manage financial lines with revenue planning and milestones</p>
+              </div>
+            </div>
+          </div>
+          <Button onClick={() => setIsCreateOpen(true)} size="lg" className="shadow-lg shadow-primary/25">
+            <Plus className="mr-2 h-4 w-4" />
+            New Financial Line
+          </Button>
+        </div>
+        
+        {/* Quick Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6">
+          <StatCard
+            label="Total"
+            value={totalFLs}
+            icon={DollarSign}
+            color="blue"
+            trend={trends.total}
+            tooltip="Total number of financial lines. Click to clear filters."
+            onClick={() => handleStatClick()}
+          />
+          <StatCard
+            label="Active"
+            value={activeFLs}
+            icon={CheckCircle2}
+            color="green"
+            trend={trends.active}
+            tooltip={`${activeFLs} active financial lines (${totalFLs > 0 ? Math.round((activeFLs / totalFLs) * 100) : 0}% of total). Click to filter.`}
+            onClick={() => handleStatClick('Active')}
+          />
+          <StatCard
+            label="Completed"
+            value={completedFLs}
+            icon={TrendingUp}
+            color="purple"
+            trend={trends.completed}
+            tooltip={`${completedFLs} completed financial lines. Click to filter.`}
+            onClick={() => handleStatClick('Completed')}
+          />
+          <StatCard
+            label="Draft"
+            value={draftFLs}
+            icon={Clock}
+            color={draftFLs > 5 ? 'orange' : 'green'}
+            trend={trends.draft}
+            tooltip={`${draftFLs} draft financial lines. Trend down is positive. Click to filter.`}
+            onClick={() => handleStatClick('Draft')}
+          />
+          <StatCard
+            label="Revenue"
+            value={formatCurrency(totalRevenue)}
+            icon={TrendingUp}
+            color="blue"
+            trend={trends.revenue}
+            tooltip={`Total revenue across all financial lines: ${formatCurrency(totalRevenue)}`}
+          />
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Filters</CardTitle>
+              <CardDescription>Search and filter financial lines</CardDescription>
+            </div>
+            <Button 
+              variant="outline" 
+
+=== FILE: src\pages\rmg\projects\ProjectListPage.tsx (return at line 224) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Search, FolderKanban, CheckCircle2, TrendingUp, AlertTriangle, DollarSign, X, Filter, FileText, XCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MultiSelect, type Option } from '@/components/ui/multi-select';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      <div className="page-header mb-6">
+        <div className="page-header-content">
+          <div className="flex items-start gap-3">
+            <FolderKanban className="h-7 w-7 text-primary mt-1" />
+            <div>
+              <h1 className="page-title">Projects</h1>
+              <p className="page-description">Manage and track project lifecycle</p>
+            </div>
+          </div>
+        </div>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Project
+        </Button>
+      </div>
+
+      {/* Quick Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+          <StatCard
+            label="Total"
+            value={totalProjects}
+            icon={FolderKanban}
+            color="blue"
+            trend={trends.total}
+            tooltip="Total number of projects across all statuses. Click to clear filters."
+            onClick={() => handleStatClick()}
+          />
+          <StatCard
+            label="Active"
+            value={activeProjects}
+            icon={CheckCircle2}
+            color="green"
+            trend={trends.active}
+            tooltip={`${activeProjects} active projects (${totalProjects > 0 ? Math.round((activeProjects / totalProjects) * 100) : 0}% of total). Click to filter active projects.`}
+            onClick={() => handleStatClick('Active')}
+          />
+          <StatCard
+            label="Health"
+            value={`${avgHealthScore}%`}
+            icon={TrendingUp}
+            color="purple"
+            trend={trends.health}
+            tooltip="Average health score based on project utilization. Higher is better."
+          />
+          <StatCard
+            label="Risks"
+            value={criticalRisks}
+            icon={AlertTriangle}
+            color={criticalRisks > 0 ? 'orange' : 'green'}
+            trend={trends.risks}
+            tooltip={`${criticalRisks} projects with critical risks (On Hold or low utilization <50%). Click to filter.`}
+            onClick={() => criticalRisks > 0 && handleStatClick('On Hold')}
+          />
+          <StatCard
+            label="Budget"
+            value={`${budgetUtilization}%`}
+            icon={DollarSign}
+            color="blue"
+            trend={trends.budget}
+            tooltip={`Average budget utilization across ${projectsWithBudget.length} tracked projects.`}
+          />
+        </div>
+
+      {/* Projects Table */}
+      <Card className="border-brand-light-gray shadow-sm">
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <SectionHeader
+              icon={FileText}
+              title="All Projects"
+              subtitle={`${projects.length} project${projects.length !== 1 ? 's' : ''} found`}
+            />
+            <div className="flex gap-2 self-start sm:self-auto">
+              <ColumnToggle 
+                columns={columnVisibility} 
+                onToggle={setColumnVisibility}
+              />
+              <Button
+
+=== FILE: src\pages\superadmin\UserManagement.tsx (return at line 274) ===
+IMPORTS: import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+---HEADER JSX---
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Users className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">User Management</h1>
+            <p className="text-muted-foreground">Manage users, roles, and permissions</p>
+          </div>
+        </div>
+        <Button onClick={() => handleOpenForm()}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add User
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, email, or ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <Select value={filterRole} onValueChange={setFilterRole}>
+              <SelectTrigger className="w-[160px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                {ROLES.map(role => (
+                  <SelectItem key={role} value={role}>{role}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {DEPARTMENTS.map(dept => (
+                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={fetchUsers}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Users Table */}
+      <Card>
+        <CardContent className="pt-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+
+=== FILE: src\pages\superadmin\SuperAdminDashboard.tsx (return at line 117) ===
+IMPORTS: import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <LayoutDashboard className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="page-title">Dashboard</h1>
+            <p className="page-description">System overview and real-time analytics</p>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" onClick={fetchData}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+      </div>
+
+      {/* Primary KPI Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Total Users with Growth */}
+        <Card className="hover:shadow-lg transition-all cursor-pointer group border-l-4 border-l-blue-500" onClick={() => navigate('/superadmin/users')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats.totalUsers}</div>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                <TrendingUp className="h-3 w-3" />
+                +{stats.newUsersThisWeek || 0} this week
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                {metrics.userGrowthRate}% growth
+              </Badge>
+            </div>
+            <Progress value={metrics.userGrowthRate} className="h-1 mt-2" />
+          </CardContent>
+        </Card>
+
+        {/* Open Tickets with Priority */}
+        <Card className="hover:shadow-lg transition-all cursor-pointer group border-l-4 border-l-yellow-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
+            <Ticket className="h-4 w-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats.openTickets}</div>
+            <div className="flex items-center gap-2 mt-2">
+              {stats.criticalTickets > 0 ? (
+                <div className="flex items-center gap-1 text-xs text-destructive">
+                  <AlertTriangle className="h-3 w-3" />
+                  {stats.criticalTickets} critical
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-xs text-green-600">
+                  <CheckCircle2 className="h-3 w-3" />
+                  No critical issues
+                </div>
+              )}
+              <Badge variant={stats.criticalTickets > 0 ? "destructive" : "secondary"} className="text-xs">
+                {metrics.criticalTicketRate}% critical
+              </Badge>
+            </div>
+            <Progress
+              value={metrics.criticalTicketRate}
+              className={`h-1 mt-2 ${stats.criticalTickets > 0 ? '[&>*]:bg-destructive' : ''}`}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Pending Approvals with Breakdown */}
+        <Card className="hover:shadow-lg transition-all cursor-pointer group border-l-4 border-l-purple-500" onClick={() => navigate('/superadmin/approvers')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+            <Clock className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+
+=== FILE: src\pages\superadmin\RegionRegexConfig.tsx (return at line 566) ===
+IMPORTS: import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+---HEADER JSX---
+    return (
+        <>
+            <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                    <TypeIcon className={`h-5 w-5 ${typeConfig.color}`} />
+                    {field ? 'Edit Field' : 'Add Field'}
+                </SheetTitle>
+                <SheetCloseButton />
+            </SheetHeader>
+            
+            <SheetBody className="space-y-5">
+                <form id="field-form" onSubmit={handleSubmit} className="space-y-5">
+                {/* Region Selector */}
+                <Card className="bg-primary/5 border-primary/20">
+                    <CardContent className="pt-4">
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-1">
+                                Region <span className="text-destructive">*</span>
+                            </Label>
+                            <Select
+                                value={selectedRegion}
+                                onValueChange={(value) => setSelectedRegion(value as Region)}
+                                disabled={!!field}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {REGIONS.map((region) => (
+                                        <SelectItem key={region} value={region}>
+                                            {region.replace('_', ' ')}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">This field will be available for {selectedRegion.replace('_', ' ')} employees</p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Field Preview */}
+                <Card className={`${typeConfig.bgColor} border-2`}>
+                    <CardContent className="pt-4">
+                        <div className="flex items-center gap-2">
+                            <TypeIcon className={`h-4 w-4 ${typeConfig.color}`} />
+                            <span className="text-sm font-medium">
+                                {formData.label || 'Field Label'}
+                                {formData.required && <span className="text-red-500 ml-1">*</span>}
+                            </span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Label>Field Name (Internal)</Label>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <AlertCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="text-xs max-w-xs">
+                                            Internal identifier used in database. Use lowercase with underscores.
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                        <Input
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+                            placeholder="e.g., pan_number"
+                            disabled={!!field}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Label (Display)</Label>
+
+=== FILE: src\pages\superadmin\PermissionsMatrix.tsx (return at line 458) ===
+IMPORTS: import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+---HEADER JSX---
+    return (
+        <div className="page-container">
+            {/* Header */}
+            <div className="page-header">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                        <Shield className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                        <h1 className="page-title">Module Permissions</h1>
+                        <p className="page-description">View and manage module access permissions across all employees</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Module Cards */}
+            {loading ? (
+                <div className="text-center py-12">Loading employees and permissions...</div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {MODULE_DEFINITIONS.map(module => {
+                        const summary = moduleSummaries[module.key] || { enabled: 0, admins: 0 };
+                        return (
+                            <Card
+                                key={module.key}
+                                className={`cursor-pointer hover:shadow-lg transition-shadow border-2 ${module.color} ${!module.enabled ? 'opacity-60' : ''}`}
+                                onClick={() => module.enabled && handleViewModule(module)}
+                            >
+                                <CardHeader>
+                                    <CardTitle className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xl">{module.icon}</span>
+                                            <span>{module.name}</span>
+                                        </div>
+                                        {module.enabled ? (
+                                            <LockOpen className="h-5 w-5 text-green-600" />
+                                        ) : (
+                                            <Lock className="h-5 w-5 text-gray-400" />
+                                        )}
+                                    </CardTitle>
+                                    {module.description && (
+                                        <CardDescription className="text-xs">
+                                            {module.description}
+                                        </CardDescription>
+                                    )}
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {module.enabled ? (
+                                        <>
+                                            <div className="flex items-center justify-between">
+                                                <span className="flex items-center gap-2 text-sm">
+                                                    <UserCheck className="h-4 w-4 text-green-600" />
+                                                    Enabled Users
+                                                </span>
+                                                <Badge variant="secondary">{summary.enabled}</Badge>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="flex items-center gap-2 text-sm">
+                                                    <Shield className="h-4 w-4 text-blue-600" />
+                                                    Module Admins
+                                                </span>
+                                                <Badge variant="secondary">{summary.admins}</Badge>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="flex items-center gap-2 text-sm">
+                                                    <Users className="h-4 w-4" />
+                                                    Total Employees
+                                                </span>
+                                                <Badge>{allEmployees.length}</Badge>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full mt-2"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleViewModule(module);
+                                                }}
+                                            >
+                                                <Eye className="h-4 w-4 mr-2" />
+
+=== FILE: src\pages\superadmin\LeavePolicyConfig.tsx (return at line 327) ===
+IMPORTS: import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+---HEADER JSX---
+    return (
+        <>
+            <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    {policy ? 'Edit Leave Policy' : 'Add Leave Policy'}
+                </SheetTitle>
+                <SheetCloseButton />
+            </SheetHeader>
+
+            <SheetBody>
+                <form id="policy-form" onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Leave Type *</Label>
+                        <Input
+                            value={formData.leaveType}
+                            onChange={(e) => setFormData({ ...formData, leaveType: e.target.value })}
+                            placeholder="e.g., Earned Leave, Sick Leave"
+                            disabled={!!policy}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Country *</Label>
+                        <Input
+                            value={formData.country}
+                            onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                            placeholder="e.g., India, USA, UK"
+                            disabled={!!policy}
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Allocation (days/year)</Label>
+                        <Input
+                            type="number"
+                            value={formData.allocation}
+                            onChange={(e) => setFormData({ ...formData, allocation: parseInt(e.target.value) || 0 })}
+                            min={0}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Distribution</Label>
+                        <Select
+                            value={formData.distribution}
+                            onValueChange={(value) => setFormData({ ...formData, distribution: value as Distribution })}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {DISTRIBUTIONS.map((dist) => (
+                                    <SelectItem key={dist} value={dist}>
+                                        {dist.replace('_', ' ')}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="requiresApproval"
+                            checked={formData.requiresApproval}
+                            onCheckedChange={(checked) =>
+                                setFormData({ ...formData, requiresApproval: checked as boolean })
+                            }
+                        />
+                        <Label htmlFor="requiresApproval">Requires Approval</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="carryForward"
+
+=== FILE: src\pages\Reports.tsx (return at line 5) ===
+IMPORTS: import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarChart3, PieChart } from 'lucide-react';
+---HEADER JSX---
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <div className="page-header-content">
+          <h1 className="page-title">
+            <PieChart className="h-7 w-7 text-primary" />
+            Reports & Analytics
+          </h1>
+          <p className="page-description">Generate and view comprehensive reports</p>
+        </div>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Reports Dashboard
+          </CardTitle>
+          <CardDescription>Access various reports and analytics</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Feature implementation in progress...</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+=== FILE: src\pages\Employees.tsx (return at line 461) ===
+IMPORTS: import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Search, Users, GitBranch, Building, Building2, MapPin, DollarSign, FileText, Mail, Phone, Briefcase, ChevronDown, ChevronRight } from 'lucide-react';
+---HEADER JSX---
+  return (
+    <div className="space-y-2">
+      <div
+        className="flex items-center gap-2 p-3 border rounded-lg hover:bg-accent transition-colors"
+        style={{ marginLeft: `${level * 24}px` }}
+      >
+        {node.children.length > 0 && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="p-1 hover:bg-background rounded transition-colors"
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        )}
+        {node.children.length === 0 && <div className="w-6" />}
+        
+        <Popover>
+          <PopoverTrigger asChild>
+            <div className="flex items-center gap-3 flex-1 cursor-pointer hover:opacity-80">
+              <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold text-sm">
+                {node.avatar}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate">{node.name}</p>
+                <p className="text-sm text-muted-foreground truncate">{node.title}</p>
+              </div>
+              <Badge variant="outline">{node.department}</Badge>
+            </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-80">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-3 border-b">
+                <div className="h-14 w-14 rounded-full bg-primary flex items-center justify-center text-white font-bold text-lg">
+                  {node.avatar}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-lg truncate">{node.name}</h3>
+                  <p className="text-sm text-muted-foreground truncate">{node.title}</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <DetailRow icon={Mail} label="Email" value={node.email} />
+                <DetailRow icon={Phone} label="Phone" value={node.phone} />
+                <DetailRow icon={Building} label="Department" value={node.department} />
+                <DetailRow icon={Users} label="Direct Reports" value={node.children.length.toString()} />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {isExpanded && node.children.length > 0 && (
+        <div className="space-y-2">
+          {node.children.map(child => (
+            <TreeNodeComponent key={child.id} node={child} level={level + 1} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+=== src\pages\approver\ApproverPage.tsx : NO RETURN FOUND ===
+

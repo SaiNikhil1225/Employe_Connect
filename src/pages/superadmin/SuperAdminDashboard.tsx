@@ -29,6 +29,7 @@ import { Progress } from '@/components/ui/progress';
 
 import { getDashboardStats, getSystemHealth } from '@/services/superAdminService';
 import type { DashboardStats, SystemHealth } from '@/types/superAdmin';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function SuperAdminDashboard() {
   const navigate = useNavigate();
@@ -117,21 +118,17 @@ export function SuperAdminDashboard() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="page-header">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <LayoutDashboard className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="page-title">Dashboard</h1>
-            <p className="page-description">System overview and real-time analytics</p>
-          </div>
-        </div>
-        <Button variant="outline" size="sm" onClick={fetchData}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        icon={LayoutDashboard}
+        title="Dashboard"
+        description="System overview and real-time analytics"
+        actions={
+          <Button variant="outline" size="sm" onClick={fetchData}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Primary KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

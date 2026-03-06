@@ -6,6 +6,7 @@ import { Settings, Info } from 'lucide-react';
 import { CONFIG_TYPES } from '@/services/configService';
 import { useAuthStore } from '@/store/authStore';
 import ConfigSection from './ConfigSection';
+import { PageHeader } from '@/components/ui/page-header';
 
 const ConfigurationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>(CONFIG_TYPES[0].value);
@@ -14,17 +15,11 @@ const ConfigurationPage: React.FC = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header mb-6">
-        <div className="page-header-content">
-          <div className="flex items-start gap-3">
-            <Settings className="h-7 w-7 text-primary mt-1" />
-            <div>
-              <h1 className="page-title">Configuration</h1>
-              <p className="page-description">Manage system master data for dropdowns and configuration values</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={Settings}
+        title="Configuration"
+        description="Manage system master data for dropdowns and configuration values"
+      />
 
       {/* Non-Admin Notice */}
       {!isAdmin && (

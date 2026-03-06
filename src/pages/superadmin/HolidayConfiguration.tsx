@@ -76,6 +76,7 @@ import type {
     HolidayType,
     HolidayGroup
 } from '@/types/holiday';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function HolidayConfiguration() {
     const [activeTab, setActiveTab] = useState('types');
@@ -329,17 +330,11 @@ export function HolidayConfiguration() {
         <TooltipProvider>
             <div className="page-container">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                            <Settings className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold">Holiday Configuration</h1>
-                            <p className="text-muted-foreground">Manage holiday types and groups for your organization</p>
-                        </div>
-                    </div>
-                </div>
+                <PageHeader
+                    icon={Settings}
+                    title="Holiday Configuration"
+                    description="Manage holiday types and groups for your organization"
+                />
 
                 {/* Configuration Tabs */}
                 <Card>

@@ -23,6 +23,17 @@ export interface MonthlyAttendance {
   days: Record<string, string>;
 }
 
+export interface AttendanceRecord {
+  _id: string;
+  employeeId: string;
+  date: string;
+  status: 'Present' | 'Absent' | 'Late' | 'Half Day' | 'Leave' | 'Holiday' | 'Weekend';
+  checkIn?: string;
+  checkOut?: string;
+  workHours?: number;
+  notes?: string;
+}
+
 export const attendanceService = {
   async getStats() {
     const response = await apiClient.get('/attendance/stats');
@@ -46,5 +57,19 @@ export const attendanceService = {
   }) {
     const response = await apiClient.post('/attendance', data);
     return response.data.data;
+  },
+
+  async getAttendanceByDate(date: string) {
+    const response = await apiClient.get('/attendance', {
+      params: { startDate: date, endDate: date }
+    });
+    return response.data.data as AttendanceRecord[];
+  },
+
+  async getAttendanceByEmployeeAndDate(employeeId: string, date: string) {
+    const response = await apiClient.get('/attendance', {
+      params: { employeeId, startDate: date, endDate: date }
+    });
+    return response.data.data as AttendanceRecord[];
   }
 };

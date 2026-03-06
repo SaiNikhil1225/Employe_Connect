@@ -15,7 +15,8 @@ import {
 import { toast } from 'sonner';
 import type { FLStep1Data, FLStep2Data, FLStep3Data, RevenuePlanning } from '@/types/financialLine';
 import { format, startOfMonth, addMonths, isBefore, isSameMonth, eachDayOfInterval, isWeekend, startOfDay, endOfMonth } from 'date-fns';
-import { Info, SplitSquareHorizontal } from 'lucide-react';
+import { Info, SplitSquareHorizontal, HelpCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface FLStep3PlanningProps {
   data: Partial<FLStep3Data>;
@@ -28,7 +29,6 @@ interface FLStep3PlanningProps {
 
 export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNext, onBack }: FLStep3PlanningProps) {
   const [monthlyData, setMonthlyData] = useState<RevenuePlanning[]>(data.revenuePlanning || []);
-  const [totalUnitsToSplit, setTotalUnitsToSplit] = useState<number>(0);
   const [showZeroRevenueConfirm, setShowZeroRevenueConfirm] = useState(false);
 
   // Generate months between schedule start and finish
@@ -111,13 +111,8 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
     return workingDays.length;
   };
 
-  // Split total units proportionally based on working days per month
+  // Split total capacity hours proportionally based on working days per month
   const handleSplitRevenue = () => {
-    if (totalUnitsToSplit <= 0) {
-      toast.error(`Please enter total ${getUnitLabelShort()} to split.`);
-      return;
-    }
-
     if (monthlyData.length === 0) {
       toast.error('No months available for splitting.');
       return;
@@ -129,21 +124,21 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
       workingDays: getWorkingDaysInMonth(month.month),
     }));
 
-    // Calculate total working days across all months
-    const totalWorkingDays = monthsWithWorkingDays.reduce((sum, m) => sum + m.workingDays, 0);
+    // Total capacity hours is the value to split (working days × 8h)
+    const totalCapacityHours = monthsWithWorkingDays.reduce((sum, m) => sum + m.workingDays * 8, 0);
 
-    if (totalWorkingDays === 0) {
+    if (totalCapacityHours === 0) {
       toast.error('No working days found in the selected period.');
       return;
     }
 
-    // Split units proportionally based on working days
-    // Formula: plannedUnits for month = (totalUnits * workingDaysInMonth) / totalWorkingDays
+    // Split proportionally: each month gets (monthCapacity / totalCapacity) × totalCapacityHours
     const updatedMonthlyData = monthsWithWorkingDays.map(month => {
-      const proportion = month.workingDays / totalWorkingDays;
-      const plannedUnits = parseFloat((totalUnitsToSplit * proportion).toFixed(2));
+      const monthCapacity = month.workingDays * 8;
+      const proportion = monthCapacity / totalCapacityHours;
+      const plannedUnits = parseFloat((totalCapacityHours * proportion).toFixed(2));
       const plannedRevenue = plannedUnits * step1Data.billingRate;
-      
+
       return {
         ...month,
         plannedUnits,
@@ -153,10 +148,10 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
 
     // Remove the workingDays property before setting state
     const cleanedData = updatedMonthlyData.map(({ workingDays, ...rest }) => rest) as RevenuePlanning[];
-    
+
     setMonthlyData(cleanedData);
-    
-    toast.success(`${totalUnitsToSplit} ${getUnitLabelShort()} split across ${monthlyData.length} months based on working days.`);
+
+    toast.success(`${totalCapacityHours} ${getUnitLabelShort()} split across ${monthlyData.length} months based on working days.`);
   };
 
   const handleNext = () => {
@@ -193,84 +188,91 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
 
   return (
     <div className="space-y-6">
-      {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-        <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-blue-900">
-            Enter Planned {getUnitLabel()} for Each Month
-          </p>
-          <p className="text-xs text-blue-700">
-            Your billing rate is <span className="font-semibold">${step1Data.billingRate}/{step1Data.rateUom}</span>. 
-            Revenue will be calculated as: <span className="font-semibold">{getUnitLabel()} × ${step1Data.billingRate}</span>
-            {step1Data.rateUom === 'Hr' && ' (8 hours = 1 day)'}
-            {step1Data.rateUom === 'Day' && ' (20-22 days = 1 month typically)'}
-          </p>
-        </div>
-      </div>
+      {/* Info Banner + Capacity Breakdown — 30/70 row */}
+      <div className="grid grid-cols-1 md:grid-cols-[30%_70%] gap-3">
 
-      {/* Split Revenue Section */}
-      <Card className="border-amber-200 bg-amber-50">
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-            <div className="flex-1 space-y-2">
-              <label className="text-sm font-medium text-amber-900">
-                Auto-Split by Monthly Capacity Hours
-              </label>
-              <p className="text-xs text-amber-700">
-                Enter total {getUnitLabelShort()} to split proportionally based on monthly capacity hours (Working Days × 8h, excluding weekends).
-              </p>
+        {/* Left: Billing info */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
+          <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-blue-900">
+              Enter Planned {getUnitLabel()} for Each Month
+            </p>
+            <p className="text-xs text-blue-700">
+              Your billing rate is <span className="font-semibold">${step1Data.billingRate}/{step1Data.rateUom}</span>.{' '}
+              Revenue will be calculated as: <span className="font-semibold">{getUnitLabel()} × ${step1Data.billingRate}</span>
+              {step1Data.rateUom === 'Hr' && ' (8 hours = 1 day)'}
+              {step1Data.rateUom === 'Day' && ' (20-22 days = 1 month typically)'}
+            </p>
+          </div>
+        </div>
+
+        {/* Right: Monthly Capacity Breakdown */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-medium text-amber-900">Monthly Capacity Breakdown</p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-3.5 w-3.5 text-amber-600 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs space-y-2">
+                  <div>
+                    <p className="font-semibold">Capacity:</p>
+                    <p>Working Days × 8 hours</p>
+                    <p className="text-muted-foreground text-xs">(Weekends excluded)</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Formula:</p>
+                    <p>Month Allocation = (Month Capacity ÷ Total Capacity) × Total {getUnitLabelShort()}</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {monthlyData.length > 0 ? (
+            <div className="flex flex-wrap gap-2 items-center">
+              {monthlyData.map(month => {
+                const workingDays = getWorkingDaysInMonth(month.month);
+                const capacityHours = workingDays * 8;
+                return (
+                  <div key={month.month} className="bg-white border border-amber-200 rounded-md px-2.5 py-1.5 text-xs">
+                    <span className="font-medium text-amber-900">{format(new Date(month.month + '-01'), 'MMM yyyy')}</span>
+                    <span className="text-amber-700 ml-1">
+                      {workingDays}d × 8h = <strong>{capacityHours}h</strong>
+                    </span>
+                  </div>
+                );
+              })}
               <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={totalUnitsToSplit || ''}
-                  onChange={(e) => setTotalUnitsToSplit(parseFloat(e.target.value) || 0)}
-                  placeholder={`Total ${getUnitLabelShort()} to split...`}
-                  className="max-w-[200px] bg-white"
-                />
-                <Button 
+                <div className="bg-amber-100 border border-amber-300 rounded-md px-2.5 py-1.5 text-xs font-semibold text-amber-900">
+                  Total: {monthlyData.reduce((sum, m) => sum + getWorkingDaysInMonth(m.month) * 8, 0)}h
+                </div>
+                <Button
                   onClick={handleSplitRevenue}
                   variant="outline"
-                  className="gap-2 border-amber-400 bg-amber-100 hover:bg-amber-200 text-amber-900"
+                  size="sm"
+                  className="h-[28px] gap-1.5 border-amber-400 bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs px-2.5"
                 >
-                  <SplitSquareHorizontal className="h-4 w-4" />
+                  <SplitSquareHorizontal className="h-3.5 w-3.5" />
                   Split Revenue
                 </Button>
               </div>
             </div>
-            <div className="text-xs text-amber-700 bg-amber-100 rounded-lg p-3 max-w-sm space-y-1">
-              <p><strong>Formula:</strong> Month Allocation = (Month Capacity ÷ Total Capacity) × Total {getUnitLabelShort()}</p>
-              <p><strong>Capacity:</strong> Working Days × 8 hours (weekends excluded)</p>
-            </div>
-          </div>
-
-          {/* Monthly Capacity Breakdown */}
-          {monthlyData.length > 0 && (
-            <div className="mt-4 border-t border-amber-200 pt-3">
-              <p className="text-xs font-medium text-amber-900 mb-2">Monthly Capacity Breakdown:</p>
-              <div className="flex flex-wrap gap-2">
-                {monthlyData.map(month => {
-                  const workingDays = getWorkingDaysInMonth(month.month);
-                  const capacityHours = workingDays * 8;
-                  return (
-                    <div key={month.month} className="bg-white border border-amber-200 rounded-md px-2.5 py-1.5 text-xs">
-                      <span className="font-medium text-amber-900">{format(new Date(month.month + '-01'), 'MMM yyyy')}</span>
-                      <span className="text-amber-700 ml-1">
-                        {workingDays}d × 8h = <strong>{capacityHours}h</strong>
-                      </span>
-                    </div>
-                  );
-                })}
-                <div className="bg-amber-100 border border-amber-300 rounded-md px-2.5 py-1.5 text-xs font-semibold text-amber-900">
-                  Total: {monthlyData.reduce((sum, m) => sum + getWorkingDaysInMonth(m.month) * 8, 0)}h
-                </div>
-              </div>
-            </div>
+          ) : (
+            <Button
+              onClick={handleSplitRevenue}
+              variant="outline"
+              className="gap-2 border-amber-400 bg-amber-100 hover:bg-amber-200 text-amber-900"
+            >
+              <SplitSquareHorizontal className="h-4 w-4" />
+              Split Revenue
+            </Button>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+      </div>
 
       <Card>
         <CardHeader>
@@ -280,6 +282,14 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
               <p className="text-sm text-muted-foreground mt-1">
                 Plan your monthly {getUnitLabelShort()} and revenue allocation
               </p>
+              {/* FL Details inline strip */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
+                <span className="text-sm font-semibold text-foreground">{step1Data.flName}</span>
+                <span className="text-xs text-muted-foreground">Type: <span className="font-medium text-foreground">{step1Data.contractType}</span></span>
+                <span className="text-xs text-muted-foreground">Billing Rate: <span className="font-medium text-foreground">${step1Data.billingRate}/{step1Data.rateUom}</span></span>
+                <span className="text-xs text-muted-foreground">Funded: <span className="font-medium text-blue-600">${step2Data.totalFunding.toFixed(2)}</span></span>
+                <span className="text-xs text-muted-foreground">Expected: <span className="font-medium text-foreground">${step1Data.expectedRevenue.toFixed(2)}</span></span>
+              </div>
             </div>
             <div className="text-right space-y-1">
               <div className="text-sm text-muted-foreground">Total Funding</div>
@@ -298,7 +308,7 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-muted/50">
-                  <th className="border p-2 text-left text-sm font-medium sticky left-0 bg-muted/50">FL Info</th>
+                  <th className="border p-2 text-left text-sm font-medium sticky left-0 bg-muted/50">Month</th>
                   {monthlyData.map((month) => (
                     <th key={month.month} className="border p-2 text-center text-sm font-medium min-w-[100px]">
                       {format(new Date(month.month + '-01'), 'MMM yyyy')}
@@ -307,21 +317,6 @@ export function FLStep3Planning({ data, step1Data, step2Data, onDataChange, onNe
                 </tr>
               </thead>
               <tbody>
-                {/* FL Details Row */}
-                <tr className="bg-blue-50">
-                  <td className="border p-2 sticky left-0 bg-blue-50">
-                    <div className="space-y-1">
-                      <div className="font-semibold">{step1Data.flName}</div>
-                      <div className="text-xs text-muted-foreground">Type: {step1Data.contractType}</div>
-                      <div className="text-xs text-muted-foreground">Billing Rate: ${step1Data.billingRate}/{step1Data.rateUom}</div>
-                      <div className="text-xs text-muted-foreground">Funded: ${step2Data.totalFunding.toFixed(2)}</div>
-                      <div className="text-xs text-muted-foreground">Expected: ${step1Data.expectedRevenue.toFixed(2)}</div>
-                    </div>
-                  </td>
-                  {monthlyData.map((month, idx) => (
-                    <td key={`empty-${month.month}-${idx}`} className="border p-2"></td>
-                  ))}
-                </tr>
 
                 {/* Capacity Hours Row (Read-only) */}
                 <tr className="bg-indigo-50">

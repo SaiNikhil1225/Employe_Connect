@@ -246,4 +246,33 @@ export const employeeService = {
     }>('/employees/allocations/summary');
     return response.data.data;
   },
+
+  // Get per-employee allocation details (project list) for RMG directory tooltip
+  getAllocationDetails: async (): Promise<Array<{
+    employeeId: string;
+    projects: Array<{
+      projectId: string;
+      projectName: string;
+      utilizationPercentage: number;
+      fromDate: string;
+      toDate: string;
+      billable: boolean;
+    }>;
+  }>> => {
+    const response = await apiClient.get<{
+      success: boolean;
+      data: Array<{
+        employeeId: string;
+        projects: Array<{
+          projectId: string;
+          projectName: string;
+          utilizationPercentage: number;
+          fromDate: string;
+          toDate: string;
+          billable: boolean;
+        }>;
+      }>;
+    }>('/employees/allocations/details');
+    return response.data.data;
+  },
 };

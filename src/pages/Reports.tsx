@@ -1,18 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, PieChart } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function Reports() {
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <PieChart className="h-7 w-7 text-primary" />
-            Reports & Analytics
-          </h1>
-          <p className="page-description">Generate and view comprehensive reports</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={PieChart}
+        title="Reports & Analytics"
+        description="Generate and view comprehensive reports"
+      />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

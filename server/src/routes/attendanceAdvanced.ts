@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth';
 import * as attendanceController from '../controllers/attendanceController';
+import * as enhancedController from '../controllers/attendanceEnhancedController';
 
 const router = express.Router();
 
@@ -12,6 +13,12 @@ router.post('/regularize', authenticateToken, attendanceController.submitRegular
 router.post('/wfh-request', authenticateToken, attendanceController.submitWFHRequest);
 router.post('/clock-in', authenticateToken, attendanceController.webClockIn);
 router.post('/clock-out', authenticateToken, attendanceController.webClockOut);
+
+// Enhanced KPI routes
+router.get('/enhanced-stats', authenticateToken, enhancedController.getEnhancedEmployeeStats);
+router.get('/enhanced-team-stats', authenticateToken, enhancedController.getEnhancedTeamStats);
+router.get('/enhanced-logs', authenticateToken, enhancedController.getEnhancedLogs);
+router.post('/validate-regularization', authenticateToken, enhancedController.validateRegularization);
 
 // Admin routes
 router.get('/admin/stats', authenticateToken, attendanceController.getAdminStats);

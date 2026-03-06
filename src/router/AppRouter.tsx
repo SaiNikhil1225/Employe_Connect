@@ -10,6 +10,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { Profile } from '@/pages/employee/Profile';
 import { MyTeam } from '@/pages/employee/MyTeam';
 import MyAttendance from '@/pages/employee/MyAttendance';
+import MyAttendanceEnhanced from '@/pages/employee/MyAttendanceEnhanced';
 import { Leave } from '@/pages/employee/Leave';
 import { Payroll } from '@/pages/employee/Payroll';
 import { Performance } from '@/pages/employee/Performance';
@@ -20,6 +21,7 @@ import { EmployeeDirectory } from '@/pages/employee/EmployeeDirectory';
 // Manager Pages
 import { ManagerDashboard } from '@/pages/manager/ManagerDashboard';
 import { ManagerLeaveApprovals } from '@/pages/manager/ManagerLeaveApprovals';
+import { ManagerAttendanceApprovals } from '@/pages/manager/ManagerAttendanceApprovals';
 
 // IT Admin Pages
 import { ITAdminDashboard } from '@/pages/itadmin/ITAdminDashboard';
@@ -157,6 +159,14 @@ export function AppRouter() {
             }
           />
           <Route
+            path="/employee/my-attendance-enhanced"
+            element={
+              <ProtectedRoute requiredPath="/employee/my-attendance-enhanced">
+                <MyAttendanceEnhanced />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/leave"
             element={
               <ProtectedRoute requiredPath="/leave">
@@ -221,6 +231,14 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/manager/leave-approvals">
                 <ManagerLeaveApprovals />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/attendance-approvals"
+            element={
+              <ProtectedRoute requiredPath="/manager/attendance-approvals">
+                <ManagerAttendanceApprovals />
               </ProtectedRoute>
             }
           />

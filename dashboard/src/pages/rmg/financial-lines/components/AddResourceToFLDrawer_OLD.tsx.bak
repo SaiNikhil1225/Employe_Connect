@@ -1,0 +1,560 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { X } from 'lucide-react';
+import type { FinancialLine } from '@/types/financialLine';
+import { format, eachMonthOfInterval, parseISO } from 'date-fns';
+
+interface MonthAllocation {
+  month: string;
+  allocation: number;
+}
+
+interface AddResourceToFLDrawerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  financialLine: FinancialLine | null;
+  onSuccess?: () => void;
+}
+
+export function AddResourceToFLDrawer({ 
+  open, 
+  onOpenChange, 
+  financialLine,
+  onSuccess 
+}: AddResourceToFLDrawerProps) {
+  const [formData, setFormData] = useState({
+    resourceName: '',
+    jobRole: '',
+    department: '',
+    skillRequired: '',
+    utilizationPercentage: '',
+    requestedFromDate: '',
+    requestedToDate: '',
+    billable: true,
+    percentageBasis: 'Billable',
+  });
+
+  const [monthlyAllocations, setMonthlyAllocations] = useState<MonthAllocation[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // Generate months when dates change
+  useEffect(() => {
+    if (formData.requestedFromDate && formData.requestedToDate) {
+      try {
+        const fromDate = parseISO(formData.requestedFromDate);
+        const toDate = parseISO(formData.requestedToDate);
+        
+        if (fromDate <= toDate) {
+          const months = eachMonthOfInterval({ start: fromDate, end: toDate });
+          const allocations = months.map(month => ({
+            month: format(month, 'MMM yyyy'),
+            allocation: 0,
+          }));
+          setMonthlyAllocations(allocations);
+          setValidationErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.requestedToDate;
+            return newErrors;
+          });
+        } else {
+          setValidationErrors(prev => ({
+            ...prev,
+            requestedToDate: 'To Date must be after From Date'
+          }));
+          setMonthlyAllocations([]);
+        }
+      } catch {
+        setMonthlyAllocations([]);
+      }
+    } else {
+      setMonthlyAllocations([]);
+    }
+  }, [formData.requestedFromDate, formData.requestedToDate]);
+
+  // Calculate total allocation hours
+  const calculateTotalAllocation = () => {
+    const totalPercentage = monthlyAllocations.reduce((sum, month) => sum + month.allocation, 0);
+    // Assuming 160 hours per month as standard
+    const totalHours = (totalPercentage / 100) * 160 * monthlyAllocations.length;
+    return totalHours > 0 ? `${Math.round(totalHours)} Hrs` : '0:0 Hrs';
+  };
+
+  // Reset form when drawer opens/closes
+  useEffect(() => {
+    if (!open) {
+      setFormData({
+        resourceName: '',
+        jobRole: '',
+        department: '',
+        skillRequired: '',
+        utilizationPercentage: '',
+        requestedFromDate: '',
+        requestedToDate: '',
+        billable: true,
+        percentageBasis: 'Billable',
+      });
+      setMonthlyAllocations([]);
+      setValidationErrors({});
+    }
+  }, [open]);
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.requestedFromDate) {
+      errors.requestedFromDate = 'From Date is required';
+    }
+
+    if (!formData.requestedToDate) {
+      errors.requestedToDate = 'To Date is required';
+    }
+
+    if (formData.requestedFromDate && formData.requestedToDate) {
+      const fromDate = parseISO(formData.requestedFromDate);
+      const toDate = parseISO(formData.requestedToDate);
+      if (fromDate > toDate) {
+        errors.requestedToDate = 'To Date must be after From Date';
+      }
+    }
+
+    if (!formData.jobRole) {
+      errors.jobRole = 'Job Role is required';
+    }
+
+    if (formData.utilizationPercentage) {
+      const utilization = parseFloat(formData.utilizationPercentage);
+      if (utilization < 0 || utilization > 100) {
+        errors.utilizationPercentage = 'Utilization must be between 0 and 100';
+      }
+    }
+
+    if (formData.billable && !formData.utilizationPercentage) {
+      errors.utilizationPercentage = 'Utilization is mandatory when billable';
+    }
+
+    // Validate monthly allocations
+    monthlyAllocations.forEach((month, index) => {
+      if (month.allocation < 0 || month.allocation > 100) {
+        errors[`allocation_${index}`] = 'Must be between 0-100';
+      }
+    });
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!financialLine) {
+      toast.error('No financial line selected');
+      return;
+    }
+
+    if (!validateForm()) {
+      toast.error('Please fix validation errors');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const resourceData = {
+        resourceName: formData.resourceName,
+        jobRole: formData.jobRole,
+        department: formData.department,
+        skillRequired: formData.skillRequired,
+        utilizationPercentage: parseFloat(formData.utilizationPercentage) || 0,
+        requestedFromDate: formData.requestedFromDate,
+        requestedToDate: formData.requestedToDate,
+        billable: formData.billable,
+        percentageBasis: formData.percentageBasis,
+        monthlyAllocations: monthlyAllocations,
+        totalAllocation: calculateTotalAllocation(),
+        financialLineId: financialLine._id,
+        flNo: financialLine.flNo,
+        flName: financialLine.flName,
+        projectId: typeof financialLine.projectId === 'string' 
+          ? financialLine.projectId 
+          : financialLine.projectId?._id,
+        status: 'Active' as const,
+      };
+
+      const response = await fetch('/api/fl-resources', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(resourceData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add resource');
+      }
+
+      toast.success(`Resource ${formData.resourceName || 'added'} to FL ${financialLine.flNo}`);
+      onSuccess?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to add resource:', error);
+      toast.error('Failed to add resource to financial line');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear validation error for this field
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleAllocationChange = (index: number, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    if (numValue >= 0 && numValue <= 100) {
+      setMonthlyAllocations(prev => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], allocation: numValue };
+        return updated;
+      });
+      // Clear validation error
+      if (validationErrors[`allocation_${index}`]) {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[`allocation_${index}`];
+          return newErrors;
+        });
+      }
+    }
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
+        <SheetHeader className="border-b pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <SheetTitle className="text-xl">Add Resource</SheetTitle>
+              <SheetDescription className="mt-2">
+                {financialLine && (
+                  <div className="text-sm">
+                    <p className="font-medium text-foreground">FL: {financialLine.flNo}</p>
+                    <p className="text-muted-foreground">{financialLine.flName}</p>
+                  </div>
+                )}
+              </SheetDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </SheetHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+          {/* Basic Details Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Basic Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Financial Line Item - Read Only */}
+              <div className="space-y-2">
+                <Label>Financial Line Item</Label>
+                <Input
+                  value={financialLine ? `${financialLine.flNo} - ${financialLine.flName}` : ''}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+
+              {/* Date Range */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="requestedFromDate">
+                    Requested From Date <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="requestedFromDate"
+                    type="date"
+                    value={formData.requestedFromDate}
+                    onChange={(e) => handleChange('requestedFromDate', e.target.value)}
+                    className={validationErrors.requestedFromDate ? 'border-destructive' : ''}
+                  />
+                  {validationErrors.requestedFromDate && (
+                    <p className="text-xs text-destructive">{validationErrors.requestedFromDate}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="requestedToDate">
+                    Requested To Date <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="requestedToDate"
+                    type="date"
+                    value={formData.requestedToDate}
+                    onChange={(e) => handleChange('requestedToDate', e.target.value)}
+                    className={validationErrors.requestedToDate ? 'border-destructive' : ''}
+                  />
+                  {validationErrors.requestedToDate && (
+                    <p className="text-xs text-destructive">{validationErrors.requestedToDate}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Department */}
+              <div className="space-y-2">
+                <Label htmlFor="department">Department</Label>
+                <Select
+                  value={formData.department}
+                  onValueChange={(value) => handleChange('department', value)}
+                >
+                  <SelectTrigger className={validationErrors.department ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Engineering">Engineering</SelectItem>
+                    <SelectItem value="Design">Design</SelectItem>
+                    <SelectItem value="Product">Product</SelectItem>
+                    <SelectItem value="QA">QA</SelectItem>
+                    <SelectItem value="DevOps">DevOps</SelectItem>
+                    <SelectItem value="Data">Data</SelectItem>
+                    <SelectItem value="Marketing">Marketing</SelectItem>
+                    <SelectItem value="Sales">Sales</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="HR">HR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Job Role */}
+              <div className="space-y-2">
+                <Label htmlFor="jobRole">
+                  Job Role <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={formData.jobRole}
+                  onValueChange={(value) => handleChange('jobRole', value)}
+                >
+                  <SelectTrigger className={validationErrors.jobRole ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Select job role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Software Engineer">Software Engineer</SelectItem>
+                    <SelectItem value="Senior Software Engineer">Senior Software Engineer</SelectItem>
+                    <SelectItem value="Lead Engineer">Lead Engineer</SelectItem>
+                    <SelectItem value="UI/UX Designer">UI/UX Designer</SelectItem>
+                    <SelectItem value="Product Manager">Product Manager</SelectItem>
+                    <SelectItem value="QA Engineer">QA Engineer</SelectItem>
+                    <SelectItem value="DevOps Engineer">DevOps Engineer</SelectItem>
+                    <SelectItem value="Data Analyst">Data Analyst</SelectItem>
+                    <SelectItem value="Business Analyst">Business Analyst</SelectItem>
+                    <SelectItem value="Project Manager">Project Manager</SelectItem>
+                  </SelectContent>
+                </Select>
+                {validationErrors.jobRole && (
+                  <p className="text-xs text-destructive">{validationErrors.jobRole}</p>
+                )}
+              </div>
+
+              {/* Skill Required */}
+              <div className="space-y-2">
+                <Label htmlFor="skillRequired">Skill Required</Label>
+                <Select
+                  value={formData.skillRequired}
+                  onValueChange={(value) => handleChange('skillRequired', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select skill" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="React">React</SelectItem>
+                    <SelectItem value="Angular">Angular</SelectItem>
+                    <SelectItem value="Vue.js">Vue.js</SelectItem>
+                    <SelectItem value="Node.js">Node.js</SelectItem>
+                    <SelectItem value="Python">Python</SelectItem>
+                    <SelectItem value="Java">Java</SelectItem>
+                    <SelectItem value=".NET">.NET</SelectItem>
+                    <SelectItem value="AWS">AWS</SelectItem>
+                    <SelectItem value="Azure">Azure</SelectItem>
+                    <SelectItem value="Docker">Docker</SelectItem>
+                    <SelectItem value="Kubernetes">Kubernetes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Billable Toggle */}
+              <div className="flex items-center justify-between space-x-2 py-2">
+                <Label htmlFor="billable" className="font-medium">
+                  Billable <span className="text-destructive">*</span>
+                </Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {formData.billable ? 'Yes' : 'No'}
+                  </span>
+                  <Switch
+                    id="billable"
+                    checked={formData.billable}
+                    onCheckedChange={(checked) => handleChange('billable', checked)}
+                  />
+                </div>
+              </div>
+
+              {/* Resource Name */}
+              <div className="space-y-2">
+                <Label htmlFor="resourceName">Resource Name</Label>
+                <Input
+                  id="resourceName"
+                  value={formData.resourceName}
+                  onChange={(e) => handleChange('resourceName', e.target.value)}
+                  placeholder="Enter resource name or search"
+                />
+              </div>
+
+              {/* Utilization */}
+              <div className="space-y-2">
+                <Label htmlFor="utilizationPercentage">
+                  Utilization (%) {formData.billable && <span className="text-destructive">*</span>}
+                </Label>
+                <Input
+                  id="utilizationPercentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={formData.utilizationPercentage}
+                  onChange={(e) => handleChange('utilizationPercentage', e.target.value)}
+                  placeholder="0-100"
+                  className={validationErrors.utilizationPercentage ? 'border-destructive' : ''}
+                />
+                {validationErrors.utilizationPercentage && (
+                  <p className="text-xs text-destructive">{validationErrors.utilizationPercentage}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Allocation Section */}
+          {monthlyAllocations.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Allocation (Month-wise)</CardTitle>
+                <CardDescription>
+                  Allocate resources across months. Each value must be between 0-100%
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Percentage Basis */}
+                <div className="space-y-2">
+                  <Label htmlFor="percentageBasis">% Basis</Label>
+                  <Select
+                    value={formData.percentageBasis}
+                    onValueChange={(value) => handleChange('percentageBasis', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Billable">Billable</SelectItem>
+                      <SelectItem value="Non-Billable">Non-Billable</SelectItem>
+                      <SelectItem value="Buffer">Buffer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Monthly Allocation Grid */}
+                <div className="border rounded-lg overflow-x-auto">
+                  <div className="min-w-max">
+                    {/* Header */}
+                    <div className="grid grid-cols-[200px_repeat(auto-fit,minmax(120px,1fr))] bg-muted/50 border-b">
+                      <div className="p-3 font-medium text-sm">Month</div>
+                      {monthlyAllocations.map((month, index) => (
+                        <div key={index} className="p-3 font-medium text-sm text-center border-l">
+                          {month.month}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Allocation Row */}
+                    <div className="grid grid-cols-[200px_repeat(auto-fit,minmax(120px,1fr))]">
+                      <div className="p-3 text-sm font-medium">Allocation (%)</div>
+                      {monthlyAllocations.map((month, index) => (
+                        <div key={index} className="p-2 border-l">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="1"
+                            value={month.allocation || ''}
+                            onChange={(e) => handleAllocationChange(index, e.target.value)}
+                            placeholder="0"
+                            className={`text-center ${validationErrors[`allocation_${index}`] ? 'border-destructive' : ''}`}
+                          />
+                          {validationErrors[`allocation_${index}`] && (
+                            <p className="text-xs text-destructive mt-1">{validationErrors[`allocation_${index}`]}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total Allocation */}
+                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                  <span className="font-medium">Total Allocation</span>
+                  <span className="text-lg font-semibold text-brand-green">
+                    {calculateTotalAllocation()}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t sticky bottom-0 bg-background pb-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-brand-green hover:bg-brand-green-dark"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Saving...' : 'Save Resource'}
+            </Button>
+          </div>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}

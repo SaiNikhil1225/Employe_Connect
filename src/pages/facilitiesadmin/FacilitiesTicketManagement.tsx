@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { SpecialistQueuePage } from '@/components/helpdesk/SpecialistQueuePage';
+import { PageHeader } from '@/components/ui/page-header';
 import { helpdeskService } from '@/services/helpdeskService';
 import type { HelpdeskTicket } from '@/types/helpdeskNew';
 
@@ -278,20 +279,13 @@ export function FacilitiesTicketManagement() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <Building2 className="h-7 w-7 text-primary" />
-            {isFacilitiesAdmin ? 'Facilities Tickets - View Only' : 'Facilities Ticket Management'}
-          </h1>
-          <p className="page-description">
-            {isFacilitiesAdmin 
-              ? 'View all Facilities helpdesk tickets. Use Facilities Admin Dashboard to assign tickets.'
-              : 'Manage and resolve Facilities helpdesk tickets across all teams'
-            }
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Building2}
+        title={isFacilitiesAdmin ? 'Facilities Tickets - View Only' : 'Facilities Ticket Management'}
+        description={isFacilitiesAdmin
+          ? 'View all Facilities helpdesk tickets. Use Facilities Admin Dashboard to assign tickets.'
+          : 'Manage and resolve Facilities helpdesk tickets across all teams'}
+      />
 
       {/* Facilities Admin Notice */}
       {isFacilitiesAdmin && (

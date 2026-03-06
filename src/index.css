@@ -656,7 +656,7 @@
 
 /* Page Header - Consistent styling for all page headers */
 .page-header {
-  @apply flex items-center justify-between;
+  @apply flex items-center justify-between mb-6;
 }
 
 .page-header-content {
@@ -664,11 +664,11 @@
 }
 
 .page-title {
-  @apply text-2xl font-bold text-foreground flex items-center gap-3;
+  @apply text-2xl font-bold text-foreground mb-1;
 }
 
 .page-description {
-  @apply text-sm text-muted-foreground mt-1;
+  @apply text-sm text-muted-foreground;
 }
 
 /* Section Headers */

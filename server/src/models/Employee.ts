@@ -495,3 +495,4 @@ if (mongoose.models.Employee) {
 }
 
 export default mongoose.model('Employee', employeeSchema);
+

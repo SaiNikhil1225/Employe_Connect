@@ -1,12 +1,21 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { GlobalHelpdeskProvider, useGlobalHelpdesk } from '@/contexts/GlobalHelpdeskContext';
 import { ProfileProvider } from '@/contexts/ProfileContext';
+import { ModulePermissionsProvider } from '@/contexts/ModulePermissionsContext';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { RaiseRequestDrawer } from '@/components/helpdesk/RaiseRequestDrawer';
 
 function DashboardLayoutContent() {
   const { isDrawerOpen, closeDrawer, submitRequest, isSubmitting } = useGlobalHelpdesk();
+  const { canAccessPath, isLoading } = useModulePermissions();
+  const location = useLocation();
+
+  // Block access to module-restricted routes (only after permissions are loaded)
+  if (!isLoading && !canAccessPath(location.pathname)) {
+    return <Navigate to="/403" replace />;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
@@ -34,9 +43,11 @@ function DashboardLayoutContent() {
 export function DashboardLayout() {
   return (
     <GlobalHelpdeskProvider>
-      <ProfileProvider>
-        <DashboardLayoutContent />
-      </ProfileProvider>
+      <ModulePermissionsProvider>
+        <ProfileProvider>
+          <DashboardLayoutContent />
+        </ProfileProvider>
+      </ModulePermissionsProvider>
     </GlobalHelpdeskProvider>
   );
 }

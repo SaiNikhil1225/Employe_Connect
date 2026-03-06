@@ -51,8 +51,8 @@ interface AttendanceState {
   submitWFHRequest: (data: { date: string; reason: string }) => Promise<void>;
   webClockIn: (employeeId?: string) => Promise<void>;
   webClockOut: (employeeId?: string) => Promise<void>;
-  fetchRegularizationRequests: (status?: string) => Promise<void>;
-  fetchWFHRequests: (status?: string) => Promise<void>;
+  fetchRegularizationRequests: (employeeIdOrStatus?: string) => Promise<void>;
+  fetchWFHRequests: (employeeId?: string, status?: string) => Promise<void>;
   
   // Admin Actions
   fetchAdminStats: (filters?: any) => Promise<void>;
@@ -332,11 +332,18 @@ export const useAttendanceStore = create<AttendanceState>()(
   },
 
   // Fetch regularization requests
-  fetchRegularizationRequests: async (status?: string) => {
+  fetchRegularizationRequests: async (employeeIdOrStatus?: string) => {
     set({ loading: true });
     try {
       const params = new URLSearchParams();
-      if (status) params.append('status', status);
+      // Check if parameter looks like an employeeId (starts with 'EMP') or a status filter
+      if (employeeIdOrStatus) {
+        if (employeeIdOrStatus.startsWith('EMP')) {
+          params.append('employeeId', employeeIdOrStatus);
+        } else {
+          params.append('status', employeeIdOrStatus);
+        }
+      }
       
       const response = await apiClient.get(`${API_BASE}/regularization-requests?${params.toString()}`);
       set({ regularizationRequests: response.data, loading: false });
@@ -352,10 +359,11 @@ export const useAttendanceStore = create<AttendanceState>()(
   },
 
   // Fetch WFH requests
-  fetchWFHRequests: async (status?: string) => {
+  fetchWFHRequests: async (employeeId?: string, status?: string) => {
     set({ loading: true });
     try {
       const params = new URLSearchParams();
+      if (employeeId) params.append('employeeId', employeeId);
       if (status) params.append('status', status);
       
       const response = await apiClient.get(`${API_BASE}/wfh-requests?${params.toString()}`);

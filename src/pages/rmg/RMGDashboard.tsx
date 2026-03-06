@@ -30,7 +30,9 @@ import {
   ArrowUpRight,
   CalendarClock,
   Building2,
+  BarChart3 as BarChart3Icon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 import {
   BarChart,
   Bar,
@@ -216,23 +218,22 @@ export function RMGDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">RMG Dashboard</h2>
-          <p className="text-muted-foreground text-sm">
-            Real-time overview of resources, projects, and financials
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => loadData(true)}
-          disabled={isRefreshing}
-        >
-          {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        icon={BarChart3Icon}
+        title="RMG Dashboard"
+        description="Real-time overview of resources, projects, and financials"
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => loadData(true)}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Refresh
+          </Button>
+        }
+      />
 
       {/* ═══════ Row 1: KPI Cards ═══════ */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

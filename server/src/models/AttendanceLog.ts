@@ -12,12 +12,17 @@ export interface IAttendanceLog extends Document {
   grossHours: number;
   status: 'present' | 'absent' | 'wfh' | 'leave' | 'weekly-off' | 'late' | 'half-day';
   isLate: boolean;
+  isEarlyLogout: boolean;
   lateMinutes: number;
   hasTimeEntry: boolean;
   workLocation: 'office' | 'wfh' | 'hybrid';
   regularizationStatus: 'none' | 'pending' | 'approved' | 'rejected';
   regularizationRequestId?: mongoose.Types.ObjectId;
   remarks?: string;
+  ipAddress?: string;
+  shift?: 'General' | 'USA' | 'UK' | 'MiddleEast';
+  shiftTiming?: string;
+  approvedBy?: string;
   createdBy?: string;
   updatedBy?: string;
 }
@@ -74,6 +79,10 @@ const attendanceLogSchema = new Schema<IAttendanceLog>({
     type: Boolean,
     default: false
   },
+  isEarlyLogout: {
+    type: Boolean,
+    default: false
+  },
   lateMinutes: {
     type: Number,
     default: 0,
@@ -96,6 +105,23 @@ const attendanceLogSchema = new Schema<IAttendanceLog>({
   regularizationRequestId: {
     type: Schema.Types.ObjectId,
     ref: 'RegularizationRequest',
+    default: null
+  },
+  ipAddress: {
+    type: String,
+    default: null
+  },
+  shift: {
+    type: String,
+    enum: ['General', 'USA', 'UK', 'MiddleEast'],
+    default: 'General'
+  },
+  shiftTiming: {
+    type: String,
+    default: null
+  },
+  approvedBy: {
+    type: String,
     default: null
   },
   remarks: {

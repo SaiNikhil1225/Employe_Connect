@@ -207,6 +207,13 @@ router.get('/', async (req: Request, res: Response) => {
       });
     }
 
+    // Resolve project name if projectId filter is applied
+    let resolvedProjectName: string | undefined;
+    if (projectId) {
+      const proj = await Project.findOne({ projectId });
+      resolvedProjectName = proj?.projectName || projectId;
+    }
+
     // Build allocation date filter for FLResource
     let allocationDateFilter: any = {};
     if (startDate && endDate) {
@@ -311,6 +318,7 @@ router.get('/', async (req: Request, res: Response) => {
         employeeName: employee.name || 'Unknown',
         email: employee.email || 'N/A',
         department: employee.department || 'Unknown',
+        projectName: resolvedProjectName,
         allocationHours: allocationHours || 0,
         actualBillableHours: actualBillableHours || 0,
         actualNonBillableHours: actualNonBillableHours || 0,

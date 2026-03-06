@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -188,15 +189,11 @@ export function EmployeeManagement() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <Users className="h-7 w-7 text-primary" />
-            Employee Management
-          </h1>
-          <p className="page-description">Manage employee profiles and information</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        icon={Users}
+        title="Employee Management"
+        description="Manage employee profiles and information"
+        actions={<>
           <Button variant="outline" onClick={() => setShowUploadModal(true)}>
             <Upload className="mr-2 h-4 w-4" />
             Upload Excel
@@ -205,8 +202,8 @@ export function EmployeeManagement() {
             <UserPlus className="mr-2 h-4 w-4" />
             Add Employee
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>

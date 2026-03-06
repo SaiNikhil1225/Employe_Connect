@@ -11,9 +11,10 @@ interface EmployeeTimeTabProps {
   employeeId: string;
   employeeTime: any;
   onUpdate: () => void;
+  canEdit?: boolean;
 }
 
-export default function EmployeeTimeTab({ employeeId, employeeTime, onUpdate }: EmployeeTimeTabProps) {
+export default function EmployeeTimeTab({ employeeId, employeeTime, onUpdate, canEdit = false }: EmployeeTimeTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     shift: employeeTime?.shift || '',
@@ -32,10 +33,13 @@ export default function EmployeeTimeTab({ employeeId, employeeTime, onUpdate }: 
         toast.success('Employee time details updated successfully');
         setIsEditing(false);
         onUpdate();
+      } else {
+        toast.error(response.message || 'Failed to update employee time details');
       }
-    } catch (error) {
-      toast.error('Failed to update employee time details');
-      console.error(error);
+    } catch (error: any) {
+      console.error('Failed to update employee time details:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update employee time details';
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -49,7 +53,7 @@ export default function EmployeeTimeTab({ employeeId, employeeTime, onUpdate }: 
             <Clock className="h-5 w-5 text-orange-500" />
             Employee Time
           </CardTitle>
-          {!isEditing && (
+          {!isEditing && canEdit && (
             <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
               <Pencil className="h-4 w-4" />
             </Button>

@@ -62,6 +62,7 @@ import type {
     HighLevelCategory
 } from '@/types/superAdmin';
 import { searchEmployees } from '@/services/superAdminService';
+import { PageHeader } from '@/components/ui/page-header';
 
 const FIXED_TABS = ['IT Support', 'Facilities', 'Finance'] as const;
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -421,17 +422,11 @@ export default function HelpdeskConfigPage() {
         <TooltipProvider>
             <div className="page-container">
                 {/* Header */}
-                <div className="page-header">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                            <Headset className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                            <h1 className="page-title">Helpdesk Configuration</h1>
-                            <p className="page-description">Configure approval workflows for helpdesk categories</p>
-                        </div>
-                    </div>
-                </div>
+                <PageHeader
+                    icon={Headset}
+                    title="Helpdesk Configuration"
+                    description="Configure approval workflows for helpdesk categories"
+                />
 
                 {/* Dashboard Cards */}
                 <div className="grid gap-4 md:grid-cols-4 mb-6">

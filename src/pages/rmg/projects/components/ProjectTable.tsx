@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getAvatarGradient } from '@/constants/design-system';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -469,7 +470,7 @@ export function ProjectTable({ projects, isLoading, onCreateProject, onEditProje
                       <div className="flex items-center gap-2">
                         <Avatar className="h-8 w-8">
                           <AvatarImage src="" alt={ownerName} />
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                          <AvatarFallback className={`${getAvatarGradient(ownerName)} text-white text-xs font-semibold`}>
                             {getInitials(ownerName)}
                           </AvatarFallback>
                         </Avatar>

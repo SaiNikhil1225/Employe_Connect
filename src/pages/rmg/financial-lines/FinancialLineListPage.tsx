@@ -9,6 +9,7 @@ import { useProjectStore } from '@/store/projectStore';
 import { StatCard } from '@/components/common/StatCard';
 import { FinancialLineTable } from './components/FinancialLineTable';
 import { CreateFLWizard } from './components/CreateFLWizard';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function FinancialLineListPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -70,27 +71,19 @@ export function FinancialLineListPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Enhanced Header Section */}
-      <div className="bg-primary/5 rounded-xl p-6 border">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-semibold text-foreground">Financial Lines</h1>
-                <p className="text-sm text-muted-foreground">Manage financial lines with revenue planning and milestones</p>
-              </div>
-            </div>
-          </div>
+      <PageHeader
+        icon={DollarSign}
+        title="Financial Lines"
+        description="Manage financial lines with revenue planning and milestones"
+        actions={
           <Button onClick={() => setIsCreateOpen(true)} size="lg" className="shadow-lg shadow-primary/25">
             <Plus className="mr-2 h-4 w-4" />
             New Financial Line
           </Button>
-        </div>
-        
-        {/* Quick Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6">
+        }
+      />
+      {/* Quick Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatCard
             label="Total"
             value={totalFLs}
@@ -135,7 +128,6 @@ export function FinancialLineListPage() {
             trend={trends.revenue}
             tooltip={`Total revenue across all financial lines: ${formatCurrency(totalRevenue)}`}
           />
-        </div>
       </div>
 
       <Card>

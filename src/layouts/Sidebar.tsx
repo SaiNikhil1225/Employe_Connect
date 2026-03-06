@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { useProfile } from '@/contexts/ProfileContext';
+import { useEmployeeStore } from '@/store/employeeStore';
+import { useProfile } from '@/hooks/useProfile';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { getNavigationForRole } from '@/router/roleConfig';
 import { profileService } from '@/services/profileService';
 import { cn } from '@/lib/utils';
@@ -125,7 +127,9 @@ export function Sidebar() {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
+  const { employees } = useEmployeeStore();
   const { activeProfile } = useProfile();
+  const { canAccessPath } = useModulePermissions();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
@@ -178,7 +182,7 @@ export function Sidebar() {
           if (profile.photo && profile.photo !== user.avatar) {
             updateUser({ avatar: profile.photo });
           }
-        } catch (error) {
+        } catch {
           // Silently fail - photo is optional
         }
       }
@@ -190,12 +194,22 @@ export function Sidebar() {
   if (!user) return null;
 
   const effectiveRole = getEffectiveRole();
-  const navigation = getNavigationForRole(effectiveRole);
 
-  // Filter navigation based on department for EMPLOYEE role
+  // Dynamic manager detection: an EMPLOYEE whose employeeId is the reportingManagerId
+  // of at least one other employee gets MANAGER-level navigation.
+  const isDynamicManager =
+    effectiveRole === 'EMPLOYEE' &&
+    !!user.employeeId &&
+    employees.some((emp) => emp.reportingManagerId === user.employeeId);
+
+  // Use MANAGER navigation for dynamic managers, otherwise use effective role
+  const navigationRole: UserRole = isDynamicManager ? 'MANAGER' : effectiveRole;
+  const navigation = getNavigationForRole(navigationRole);
+
+  // Filter navigation: department-specific items + module permission check
   const filteredNavigation = navigation.filter(item => {
     // If user is EMPLOYEE or viewing as employee, only show department-specific ticket pages
-    if (effectiveRole === 'EMPLOYEE') {
+    if (navigationRole === 'EMPLOYEE') {
       if (item.path === '/financeadmin/tickets') {
         return user.department === 'Finance' || user.businessUnit === 'Finance';
       }
@@ -203,6 +217,8 @@ export function Sidebar() {
         return user.department === 'Facilities' || user.businessUnit === 'Facilities';
       }
     }
+    // Hide nav items whose module is disabled for this user
+    if (!canAccessPath(item.path)) return false;
     return true;
   });
 
@@ -218,7 +234,7 @@ export function Sidebar() {
         label: item.label,
         icon: item.icon || 'CircleDot',
         children: item.children
-          ?.filter(child => !child.roles || child.roles.includes(effectiveRole))
+          ?.filter(child => !child.roles || child.roles.includes(navigationRole))
           .map(child => ({
             path: child.path,
             label: child.label,

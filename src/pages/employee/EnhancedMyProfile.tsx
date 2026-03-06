@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useEmployeeStore } from '@/store/employeeStore';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, ChevronRight, ArrowLeft } from 'lucide-react';
+import apiClient from '@/services/api';
 
 // Import new enhanced components
 import ProfileHeader from '@/components/profile/ProfileHeader';
@@ -18,7 +19,6 @@ import InitiateExitDrawer from '@/components/profile/InitiateExitDrawer';
 import DisableLoginModal from '@/components/profile/DisableLoginModal';
 import EnableLoginModal from '@/components/profile/EnableLoginModal';
 import AddToPIPDrawer from '@/components/profile/AddToPIPDrawer';
-import axios from 'axios';
 
 // Import tab content components
 import AboutTab from '@/components/profile/tabs/AboutTab';
@@ -34,11 +34,9 @@ interface EnhancedMyProfileProps {
   employeeId?: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
 export default function EnhancedMyProfile({ employeeId: propEmployeeId }: EnhancedMyProfileProps) {
   const { user } = useAuthStore();
-  const { fetchEmployees } = useEmployeeStore();
+  const { fetchEmployees, employees } = useEmployeeStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
@@ -72,6 +70,29 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
     }
   }, [targetEmployeeId]);
 
+  // Auto-refresh profile when employee data changes in the store
+  // This ensures updates from AddEditEmployeeModal automatically reflect in the profile
+  useEffect(() => {
+    if (!targetEmployeeId || !employees || employees.length === 0) return;
+    
+    const currentEmployee = employees.find(emp => emp.employeeId === targetEmployeeId);
+    if (currentEmployee && profileData?.employee) {
+      // Compare timestamps or key fields to detect changes
+      const hasChanges = 
+        currentEmployee.name !== profileData.employee.name ||
+        currentEmployee.designation !== profileData.employee.designation ||
+        currentEmployee.department !== profileData.employee.department ||
+        currentEmployee.email !== profileData.employee.email ||
+        currentEmployee.phone !== profileData.employee.phone ||
+        JSON.stringify(currentEmployee) !== JSON.stringify(profileData.employee);
+      
+      if (hasChanges) {
+        console.log('Employee data changed in store, refreshing profile...');
+        loadProfileData();
+      }
+    }
+  }, [employees, targetEmployeeId]);
+
   const checkActivePIP = async () => {
     if (!targetEmployeeId) {
       console.log('EnhancedMyProfile: No targetEmployeeId for PIP check');
@@ -80,7 +101,7 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
     }
     console.log('EnhancedMyProfile: Checking active PIP for:', targetEmployeeId);
     try {
-      const response = await axios.get(`${API_URL}/pip/employee/${targetEmployeeId}`);
+      const response = await apiClient.get(`/pip/employee/${targetEmployeeId}`);
       console.log('EnhancedMyProfile: PIP check response:', response.data);
       
       // Ensure we have a valid response with data array
@@ -109,6 +130,8 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
       console.log('Profile API Response:', response);
       if (response.success) {
         console.log('Profile Data:', response.data);
+        console.log('Employee phone after load:', response.data?.employee?.phone);
+        console.log('Employee mobileNumber after load:', response.data?.employee?.mobileNumber);
         setProfileData(response.data);
       } else {
         toast.error(response.message || 'Failed to load profile');
@@ -132,16 +155,23 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
   };
 
   const refreshData = async () => {
-    await loadProfileData();
-    // Refresh employee store to update data across all views (workforce page, etc.)
-    await fetchEmployees();
+    try {
+      // Reload profile data from API
+      await loadProfileData();
+      // Refresh employee store to update data across all views (workforce page, etc.)
+      await fetchEmployees();
+      // Note: The useEffect watching employees will detect changes and trigger updates
+    } catch (error) {
+      console.error('Error refreshing profile data:', error);
+      toast.error('Failed to refresh profile data');
+    }
   };
 
   const handleDisableLogin = async () => {
     setIsDisabling(true);
     try {
-      const response = await axios.patch(
-        `${API_URL}/employees/${targetEmployeeId}/disable-login`
+      const response = await apiClient.patch(
+        `/employees/${targetEmployeeId}/disable-login`
       );
       
       if (response.data.success) {
@@ -163,8 +193,8 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
   const handleEnableLogin = async () => {
     setIsEnabling(true);
     try {
-      const response = await axios.patch(
-        `${API_URL}/employees/${targetEmployeeId}/enable-login`
+      const response = await apiClient.patch(
+        `/employees/${targetEmployeeId}/enable-login`
       );
       
       if (response.data.success) {
@@ -192,7 +222,7 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
     setIsRemovingFromPIP(true);
     try {
       // First, get the active PIP
-      const pipsResponse = await axios.get(`${API_URL}/pip/employee/${targetEmployeeId}`);
+      const pipsResponse = await apiClient.get(`/pip/employee/${targetEmployeeId}`);
       
       if (pipsResponse.data.success && Array.isArray(pipsResponse.data.data)) {
         const activePIP = pipsResponse.data.data.find((pip: any) => 
@@ -205,8 +235,8 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
         }
 
         // Cancel the PIP by updating its status
-        const cancelResponse = await axios.patch(
-          `${API_URL}/pip/${activePIP._id}/status`,
+        const cancelResponse = await apiClient.patch(
+          `/pip/${activePIP._id}/status`,
           { status: 'Cancelled' }
         );
 
@@ -228,6 +258,231 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
       setIsRemovingFromPIP(false);
     }
   };
+
+  // Helper functions for timeline and profile formatting
+  const calculateTenure = (joiningDate?: string) => {
+    if (!joiningDate) return 'N/A';
+    const start = new Date(joiningDate);
+    const now = new Date();
+    const years = now.getFullYear() - start.getFullYear();
+    const months = now.getMonth() - start.getMonth();
+    
+    if (years > 0) {
+      return `${years} year${years > 1 ? 's' : ''}${months > 0 ? ` ${months} month${months > 1 ? 's' : ''}` : ''}`;
+    }
+    return `${months} month${months !== 1 ? 's' : ''}`;
+  };
+
+  const generateTimelineEvents = (empData: any) => {
+    const events: any[] = [];
+    const today = new Date();
+    
+    // Add joining date event
+    if (empData.dateOfJoining) {
+      const joinDate = new Date(empData.dateOfJoining);
+      events.push({
+        id: `joined-${empData.employeeId}`,
+        type: 'anniversary',
+        date: joinDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        year: joinDate.getFullYear(),
+        title: 'Joined Company',
+        description: `Started as ${empData.designation || 'Employee'}`,
+        badge: 'Day 1',
+      });
+
+      // Add work anniversaries (for each year since joining)
+      const joinYear = joinDate.getFullYear();
+      const joinMonth = joinDate.getMonth();
+      const joinDay = joinDate.getDate();
+      const currentYear = today.getFullYear();
+
+      for (let year = joinYear + 1; year <= currentYear; year++) {
+        const anniversaryDate = new Date(year, joinMonth, joinDay);
+        if (anniversaryDate <= today) {
+          const yearsOfService = year - joinYear;
+          events.push({
+            id: `anniversary-${year}`,
+            type: 'anniversary',
+            date: anniversaryDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            year: year,
+            title: 'Work Anniversary',
+            badge: `${yearsOfService}${yearsOfService === 1 ? 'st' : yearsOfService === 2 ? 'nd' : yearsOfService === 3 ? 'rd' : 'th'} Year`,
+          });
+        }
+      }
+    }
+
+    // Add birthdays (for each year since joining or birth year)
+    if (empData.dateOfBirth) {
+      const birthDate = new Date(empData.dateOfBirth);
+      const birthMonth = birthDate.getMonth();
+      const birthDay = birthDate.getDate();
+      const birthYear = birthDate.getFullYear();
+      const currentYear = today.getFullYear();
+      
+      // Start from joining year or a few years back for context
+      const startYear = empData.dateOfJoining 
+        ? new Date(empData.dateOfJoining).getFullYear() 
+        : Math.max(birthYear, currentYear - 5);
+
+      for (let year = startYear; year <= currentYear; year++) {
+        const birthdayDate = new Date(year, birthMonth, birthDay);
+        if (birthdayDate <= today && year > birthYear) {
+          const age = year - birthYear;
+          events.push({
+            id: `birthday-${year}`,
+            type: 'birthday',
+            date: birthdayDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            year: year,
+            title: 'Birthday',
+            badge: `${age} years`,
+            description: age % 5 === 0 ? `Milestone birthday! 🎉` : undefined,
+          });
+        }
+      }
+    }
+
+    // Add promotion/designation change
+    if (empData.lastPromotionDate) {
+      const promoDate = new Date(empData.lastPromotionDate);
+      events.push({
+        id: `promotion-${empData.employeeId}`,
+        type: 'role',
+        date: promoDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        year: promoDate.getFullYear(),
+        title: 'Promotion',
+        newValue: empData.designation,
+        description: empData.currentGrade ? `Grade: ${empData.currentGrade}` : undefined,
+      });
+    }
+
+    // Add salary increment
+    if (empData.lastIncrementDate) {
+      const incDate = new Date(empData.lastIncrementDate);
+      events.push({
+        id: `increment-${empData.employeeId}`,
+        type: 'salary',
+        date: incDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        year: incDate.getFullYear(),
+        title: 'Salary Revision',
+        description: empData.lastIncrementPercentage 
+          ? `${empData.lastIncrementPercentage}% increment` 
+          : 'Annual increment',
+      });
+    }
+
+    // Add manager change (if available)
+    if (empData.managerHistory && Array.isArray(empData.managerHistory) && empData.managerHistory.length > 0) {
+      empData.managerHistory.forEach((managerRecord: any, index: number) => {
+        if (managerRecord.startDate) {
+          const managerDate = new Date(managerRecord.startDate);
+          const previousManager = index > 0 ? empData.managerHistory[index - 1]?.managerName : undefined;
+          events.push({
+            id: `manager-${index}`,
+            type: 'manager',
+            date: managerDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            year: managerDate.getFullYear(),
+            title: 'Reporting Manager Change',
+            previousValue: previousManager,
+            newValue: managerRecord.managerName,
+            description: managerRecord.notes,
+          });
+        }
+      });
+    }
+
+    // Add SPOC change (if available)
+    if (empData.spocHistory && Array.isArray(empData.spocHistory) && empData.spocHistory.length > 0) {
+      empData.spocHistory.forEach((spocRecord: any, index: number) => {
+        if (spocRecord.startDate) {
+          const spocDate = new Date(spocRecord.startDate);
+          const previousSpoc = index > 0 ? empData.spocHistory[index - 1]?.spocName : undefined;
+          events.push({
+            id: `spoc-${index}`,
+            type: 'spoc',
+            date: spocDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            year: spocDate.getFullYear(),
+            title: 'HR SPOC Change',
+            previousValue: previousSpoc,
+            newValue: spocRecord.spocName,
+            description: spocRecord.notes,
+          });
+        }
+      });
+    }
+
+    // Add designation changes from history
+    if (empData.designationHistory && Array.isArray(empData.designationHistory) && empData.designationHistory.length > 0) {
+      empData.designationHistory.forEach((designationRecord: any, index: number) => {
+        if (designationRecord.startDate) {
+          const designationDate = new Date(designationRecord.startDate);
+          const previousDesignation = index > 0 ? empData.designationHistory[index - 1]?.designation : undefined;
+          events.push({
+            id: `designation-hist-${index}`,
+            type: 'role',
+            date: designationDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            year: designationDate.getFullYear(),
+            title: designationRecord.promotionType === 'promotion' ? 'Promotion' : 'Designation Change',
+            previousValue: previousDesignation,
+            newValue: designationRecord.designation,
+            description: designationRecord.notes || (designationRecord.grade ? `Grade: ${designationRecord.grade}` : undefined),
+          });
+        }
+      });
+    }
+
+    // Add achievements from educationHistory
+    if (empData.educationHistory && Array.isArray(empData.educationHistory)) {
+      empData.educationHistory.forEach((edu: any, index: number) => {
+        if (edu.achievements && edu.endDate) {
+          const eduEndDate = new Date(edu.endDate);
+          events.push({
+            id: `achievement-edu-${index}`,
+            type: 'achievement',
+            date: eduEndDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            year: eduEndDate.getFullYear(),
+            title: `Educational Achievement`,
+            description: edu.achievements,
+            badge: edu.degree,
+          });
+        }
+      });
+    }
+
+    // Add certifications as achievements
+    if (empData.certifications && Array.isArray(empData.certifications)) {
+      empData.certifications.forEach((cert: any, index: number) => {
+        if (cert.issueDate) {
+          const certDate = new Date(cert.issueDate);
+          events.push({
+            id: `achievement-cert-${index}`,
+            type: 'achievement',
+            date: certDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            year: certDate.getFullYear(),
+            title: 'Certification Earned',
+            description: cert.name,
+            badge: cert.issuingOrganization,
+          });
+        }
+      });
+    }
+
+    // Sort events by date (most recent first)
+    events.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    return events;
+  };
+
+  // Generate timeline events - memoized to avoid regeneration on every render
+  // Must be called before early returns per Rules of Hooks
+  const timelineEvents = useMemo(() => {
+    if (!profileData?.employee) return [];
+    return generateTimelineEvents(profileData.employee);
+  }, [profileData?.employee]);
 
   if (loading) {
     return (
@@ -345,19 +600,6 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
       month: 'long',
       day: 'numeric',
     });
-  };
-
-  const calculateTenure = (joiningDate?: string) => {
-    if (!joiningDate) return 'N/A';
-    const start = new Date(joiningDate);
-    const now = new Date();
-    const years = now.getFullYear() - start.getFullYear();
-    const months = now.getMonth() - start.getMonth();
-    
-    if (years > 0) {
-      return `${years} year${years > 1 ? 's' : ''}${months > 0 ? ` ${months} month${months > 1 ? 's' : ''}` : ''}`;
-    }
-    return `${months} month${months !== 1 ? 's' : ''}`;
   };
 
   const employmentStatus = employee.status === 'active' ? 'active' : 'inactive';
@@ -514,18 +756,22 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
                   country={employee.country}
                   postalCode={employee.postalCode}
                   
-                  // Emergency Contact
-                  emergencyContactName={employee.emergencyContactName}
-                  emergencyContactRelationship={employee.emergencyContactRelationship}
-                  emergencyContactPhone={employee.emergencyContactPhone}
-                  emergencyContactEmail={employee.emergencyContactEmail}
-                  
                   // Permission control
                   canEdit={canEditProfile}
                   
                   // Update handler
                   onUpdate={async (data) => {
-                    await employeeManagementService.updatePersonalInfo(targetEmployeeId!, data);
+                    console.log('AboutTab update - received data:', data);
+                    // Map mobileNumber to phone field for backend compatibility
+                    const updateData = {
+                      ...data,
+                      // Ensure phone field is updated with dial code and mobile number
+                      phone: data.dialCode && data.mobileNumber 
+                        ? `${data.dialCode} ${data.mobileNumber}` 
+                        : data.mobileNumber || '',
+                    };
+                    console.log('AboutTab update - sending to backend:', updateData);
+                    await employeeManagementService.updatePersonalInfo(targetEmployeeId!, updateData);
                     await refreshData();
                   }}
                 />
@@ -547,7 +793,6 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
                   designation={employee.designation}
                   secondaryJobTitle={employee.secondaryJobTitle}
                   department={employee.department}
-                  subDepartment={employee.subDepartment}
                   businessUnit={employee.businessUnit}
                   legalEntity={employee.legalEntity}
                   
@@ -570,11 +815,15 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
                   
                   // Permission control
                   canEdit={canEditProfile}
+                  isHRAdmin={isHRAdmin}
                   
                   // Update handler
                   onUpdate={async (data) => {
+                    console.log('JobTab onUpdate called with data:', data);
                     await employeeManagementService.updatePersonalInfo(targetEmployeeId!, data);
+                    console.log('Update complete, calling refreshData...');
                     await refreshData();
+                    console.log('RefreshData complete');
                   }}
                 />
               )}
@@ -582,6 +831,8 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
               {activeTab === 'time' && (
                 <TimeTab
                   totalTenure={calculateTenure(employee.dateOfJoining)}
+                  joiningDate={employee.dateOfJoining}
+                  events={timelineEvents}
                 />
               )}
 
@@ -593,6 +844,9 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
 
               {activeTab === 'finances' && (
                 <FinancesTab
+                  // Employee ID
+                  employeeId={targetEmployeeId}
+                  
                   // Salary
                   salary={employee.salary}
                   salaryPaymentMode={employee.salaryPaymentMode}
@@ -627,6 +881,7 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
                   fullNameAsPerAadhaar={employee.fullNameAsPerAadhaar}
                   addressAsInAadhaar={employee.addressAsInAadhaar}
                   genderAsInAadhaar={employee.genderAsInAadhaar}
+                  aadhaarDocument={documents.find(doc => doc.documentType === 'Aadhaar Card')}
                   
                   // PAN Details
                   panCardAvailable={employee.panCardAvailable}
@@ -642,6 +897,11 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
                   onUpdate={async (data) => {
                     await employeeManagementService.updatePersonalInfo(targetEmployeeId!, data);
                     await refreshData();
+                  }}
+
+                  // Document update handler
+                  onDocumentUpdate={async () => {
+                    await loadProfileData();
                   }}
                 />
               )}

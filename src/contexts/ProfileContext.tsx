@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useMemo, type ReactNode } from 'react';
+import { createContext, useState, useMemo, useEffect, type ReactNode } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { type UserRole } from '@/types';
 import { toast } from 'sonner';
 
@@ -113,6 +114,12 @@ const PROFILE_DEFINITIONS: Record<string, Profile> = {
   },
 };
 
+// Maps a DB module key to the extra profiles to add when that module is admin-granted
+const MODULE_EXTRA_PROFILES: Record<string, Profile[]> = {
+  RMG: [PROFILE_DEFINITIONS.RMG_USER, PROFILE_DEFINITIONS.RMG_ADMIN],
+  HR:  [PROFILE_DEFINITIONS.HR_USER,  PROFILE_DEFINITIONS.HR_ADMIN],
+};
+
 // Get available profiles based on user role
 function getAvailableProfilesForRole(role: UserRole): Profile[] {
   switch (role) {
@@ -181,11 +188,12 @@ interface ProfileContextType {
   };
 }
 
-const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
+export const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuthStore();
-  const actualRole = user?.role || 'EMPLOYEE';
+  const { adminModules, isLoading: modulePermsLoading } = useModulePermissions();
+  const actualRole = (user?.role || 'EMPLOYEE') as UserRole;
 
   // Initialize from localStorage or fallback to actual role
   const [activeProfile, setActiveProfile] = useState<string>(() => {
@@ -201,10 +209,48 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   });
 
   // Get available profiles based on actual role
-  const availableProfiles = useMemo(() => 
-    getAvailableProfilesForRole(actualRole),
-    [actualRole]
-  );
+  const availableProfiles = useMemo(() => {
+    const base = getAvailableProfilesForRole(actualRole);
+    if (modulePermsLoading) return base; // wait for permissions to load
+    // Inject extra profiles for modules where SuperAdmin granted isAdmin access
+    const existingValues = new Set(base.map((p) => p.value));
+    const extras: Profile[] = [];
+    adminModules.forEach((moduleKey) => {
+      const extraProfiles = MODULE_EXTRA_PROFILES[moduleKey] || [];
+      extraProfiles.forEach((p) => {
+        if (!existingValues.has(p.value)) {
+          existingValues.add(p.value);
+          extras.push(p);
+        }
+      });
+    });
+    // For EMPLOYEE role with assigned modules, show only the assigned module
+    // profiles (My Workplace + assigned module) — hide the generic Employee entry.
+    if (actualRole === 'EMPLOYEE' && extras.length > 0) {
+      return extras;
+    }
+    return [...base, ...extras];
+  }, [actualRole, adminModules, modulePermsLoading]);
+
+  // When permissions finish loading and the stored profile is now valid, apply it.
+  // This handles the case where user refreshes and adminModules arrive after init.
+  useEffect(() => {
+    if (modulePermsLoading) return;
+    const stored = localStorage.getItem('activeProfile');
+    if (stored && availableProfiles.some((p) => p.value === stored)) {
+      setActiveProfile(stored);
+    } else {
+      // If the current active profile is no longer in the available list
+      // (e.g. EMPLOYEE profile removed when modules are assigned), fall back
+      // to the first available profile.
+      setActiveProfile((current) => {
+        if (!availableProfiles.some((p) => p.value === current)) {
+          return availableProfiles[0]?.value ?? current;
+        }
+        return current;
+      });
+    }
+  }, [modulePermsLoading, availableProfiles]);
 
   // Switch profile handler
   const switchProfile = (profile: string) => {
@@ -279,12 +325,4 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useProfile = () => {
-  const context = useContext(ProfileContext);
-  if (!context) {
-    throw new Error('useProfile must be used within a ProfileProvider');
-  }
-  return context;
-};
-
-export { PROFILE_DEFINITIONS };
+// Hook moved to src/hooks/useProfile.ts for Vite fast-refresh compatibility.

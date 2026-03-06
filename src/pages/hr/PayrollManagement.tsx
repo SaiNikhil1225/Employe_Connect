@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -229,15 +230,11 @@ export function PayrollManagement() {
     <div className="page-container">
       <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 flex items-center gap-2 text-amber-800 dark:text-amber-200 text-sm"><AlertTriangle className="h-4 w-4 flex-shrink-0" /><span>This page displays demo data. API integration pending.</span></div>
       {/* Header */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <DollarSign className="h-7 w-7 text-primary" />
-            Payroll Management
-          </h1>
-          <p className="page-description">Process and manage employee payroll</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        icon={DollarSign}
+        title="Payroll Management"
+        description="Process and manage employee payroll"
+        actions={<>
           <Button variant="outline" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             Export
@@ -246,8 +243,8 @@ export function PayrollManagement() {
             <Send className="h-4 w-4 mr-2" />
             Send Payslips
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
       {/* Month Selector */}
       <Card>

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Filter, Loader2, Users } from 'lucide-react';
 import { employeeService, type Employee } from '@/services/employeeService';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface FLResourceAllocation {
   flNo: string;
@@ -115,21 +116,17 @@ export function ResourcePool() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <Users className="h-7 w-7 text-primary" />
-            Resource Pool
-          </h1>
-          <p className="page-description">View and manage available resources</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        icon={Users}
+        title="Resource Pool"
+        description="View and manage available resources"
+        actions={
           <Button variant="outline">
             <Filter className="mr-2 h-4 w-4" />
             Filters
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <Card>
         <CardHeader>

@@ -13,6 +13,7 @@ import type { Project } from '@/types/project';
 import { ColumnToggle, type ColumnVisibility } from './components/ColumnToggle';
 import { MultiSelect, type Option } from '@/components/ui/multi-select';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { PageHeader } from '@/components/ui/page-header';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { StatCard } from '@/components/common/StatCard';
 import type { ProjectFilters } from '@/types/project';
@@ -223,21 +224,17 @@ export function ProjectListPage() {
 
   return (
     <div className="page-container">
-      <div className="page-header mb-6">
-        <div className="page-header-content">
-          <div className="flex items-start gap-3">
-            <FolderKanban className="h-7 w-7 text-primary mt-1" />
-            <div>
-              <h1 className="page-title">Projects</h1>
-              <p className="page-description">Manage and track project lifecycle</p>
-            </div>
-          </div>
-        </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
-      </div>
+      <PageHeader
+        icon={FolderKanban}
+        title="Projects"
+        description="Manage and track project lifecycle"
+        actions={
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+        }
+      />
 
       {/* Quick Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">

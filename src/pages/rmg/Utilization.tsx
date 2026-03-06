@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,9 +11,11 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Activity, RefreshCw, Loader2, BarChart3, Users, TrendingUp, DollarSign, Clock, UserCheck, Eye, Pencil, MoreHorizontal, Filter } from 'lucide-react';
+import { Activity, RefreshCw, Loader2, BarChart3, Users, TrendingUp, DollarSign, Clock, UserCheck, Eye, Filter } from 'lucide-react';
+import { getAvatarGradient } from '@/constants/design-system';
 import { rmgAnalyticsService, type ResourceUtilizationData } from '@/services/rmgAnalyticsService';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { StatCard } from '@/components/common/StatCard';
@@ -29,14 +32,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   LineChart,
   Line,
   BarChart,
@@ -50,6 +45,7 @@ import {
 } from 'recharts';
 
 export function Utilization() {
+  const navigate = useNavigate();
   const [data, setData] = useState<ResourceUtilizationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -175,27 +171,23 @@ export function Utilization() {
 
   return (
     <div className="page-container">
-      <div className="page-header mb-6">
-        <div className="page-header-content">
-          <div className="flex items-start gap-3">
-            <BarChart3 className="h-7 w-7 text-primary mt-1" />
-            <div>
-              <h1 className="page-title">Resource Utilization</h1>
-              <p className="page-description">Track resource productivity and efficiency</p>
-            </div>
+      <PageHeader
+        icon={BarChart3}
+        title="Resource Utilization"
+        description="Track resource productivity and efficiency"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
+              <Filter className="h-4 w-4 mr-2" />
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </Button>
+            <Button variant="outline" onClick={handleRefresh}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
-            <Filter className="h-4 w-4 mr-2" />
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
-          </Button>
-          <Button variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
       {showFilters && (
@@ -332,7 +324,7 @@ export function Utilization() {
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
                                 <AvatarImage src={`/api/avatar/${employee.employeeId}`} />
-                                <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+                                <AvatarFallback className={`${getAvatarGradient(employee.name)} text-white text-xs font-medium`}>
                                   {employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                                 </AvatarFallback>
                               </Avatar>
@@ -358,25 +350,22 @@ export function Utilization() {
                           </TableCell>
                           <TableCell className="text-sm">{employee.projectName}</TableCell>
                           <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => toast.info('View functionality coming soon')}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => toast.info('Edit functionality coming soon')}>
-                                  <Pencil className="h-4 w-4 mr-2" />
-                                  Edit Allocation
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1.5 px-2 text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={() => navigate('/rmg/employee-hours-report', {
+                                state: {
+                                  employeeId: employee.employeeId,
+                                  employeeName: employee.name,
+                                  startDate: employee.startDate,
+                                  endDate: employee.endDate,
+                                }
+                              })}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              View
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))
@@ -416,7 +405,7 @@ export function Utilization() {
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
                                 <AvatarImage src={`/api/avatar/${employee.employeeId}`} />
-                                <AvatarFallback className="bg-orange-500/10 text-orange-600 text-xs font-medium">
+                                <AvatarFallback className={`${getAvatarGradient(employee.name)} text-white text-xs font-medium`}>
                                   {employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                                 </AvatarFallback>
                               </Avatar>
@@ -461,25 +450,20 @@ export function Utilization() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => toast.info('View functionality coming soon')}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => toast.info('Edit functionality coming soon')}>
-                                  <Pencil className="h-4 w-4 mr-2" />
-                                  Assign to Project
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1.5 px-2 text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={() => navigate('/rmg/employee-hours-report', {
+                                state: {
+                                  employeeId: employee.employeeId,
+                                  employeeName: employee.name,
+                                }
+                              })}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              View
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))

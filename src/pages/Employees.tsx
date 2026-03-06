@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Search, Users, GitBranch, Building, Building2, MapPin, DollarSign, FileText, Mail, Phone, Briefcase, ChevronDown, ChevronRight } from 'lucide-react';
 import { useEmployeeStore } from '@/store/employeeStore';
+import { PageHeader } from '@/components/ui/page-header';
 
 // Local type for component use
 interface Employee {
@@ -114,15 +115,11 @@ export function Employees() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <Users className="h-7 w-7 text-primary" />
-            Employees
-          </h1>
-          <p className="page-description">Browse employee directory and organization structure</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Users}
+        title="Employees"
+        description="Browse employee directory and organization structure"
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>

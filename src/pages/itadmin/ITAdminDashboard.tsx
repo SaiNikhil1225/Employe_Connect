@@ -68,6 +68,7 @@ import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { WeeklyAnalytics } from '@/components/analytics/WeeklyAnalytics';
 import { MonthlyStatistics } from '@/components/analytics/MonthlyStatistics';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function ITAdminDashboard() {
   const navigate = useNavigate();
@@ -822,21 +823,11 @@ export function ITAdminDashboard() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="bg-primary/5 rounded-xl p-6 border mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Shield className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">IT Admin Dashboard</h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Manage IT ticket assignments and monitor queue status
-                </p>
-              </div>
-            </div>
-          </div>
+      <PageHeader
+        icon={Shield}
+        title="IT Admin Dashboard"
+        description="Manage IT ticket assignments and monitor queue status"
+        actions={
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -856,8 +847,8 @@ export function ITAdminDashboard() {
               View All Tickets
             </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">

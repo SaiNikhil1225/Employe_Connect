@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { SpecialistQueuePage } from '@/components/helpdesk/SpecialistQueuePage';
+import { PageHeader } from '@/components/ui/page-header';
 import { helpdeskService } from '@/services/helpdeskService';
 import type { HelpdeskTicket } from '@/types/helpdeskNew';
 
@@ -277,20 +278,13 @@ export function FinanceTicketManagement() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <Wallet className="h-7 w-7 text-primary" />
-            {isFinanceAdmin ? 'Finance Tickets - View Only' : 'Finance Ticket Management'}
-          </h1>
-          <p className="page-description">
-            {isFinanceAdmin 
-              ? 'View all Finance helpdesk tickets. Use Finance Admin Dashboard to assign tickets.'
-              : 'Manage and resolve Finance helpdesk tickets across all teams'
-            }
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Wallet}
+        title={isFinanceAdmin ? 'Finance Tickets - View Only' : 'Finance Ticket Management'}
+        description={isFinanceAdmin
+          ? 'View all Finance helpdesk tickets. Use Finance Admin Dashboard to assign tickets.'
+          : 'Manage and resolve Finance helpdesk tickets across all teams'}
+      />
 
       {/* Finance Admin Notice */}
       {isFinanceAdmin && (

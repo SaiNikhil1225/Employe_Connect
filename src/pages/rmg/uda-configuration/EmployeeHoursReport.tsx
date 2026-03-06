@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import {
   FileText,
   Download,
@@ -10,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import WeeklyTimesheet from "@/pages/rmg/uda-configuration/WeeklyTimesheet";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   Tooltip,
   ResponsiveContainer,
@@ -478,6 +480,7 @@ const ApprovalStatusDoughnut: React.FC<{
 };
 const EmployeeHoursReport: React.FC = () => {
   const { user } = useAuthStore();
+  const location = useLocation();
   const userRole = user?.role || "EMPLOYEE";
 
   // State
@@ -556,6 +559,14 @@ const EmployeeHoursReport: React.FC = () => {
     loadInitialData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Pre-populate employee filter from navigation state (e.g. from Utilization page "View" button)
+  useEffect(() => {
+    const state = location.state as { employeeId?: string; employeeName?: string; startDate?: string; endDate?: string } | null;
+    if (state?.employeeId) {
+      setSelectedEmployee(state.employeeId);
+    }
+  }, [location.state]);
 
   // Calculate date range based on filter type
   useEffect(() => {
@@ -1251,23 +1262,19 @@ const EmployeeHoursReport: React.FC = () => {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <FileText className="h-7 w-7 text-primary" />
-            Productivity & Hours Dashboard
-          </h1>
-          <p className="page-description">
-            {userRole === "EMPLOYEE"
-              ? "View your productivity and hours with flexible date ranges"
-              : "View productivity and hours dashboard with flexible date ranges and filters"}
-          </p>
-        </div>
-        <Button onClick={exportToCSV} variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          Export CSV
-        </Button>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="Productivity & Hours Dashboard"
+        description={userRole === "EMPLOYEE"
+          ? "View your productivity and hours with flexible date ranges"
+          : "View productivity and hours dashboard with flexible date ranges and filters"}
+        actions={
+          <Button onClick={exportToCSV} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+        }
+      />
 
       {/* Search Bar and Project Filter - Only show for RMG/Manager */}
       {canSeeFilters && reportData.length > 0 && (
@@ -1873,6 +1880,7 @@ const EmployeeHoursReport: React.FC = () => {
                                   <TableHead>Employee ID</TableHead>
                                   <TableHead>Name</TableHead>
                                   <TableHead>Department</TableHead>
+                                  <TableHead>Project</TableHead>
                                 </>
                               )}
                               <TableHead className="text-right">
@@ -1914,6 +1922,9 @@ const EmployeeHoursReport: React.FC = () => {
                                     </TableCell>
                                     <TableCell className="whitespace-nowrap">
                                       {emp.department || "-"}
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap text-sm">
+                                      {emp.projectName || "-"}
                                     </TableCell>
                                   </>
                                 )}

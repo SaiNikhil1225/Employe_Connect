@@ -28,6 +28,7 @@ import { format, addDays, startOfWeek, isSameDay, subDays, subMonths } from 'dat
 import { useAttendanceStore } from '@/store/attendanceStore';
 import { useAuthStore } from '@/store/authStore';
 import { WebClockInModal } from '@/components/attendance/WebClockInModal';
+import { PageHeader } from '@/components/ui/page-header';
 import { WFHRequestModal } from '@/components/attendance/WFHRequestModal';
 import { RegularizationModal } from '@/components/attendance/RegularizationModal';
 import { toast } from 'sonner';
@@ -517,18 +518,11 @@ export default function MyAttendance() {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex items-start gap-2">
-        <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400 mt-1" />
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-            My Attendance
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Track your attendance and work hours
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Clock}
+        title="My Attendance"
+        description="Track your attendance and work hours"
+      />
 
 
       {/* Stats Cards */}

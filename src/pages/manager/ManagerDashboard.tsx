@@ -5,6 +5,7 @@ import { useEmployeeStore } from '@/store/employeeStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import {
   Calendar,
   Users,
@@ -90,17 +91,11 @@ export function ManagerDashboard() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <LayoutDashboard className="h-7 w-7 text-primary" />
-            Manager Dashboard
-          </h1>
-          <p className="page-description">
-            Manage your team and approve leave requests
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={LayoutDashboard}
+        title="Manager Dashboard"
+        description="Manage your team and approve leave requests"
+      />
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

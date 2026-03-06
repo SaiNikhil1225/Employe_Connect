@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Briefcase, MapPin, Calendar, Users, Award, Edit2, Save, X, Building2 } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Briefcase, MapPin, Calendar, Users, Award, Edit2, Save, X, Building2, Check, ChevronsUpDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import EmployeeTimeTab from '@/components/employee/EmployeeTimeTab';
 import OrganizationTab from '@/components/employee/OrganizationTab';
 import { useEmployeeStore } from '@/store/employeeStore';
@@ -16,7 +19,6 @@ interface JobTabProps {
   designation: string;
   secondaryJobTitle?: string;
   department: string;
-  subDepartment?: string;
   businessUnit?: string;
   legalEntity?: string;
   
@@ -37,6 +39,9 @@ interface JobTabProps {
   contractEndDate?: string;
   probationEndDate?: string;
   
+  // Probation
+  probationPolicy?: string;
+  
   // Employee Time
   employeeTime?: any;
   
@@ -45,40 +50,94 @@ interface JobTabProps {
   
   // Permission control
   canEdit?: boolean;
+  isHRAdmin?: boolean;
   
   // Update handler
   onUpdate?: (data: any) => Promise<void>;
 }
 
 export default function JobTab({
-  employeeId, designation, secondaryJobTitle, department, subDepartment, businessUnit, legalEntity,
+  employeeId, designation, secondaryJobTitle, department, businessUnit, legalEntity,
   employmentType, workerType, hireType, location,
   reportingManager, reportingManagerId, dottedLineManager, dottedLineManagerId,
-  joiningDate, contractEndDate, probationEndDate,
+  joiningDate, contractEndDate, probationEndDate, probationPolicy,
   employeeTime, organization,
   canEdit = true, // Default to true for backward compatibility
+  isHRAdmin = false,
   onUpdate,
 }: JobTabProps) {
-  const [activeTab, setActiveTab] = useState('details');
+  // Persist active tab across component remounts using sessionStorage
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = sessionStorage.getItem('jobTab-activeTab');
+    return saved || 'details';
+  });
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [departmentOpen, setDepartmentOpen] = useState(false);
+  const [reportingManagerOpen, setReportingManagerOpen] = useState(false);
+  const [dottedLineManagerOpen, setDottedLineManagerOpen] = useState(false);
   const { activeEmployees, fetchActiveEmployees } = useEmployeeStore();
   const [formData, setFormData] = useState({
     designation: designation || '',
-    secondaryJobTitle: secondaryJobTitle || '',
-    subDepartment: subDepartment || '',
+    department: department || '',
     businessUnit: businessUnit || '',
     legalEntity: legalEntity || '',
+    employmentType: employmentType || '',
     workerType: workerType || '',
     hireType: hireType || '',
     location: location || '',
     reportingManagerId: reportingManagerId || '',
     dottedLineManagerId: dottedLineManagerId || '',
+    probationPolicy: probationPolicy || 'Default Probation Policy',
   });
+
+  // Calculate probation end date (6 months from joining)
+  const calculateProbationEndDate = (joiningDateStr: string) => {
+    if (!joiningDateStr) return null;
+    const joinDate = new Date(joiningDateStr);
+    const probationEnd = new Date(joinDate);
+    probationEnd.setMonth(probationEnd.getMonth() + 6);
+    return probationEnd.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  // Check if employee is in probation
+  const isInProbation = employmentType === 'Probation' || employmentType === 'probation';
+  const calculatedProbationEndDate = calculateProbationEndDate(joiningDate);
+  const formattedJoiningDate = joiningDate ? new Date(joiningDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
 
   useEffect(() => {
     fetchActiveEmployees();
   }, [fetchActiveEmployees]);
+
+  // Update formData when props change (e.g., after successful update)
+  useEffect(() => {
+    console.log('JobTab props updated:', { department, businessUnit, legalEntity });
+    setFormData({
+      designation: designation || '',
+      department: department || '',
+      businessUnit: businessUnit || '',
+      legalEntity: legalEntity || '',
+      employmentType: employmentType || '',
+      workerType: workerType || '',
+      hireType: hireType || '',
+      location: location || '',
+      reportingManagerId: reportingManagerId || '',
+      dottedLineManagerId: dottedLineManagerId || '',
+      probationPolicy: probationPolicy || 'Default Probation Policy',
+    });
+  }, [designation, department, businessUnit, legalEntity, employmentType, workerType, hireType, location, reportingManagerId, dottedLineManagerId, probationPolicy]);
+
+  // Fixed list of departments
+  const availableDepartments = [
+    'Engineering',
+    'Product',
+    'Design',
+    'Marketing',
+    'Sales',
+    'Finance',
+    'HR',
+    'Operations'
+  ];
 
   const handleSave = async () => {
     try {
@@ -93,12 +152,25 @@ export default function JobTab({
         if (dataToSend.dottedLineManagerId === 'none') {
           dataToSend.dottedLineManagerId = '';
         }
+        console.log('Saving job info - section:', editingSection);
+        console.log('Data being sent:', dataToSend);
         await onUpdate(dataToSend);
+        console.log('Update successful, data should refresh from parent');
       }
       toast.success('Job information updated successfully');
       setEditingSection(null);
-    } catch (error) {
-      toast.error('Failed to update job information');
+    } catch (error: any) {
+      console.error('Failed to update job information:', error);
+      console.error('Error response:', error.response?.data);
+      
+      // Show detailed validation errors if available
+      if (error.response?.data?.error?.details) {
+        const details = error.response.data.error.details;
+        const errorMessages = details.map((d: any) => `${d.field}: ${d.message}`).join('\n');
+        toast.error(`Validation failed:\n${errorMessages}`);
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to update job information');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -107,21 +179,28 @@ export default function JobTab({
   const handleCancel = () => {
     setFormData({
       designation: designation || '',
-      secondaryJobTitle: secondaryJobTitle || '',
-      subDepartment: subDepartment || '',
+      department: department || '',
       businessUnit: businessUnit || '',
       legalEntity: legalEntity || '',
+      employmentType: employmentType || '',
       workerType: workerType || '',
       hireType: hireType || '',
       location: location || '',
       reportingManagerId: reportingManagerId || '',
       dottedLineManagerId: dottedLineManagerId || '',
+      probationPolicy: probationPolicy || 'Default Probation Policy',
     });
     setEditingSection(null);
   };
 
+  // Save active tab to sessionStorage whenever it changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    sessionStorage.setItem('jobTab-activeTab', value);
+  };
+
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
         <TabsTrigger value="details" className="flex items-center gap-2">
           <Briefcase className="h-4 w-4" />
@@ -148,7 +227,7 @@ export default function JobTab({
                   <Briefcase className="h-5 w-5 text-blue-600" />
                   Job Information
                 </div>
-                {canEdit && editingSection !== 'jobInfo' && (
+                {isHRAdmin && editingSection !== 'jobInfo' && (
                   <Button onClick={() => setEditingSection('jobInfo')} variant="ghost" size="sm">
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -170,25 +249,11 @@ export default function JobTab({
                   {editingSection === 'jobInfo' ? (
                     <Input
                       value={formData.designation}
-                      onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, designation: e.target.value }))}
                       placeholder="Designation"
                     />
                   ) : (
                     <p className="text-base font-medium text-gray-900">{designation}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
-                    Secondary Job Title
-                  </label>
-                  {editingSection === 'jobInfo' ? (
-                    <Input
-                      value={formData.secondaryJobTitle}
-                      onChange={(e) => setFormData({ ...formData, secondaryJobTitle: e.target.value })}
-                      placeholder="Secondary job title"
-                    />
-                  ) : (
-                    <p className="text-base font-medium text-gray-900">{secondaryJobTitle || 'N/A'}</p>
                   )}
                 </div>
                 <div>
@@ -198,7 +263,7 @@ export default function JobTab({
                   {editingSection === 'jobInfo' ? (
                     <Input
                       value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                       placeholder="Location"
                     />
                   ) : (
@@ -232,7 +297,7 @@ export default function JobTab({
                   <Users className="h-5 w-5 text-purple-600" />
                   Reporting Structure
                 </div>
-                {canEdit && editingSection !== 'reporting' && (
+                {isHRAdmin && editingSection !== 'reporting' && (
                   <Button onClick={() => setEditingSection('reporting')} variant="ghost" size="sm">
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -243,27 +308,67 @@ export default function JobTab({
               <div className="grid grid-cols-1 gap-6">
                 <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
-                    Reporting Manager
+                    Reporting Manager (L1 Manager)
                   </label>
                   {editingSection === 'reporting' ? (
-                    <Select
-                      value={formData.reportingManagerId}
-                      onValueChange={(value) => setFormData({ ...formData, reportingManagerId: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select reporting manager" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No Manager</SelectItem>
-                        {activeEmployees
-                          .filter(emp => emp.employeeId !== employeeId)
-                          .map((emp) => (
-                            <SelectItem key={emp._id} value={emp.employeeId}>
-                              {emp.name} ({emp.employeeId})
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={reportingManagerOpen} onOpenChange={setReportingManagerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={reportingManagerOpen}
+                          className="w-full justify-between"
+                        >
+                          {formData.reportingManagerId && formData.reportingManagerId !== 'none'
+                            ? activeEmployees.find(emp => emp.employeeId === formData.reportingManagerId)?.name || 'Select reporting manager...'
+                            : "Select reporting manager..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search employee..." />
+                          <CommandEmpty>No employee found.</CommandEmpty>
+                          <CommandGroup className="max-h-[300px] overflow-y-auto">
+                            <CommandItem
+                              value="none"
+                              onSelect={() => {
+                                setFormData(prev => ({ ...prev, reportingManagerId: 'none' }));
+                                setReportingManagerOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.reportingManagerId === 'none' ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              No Manager
+                            </CommandItem>
+                            {activeEmployees
+                              .filter(emp => emp.employeeId !== employeeId)
+                              .map((emp) => (
+                                <CommandItem
+                                  key={emp._id}
+                                  value={`${emp.name} ${emp.employeeId}`}
+                                  onSelect={() => {
+                                    setFormData(prev => ({ ...prev, reportingManagerId: emp.employeeId }));
+                                    setReportingManagerOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      formData.reportingManagerId === emp.employeeId ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {emp.name} ({emp.employeeId})
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   ) : (
                     <p className="text-base font-medium text-gray-900">{reportingManager || 'Not Assigned'}</p>
                   )}
@@ -273,24 +378,64 @@ export default function JobTab({
                     Dotted Line Manager
                   </label>
                   {editingSection === 'reporting' ? (
-                    <Select
-                      value={formData.dottedLineManagerId}
-                      onValueChange={(value) => setFormData({ ...formData, dottedLineManagerId: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select dotted line manager" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No Manager</SelectItem>
-                        {activeEmployees
-                          .filter(emp => emp.employeeId !== employeeId)
-                          .map((emp) => (
-                            <SelectItem key={emp._id} value={emp.employeeId}>
-                              {emp.name} ({emp.employeeId})
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={dottedLineManagerOpen} onOpenChange={setDottedLineManagerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={dottedLineManagerOpen}
+                          className="w-full justify-between"
+                        >
+                          {formData.dottedLineManagerId && formData.dottedLineManagerId !== 'none'
+                            ? activeEmployees.find(emp => emp.employeeId === formData.dottedLineManagerId)?.name || 'Select dotted line manager...'
+                            : "Select dotted line manager..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search employee..." />
+                          <CommandEmpty>No employee found.</CommandEmpty>
+                          <CommandGroup className="max-h-[300px] overflow-y-auto">
+                            <CommandItem
+                              value="none"
+                              onSelect={() => {
+                                setFormData(prev => ({ ...prev, dottedLineManagerId: 'none' }));
+                                setDottedLineManagerOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.dottedLineManagerId === 'none' ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              No Manager
+                            </CommandItem>
+                            {activeEmployees
+                              .filter(emp => emp.employeeId !== employeeId)
+                              .map((emp) => (
+                                <CommandItem
+                                  key={emp._id}
+                                  value={`${emp.name} ${emp.employeeId}`}
+                                  onSelect={() => {
+                                    setFormData(prev => ({ ...prev, dottedLineManagerId: emp.employeeId }));
+                                    setDottedLineManagerOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      formData.dottedLineManagerId === emp.employeeId ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {emp.name} ({emp.employeeId})
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   ) : (
                     <p className="text-base font-medium text-gray-900">{dottedLineManager || 'Not Assigned'}</p>
                   )}
@@ -318,6 +463,7 @@ export default function JobTab({
             employeeId={employeeId}
             employeeTime={employeeTime || {}}
             onUpdate={() => onUpdate && onUpdate({})}
+            canEdit={isHRAdmin}
           />
         )}
       </TabsContent>
@@ -333,7 +479,7 @@ export default function JobTab({
                   <Building2 className="h-5 w-5 text-green-600" />
                   Department Information
                 </div>
-                {canEdit && editingSection !== 'department' && (
+                {isHRAdmin && editingSection !== 'department' && (
                   <Button onClick={() => setEditingSection('department')} variant="ghost" size="sm">
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -346,20 +492,49 @@ export default function JobTab({
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
                     Department
                   </label>
-                  <p className="text-base font-medium text-gray-900">{department}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
-                    Sub Department
-                  </label>
                   {editingSection === 'department' ? (
-                    <Input
-                      value={formData.subDepartment}
-                      onChange={(e) => setFormData({ ...formData, subDepartment: e.target.value })}
-                      placeholder="Sub department"
-                    />
+                    <Popover open={departmentOpen} onOpenChange={setDepartmentOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={departmentOpen}
+                          className="w-full justify-between"
+                        >
+                          {formData.department || "Select department..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search department..." />
+                          <CommandEmpty>No department found.</CommandEmpty>
+                          <CommandGroup>
+                            {availableDepartments.map((dept) => (
+                              <CommandItem
+                                key={dept}
+                                value={dept}
+                                onSelect={() => {
+                                  console.log('Department selected:', dept);
+                                  setFormData(prev => ({ ...prev, department: dept }));
+                                  setDepartmentOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.department === dept ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {dept}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   ) : (
-                    <p className="text-base font-medium text-gray-900">{subDepartment || 'N/A'}</p>
+                    <p className="text-base font-medium text-gray-900">{department}</p>
                   )}
                 </div>
                 <div>
@@ -369,7 +544,7 @@ export default function JobTab({
                   {editingSection === 'department' ? (
                     <Input
                       value={formData.businessUnit}
-                      onChange={(e) => setFormData({ ...formData, businessUnit: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, businessUnit: e.target.value }))}
                       placeholder="Business unit"
                     />
                   ) : (
@@ -383,7 +558,7 @@ export default function JobTab({
                   {editingSection === 'department' ? (
                     <Input
                       value={formData.legalEntity}
-                      onChange={(e) => setFormData({ ...formData, legalEntity: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, legalEntity: e.target.value }))}
                       placeholder="Legal entity"
                     />
                   ) : (
@@ -413,7 +588,6 @@ export default function JobTab({
               legalEntity: legalEntity,
               businessUnit: businessUnit,
               department: department,
-              subDepartment: subDepartment,
               costCenter: organization?.costCenter,
               division: organization?.division,
               branch: organization?.branch,
@@ -433,7 +607,7 @@ export default function JobTab({
                   <Award className="h-5 w-5 text-indigo-600" />
                   Employment Type
                 </div>
-                {canEdit && editingSection !== 'employmentType' && (
+                {isHRAdmin && editingSection !== 'employmentType' && (
                   <Button onClick={() => setEditingSection('employmentType')} variant="ghost" size="sm">
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -446,16 +620,34 @@ export default function JobTab({
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
                     Employment Type
                   </label>
-                  <p className="text-base font-medium text-gray-900">{employmentType}</p>
+                  {editingSection === 'employmentType' && isHRAdmin ? (
+                    <Select
+                      value={formData.employmentType}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, employmentType: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select employment type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Full Time">Full Time</SelectItem>
+                        <SelectItem value="Part Time">Part Time</SelectItem>
+                        <SelectItem value="Contract">Contract</SelectItem>
+                        <SelectItem value="Consultant">Consultant</SelectItem>
+                        <SelectItem value="Probation">Probation</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-base font-medium text-gray-900">{employmentType}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
                     Worker Type
                   </label>
-                  {editingSection === 'employmentType' ? (
+                  {editingSection === 'employmentType' && isHRAdmin ? (
                     <Input
                       value={formData.workerType}
-                      onChange={(e) => setFormData({ ...formData, workerType: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, workerType: e.target.value }))}
                       placeholder="Worker type"
                     />
                   ) : (
@@ -466,10 +658,10 @@ export default function JobTab({
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
                     Hire Type
                   </label>
-                  {editingSection === 'employmentType' ? (
+                  {editingSection === 'employmentType' && isHRAdmin ? (
                     <Input
                       value={formData.hireType}
-                      onChange={(e) => setFormData({ ...formData, hireType: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, hireType: e.target.value }))}
                       placeholder="Hire type"
                     />
                   ) : (
@@ -477,7 +669,7 @@ export default function JobTab({
                   )}
                 </div>
               </div>
-              {editingSection === 'employmentType' && (
+              {editingSection === 'employmentType' && isHRAdmin && (
                 <div className="flex gap-2 justify-end mt-6">
                   <Button onClick={handleCancel} variant="outline" size="sm" disabled={isSaving}>
                     <X className="h-4 w-4 mr-2" />
@@ -533,6 +725,84 @@ export default function JobTab({
             </CardContent>
           </Card>
         </div>
+
+        {/* Probation Information Card */}
+        <Card className="border border-gray-200 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-lg font-semibold">
+                <Award className="h-5 w-5 text-purple-600" />
+                Probation Information
+              </div>
+              {isHRAdmin && editingSection !== 'probation' && (
+                <Button onClick={() => setEditingSection('probation')} variant="ghost" size="sm">
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* In Probation Status */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
+                    In Probation?
+                  </label>
+                  <div className="flex items-center gap-3 p-4 rounded-lg border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50">
+                    <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <Award className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-2xl font-bold text-purple-700 mb-1">
+                        {isInProbation ? 'Yes' : 'No'}
+                      </p>
+                      {isInProbation && calculatedProbationEndDate && (
+                        <p className="text-sm text-purple-600">
+                          {formattedJoiningDate} - {calculatedProbationEndDate}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Probation Policy */}
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
+                    Probation Policy
+                  </label>
+                  {editingSection === 'probation' && isHRAdmin ? (
+                    <Input
+                      value={formData.probationPolicy}
+                      onChange={(e) => setFormData(prev => ({ ...prev, probationPolicy: e.target.value }))}
+                      placeholder="Enter probation policy"
+                      className="h-11"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-3 p-4 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200 min-h-[76px]">
+                      <p className="text-base font-medium text-gray-900">
+                        {formData.probationPolicy}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {editingSection === 'probation' && isHRAdmin && (
+                <div className="flex gap-2 justify-end pt-4 border-t">
+                  <Button onClick={handleCancel} variant="outline" size="sm" disabled={isSaving}>
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave} disabled={isSaving} size="sm">
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </TabsContent>
     </Tabs>
   );

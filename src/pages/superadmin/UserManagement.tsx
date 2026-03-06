@@ -70,6 +70,7 @@ import {
   deleteUser
 } from '@/services/superAdminService';
 import type { SuperAdminUser, UserFormData, PaginationInfo } from '@/types/superAdmin';
+import { PageHeader } from '@/components/ui/page-header';
 
 const ROLES = [
   'EMPLOYEE',
@@ -274,21 +275,17 @@ export function UserManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Users className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">User Management</h1>
-            <p className="text-muted-foreground">Manage users, roles, and permissions</p>
-          </div>
-        </div>
-        <Button onClick={() => handleOpenForm()}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add User
-        </Button>
-      </div>
+      <PageHeader
+        icon={Users}
+        title="User Management"
+        description="Manage users, roles, and permissions"
+        actions={
+          <Button onClick={() => handleOpenForm()}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add User
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <Card>

@@ -56,6 +56,12 @@ import { AddResourceToFLDrawer } from '../financial-lines/components/AddResource
 // General Info Sub-tabs
 import { FieldsTab } from './tabs/general/FieldsTab';
 import { CustomerInfoTab } from './tabs/general/CustomerInfoTab';
+import { ChecklistsTab } from './tabs/general/ChecklistsTab';
+import { ProjectChangesTab } from './tabs/general/ProjectChangesTab';
+import { RevisionsTab } from './tabs/general/RevisionsTab';
+import { WorkflowTab } from './tabs/general/WorkflowTab';
+
+
 
 // Financials Sub-tabs
 import { FinancialSummaryTab } from './tabs/financials/FinancialSummaryTab';
@@ -735,33 +741,17 @@ export function ProjectDetailPage() {
 
       {/* Primary Tabs */}
       <Tabs value={primaryTab} onValueChange={setPrimaryTab} className="w-full">
-        <TabsList className="border-b w-full justify-start rounded-none h-auto p-0 bg-transparent overflow-x-auto">
-          <TabsTrigger 
-            value="general"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand-green data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-brand-green data-[state=active]:font-semibold px-6 py-3 flex items-center gap-2"
-          >
-            <FileText className="h-4 w-4" />
+        <TabsList className="bg-background border border-border">
+          <TabsTrigger value="general" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             General Info
           </TabsTrigger>
-          <TabsTrigger 
-            value="financials"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand-green data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-brand-green data-[state=active]:font-semibold px-6 py-3 flex items-center gap-2"
-          >
-            <DollarSign className="h-4 w-4" />
+          <TabsTrigger value="financials" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             Financials
           </TabsTrigger>
-          <TabsTrigger 
-            value="resources"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand-green data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-brand-green data-[state=active]:font-semibold px-6 py-3 flex items-center gap-2"
-          >
-            <Users className="h-4 w-4" />
+          <TabsTrigger value="resources" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             Resources
           </TabsTrigger>
-          <TabsTrigger 
-            value="analytics"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand-green data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-brand-green data-[state=active]:font-semibold px-6 py-3 flex items-center gap-2"
-          >
-            <BarChart3 className="h-4 w-4" />
+          <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             Analytics
             <Badge variant="secondary" className="ml-1 text-[10px] py-0 px-1.5">In Dev</Badge>
           </TabsTrigger>
@@ -770,36 +760,44 @@ export function ProjectDetailPage() {
         {/* General Info Tab with Sub-tabs */}
         <TabsContent value="general" className="mt-6">
           <Tabs value={generalSubTab} onValueChange={setGeneralSubTab}>
-            <TabsList className="border-b w-full justify-start rounded-none h-auto p-0 bg-transparent mb-6">
-              <TabsTrigger value="fields" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">Fields</TabsTrigger>
-              <TabsTrigger value="customer-info" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">Customer Info</TabsTrigger>
+            <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent mb-6">
+              <TabsTrigger value="fields" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">Fields</TabsTrigger>
+              <TabsTrigger value="customer-info" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">Customer Info</TabsTrigger>
+              <TabsTrigger value="checklists" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">Checklists</TabsTrigger>
+              <TabsTrigger value="changes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">Project Changes</TabsTrigger>
+              <TabsTrigger value="revisions" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">Revisions</TabsTrigger>
+              <TabsTrigger value="workflow" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">Workflow</TabsTrigger>
             </TabsList>
             
             <TabsContent value="fields">{selectedProject && <FieldsTab project={selectedProject} />}</TabsContent>
             <TabsContent value="customer-info">{selectedProject && <CustomerInfoTab project={selectedProject} />}</TabsContent>
+            <TabsContent value="checklists"><ChecklistsTab /></TabsContent>
+            <TabsContent value="changes"><ProjectChangesTab /></TabsContent>
+            <TabsContent value="revisions"><RevisionsTab /></TabsContent>
+            <TabsContent value="workflow"><WorkflowTab /></TabsContent>
           </Tabs>
         </TabsContent>
 
         {/* Financials Tab with Sub-tabs */}
         <TabsContent value="financials" className="mt-6">
           <Tabs value={financialSubTab} onValueChange={setFinancialSubTab}>
-            <TabsList className="border-b w-full justify-start rounded-none h-auto p-0 bg-transparent mb-6">
-              <TabsTrigger value="summary" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">Summary</TabsTrigger>
-              <TabsTrigger value="margin" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">
+            <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent mb-6">
+              <TabsTrigger value="summary" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">Summary</TabsTrigger>
+              <TabsTrigger value="margin" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">
                 Margin Details
                 <Badge variant="secondary" className="ml-2 text-[10px] py-0 px-1.5">In Dev</Badge>
               </TabsTrigger>
-              <TabsTrigger value="po" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">Customer PO</TabsTrigger>
-              <TabsTrigger value="fls" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">FL's</TabsTrigger>
-              <TabsTrigger value="planned" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">
+              <TabsTrigger value="po" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">Customer PO</TabsTrigger>
+              <TabsTrigger value="fls" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">FL's</TabsTrigger>
+              <TabsTrigger value="planned" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">
                 Planned Costs
                 <Badge variant="secondary" className="ml-2 text-[10px] py-0 px-1.5">In Dev</Badge>
               </TabsTrigger>
-              <TabsTrigger value="actual" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">
+              <TabsTrigger value="actual" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">
                 Actual Cost
                 <Badge variant="secondary" className="ml-2 text-[10px] py-0 px-1.5">In Dev</Badge>
               </TabsTrigger>
-              <TabsTrigger value="revenue" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">
+              <TabsTrigger value="revenue" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">
                 Revenue Details
                 <Badge variant="secondary" className="ml-2 text-[10px] py-0 px-1.5">In Dev</Badge>
               </TabsTrigger>
@@ -818,11 +816,11 @@ export function ProjectDetailPage() {
         {/* Resources Tab with Sub-tabs */}
         <TabsContent value="resources" className="mt-6">
           <Tabs value={resourceSubTab} onValueChange={setResourceSubTab}>
-            <TabsList className="border-b w-full justify-start rounded-none h-auto p-0 bg-transparent mb-6">
-              <TabsTrigger value="allocated" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">
+            <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent mb-6">
+              <TabsTrigger value="allocated" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">
                 Allocated Resources
               </TabsTrigger>
-              <TabsTrigger value="details" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">
+              <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">
                 Allocated Details (Tabular)
               </TabsTrigger>
             </TabsList>
@@ -1342,8 +1340,8 @@ export function ProjectDetailPage() {
         {/* Analytics Tab with Sub-tabs */}
         <TabsContent value="analytics" className="mt-6">
           <Tabs value={analyticsSubTab} onValueChange={setAnalyticsSubTab}>
-            <TabsList className="border-b w-full justify-start rounded-none h-auto p-0 bg-transparent mb-6">
-              <TabsTrigger value="resourcewise" className="data-[state=active]:text-brand-green data-[state=active]:border-b-2 data-[state=active]:border-brand-green">Resource Wise MOM Hours</TabsTrigger>
+            <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent mb-6">
+              <TabsTrigger value="resourcewise" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5">Resource Wise MOM Hours</TabsTrigger>
             </TabsList>
             
             <TabsContent value="resourcewise">
@@ -1356,6 +1354,7 @@ export function ProjectDetailPage() {
             </TabsContent>
           </Tabs>
         </TabsContent>
+
       </Tabs>
 
       {/* View Resource Sheet */}

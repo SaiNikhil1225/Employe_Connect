@@ -17,9 +17,10 @@ const connectDB = async (retryCount = 0): Promise<void> => {
     logger.info(`🔗 URI host: ${MONGODB_URI.split('@')[1]?.split('/')[0] || 'unknown'}`);
     
     await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 15000,
-      connectTimeoutMS: 15000,
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 10000,
       socketTimeoutMS: 30000,
+      family: 4, // Force IPv4 — avoids IPv6 DNS delays on corporate networks
     });
     
     lastDbError = '';

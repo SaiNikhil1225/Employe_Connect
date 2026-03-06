@@ -16,19 +16,19 @@ export const handleValidationErrors = (
   next: NextFunction
 ): void => {
   const errors = validationResult(req);
-  
+
   if (!errors.isEmpty()) {
     const formattedErrors = errors.array().map(error => ({
       field: error.type === 'field' ? error.path : 'unknown',
       message: error.msg,
     }));
-    
+
     const error = new ApiError(
       400,
       'Validation failed',
       'VALIDATION_ERROR'
     );
-    
+
     // Add validation details to response
     res.status(400).json({
       success: false,
@@ -41,7 +41,7 @@ export const handleValidationErrors = (
     });
     return;
   }
-  
+
   next();
 };
 
@@ -63,12 +63,32 @@ export const commonValidations = {
 
   employeeId: body('employeeId')
     .trim()
-    .matches(/^EMP[0-9]{4}$/)
-    .withMessage('Employee ID must match format EMP0000'),
+    .matches(/^(ACUA|ACUC|ACUI|ACUM)[0-9]{4}$/)
+    .withMessage('Employee ID must match format ACUA0000, ACUC0000, ACUI0000, or ACUM0000'),
 
   mongoId: param('id')
     .isMongoId()
     .withMessage('Invalid ID format'),
+
+  employeeIdParam: param('employeeId')
+    .trim()
+    .matches(/^[A-Z]{2,8}[0-9]+$/)
+    .withMessage('Invalid employee ID format'),
+
+  // Flexible validation: accepts either MongoDB ObjectId OR employeeId format
+  mongoIdOrEmployeeId: param('id')
+    .trim()
+    .custom((value) => {
+      // Check if it's a valid MongoDB ObjectId (24 hex characters)
+      if (/^[0-9a-fA-F]{24}$/.test(value)) {
+        return true;
+      }
+      // Check if it's a valid employeeId format (any uppercase letters + digits, e.g. EMP001, HR001, ACUA0001)
+      if (/^[A-Z]{2,8}\d+$/.test(value)) {
+        return true;
+      }
+      throw new Error('Invalid ID format - must be either MongoDB ObjectId or a valid Employee ID (e.g. EMP001, HR001)');    
+    }),
 
   name: body('name')
     .trim()
@@ -83,7 +103,7 @@ export const commonValidations = {
     .matches(/^[0-9]{10}$/)
     .withMessage('Phone number must be 10 digits'),
 
-  date: (fieldName: string) => 
+  date: (fieldName: string) =>
     body(fieldName)
       .isISO8601()
       .withMessage(`${fieldName} must be a valid date`),
@@ -139,7 +159,12 @@ export const employeeValidation = {
   create: [
     commonValidations.name,
     commonValidations.email,
-    commonValidations.employeeId,
+    // Employee ID is auto-generated on server, so make it optional for creation
+    body('employeeId')
+      .optional()
+      .trim()
+      .matches(/^(ACUA|ACUC|ACUI|ACUM)[0-9]{4}$/)
+      .withMessage('Employee ID must match format ACUA0000, ACUC0000, ACUI0000, or ACUM0000'),
     body('department')
       .trim()
       .notEmpty()
@@ -159,7 +184,27 @@ export const employeeValidation = {
   ],
 
   update: [
-    commonValidations.mongoId,
+    commonValidations.mongoIdOrEmployeeId,
+    body('name')
+      .optional()
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage('Name must be between 2 and 100 characters'),
+    body('email')
+      .optional()
+      .trim()
+      .isEmail()
+      .withMessage('Valid email is required'),
+    body('department')
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage('Department cannot be empty'),
+    handleValidationErrors,
+  ],
+
+  updateByEmployeeId: [
+    commonValidations.employeeIdParam,
     body('name')
       .optional()
       .trim()
@@ -179,7 +224,7 @@ export const employeeValidation = {
   ],
 
   delete: [
-    commonValidations.mongoId,
+    commonValidations.mongoIdOrEmployeeId,
     handleValidationErrors,
   ],
 };
@@ -197,7 +242,7 @@ export const helpdeskValidation = {
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('User name must be between 2 and 100 characters'),
-      // Note: Removed strict regex to allow Unicode characters (e.g., José, Müller, 日本語)
+    // Note: Removed strict regex to allow Unicode characters (e.g., José, Müller, 日本語)
     body('userEmail')
       .trim()
       .isEmail()
@@ -685,21 +730,21 @@ export const validateContentType = (
   next: NextFunction
 ): void => {
   const methods = ['POST', 'PUT', 'PATCH'];
-  
+
   if (methods.includes(req.method)) {
     const contentType = req.get('Content-Type');
     const contentLength = req.get('Content-Length');
-    
+
     // Only require Content-Type if there's actual content
     const hasContent = contentLength && parseInt(contentLength, 10) > 0;
     const hasBody = req.body && Object.keys(req.body).length > 0;
-    
+
     // Allow application/json or multipart/form-data
     const isValidContentType = contentType && (
-      contentType.includes('application/json') || 
+      contentType.includes('application/json') ||
       contentType.includes('multipart/form-data')
     );
-    
+
     // If there's content but no valid content type, reject
     if ((hasContent || hasBody) && !isValidContentType) {
       const error = new ApiError(
@@ -710,7 +755,7 @@ export const validateContentType = (
       return handleError(res, error, 'Invalid Content-Type header');
     }
   }
-  
+
   next();
 };
 
@@ -721,7 +766,7 @@ export const validateContentType = (
 export const validateRequestSize = (maxSize: number) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const contentLength = req.get('Content-Length');
-    
+
     if (contentLength && parseInt(contentLength) > maxSize) {
       const error = new ApiError(
         413,
@@ -730,7 +775,7 @@ export const validateRequestSize = (maxSize: number) => {
       );
       return handleError(res, error, 'Request body size exceeded');
     }
-    
+
     next();
   };
 };

@@ -18,6 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getAvatarGradient } from '@/constants/design-system';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -108,7 +109,7 @@ export function ResourceTable({ resources, isLoading, onView, onEdit, onRemove, 
         <div className="flex items-center gap-3 min-w-[200px]">
           <Avatar className="h-10 w-10 flex-shrink-0">
             <AvatarImage src={row.original.avatar} alt={row.getValue('name')} />
-            <AvatarFallback className="bg-primary/10 text-primary">
+            <AvatarFallback className={`${getAvatarGradient(row.getValue('name'))} text-white font-semibold`}>
               {getInitials(row.getValue('name'))}
             </AvatarFallback>
           </Avatar>

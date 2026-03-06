@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { getAvatarGradient } from '@/constants/design-system';
 
 interface TeamMember {
   id: string;
@@ -39,12 +40,12 @@ export function AvatarGroup({ members, max = 3, size = 'md', className }: Avatar
         <Avatar 
           key={member.id} 
           className={cn(
-            "border-2 border-background ring-1 ring-gray-200",
+            "border-2 border-background ring-1 ring-border",
             sizeClasses[size]
           )}
         >
           <AvatarImage src={member.avatar} alt={member.name} />
-          <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+          <AvatarFallback className={cn(getAvatarGradient(member.name), "text-white text-xs font-medium")}>
             {getInitials(member.name)}
           </AvatarFallback>
         </Avatar>
@@ -52,11 +53,11 @@ export function AvatarGroup({ members, max = 3, size = 'md', className }: Avatar
       {remainingCount > 0 && (
         <Avatar 
           className={cn(
-            "border-2 border-background bg-gray-100 ring-1 ring-gray-200",
+            "border-2 border-background ring-1 ring-border",
             sizeClasses[size]
           )}
         >
-          <AvatarFallback className="bg-gray-100 text-gray-600 text-xs font-medium">
+          <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
             +{remainingCount}
           </AvatarFallback>
         </Avatar>

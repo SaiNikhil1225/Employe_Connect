@@ -42,7 +42,7 @@ const quickActions: QuickAction[] = [
     label: 'Web Clock-In',
     description: 'Mark your attendance for today',
     icon: Clock,
-    path: '/employee/my-attendance',
+    path: '/employee/my-attendance-enhanced',
     keywords: ['clock in', 'check in', 'punch in', 'web clock', 'attendance'],
   },
   {
@@ -50,7 +50,7 @@ const quickActions: QuickAction[] = [
     label: 'Web Clock-Out',
     description: 'Clock out from your shift',
     icon: LogOut,
-    path: '/employee/my-attendance',
+    path: '/employee/my-attendance-enhanced',
     keywords: ['clock out', 'check out', 'punch out', 'logout'],
   },
   {
@@ -58,7 +58,7 @@ const quickActions: QuickAction[] = [
     label: 'Attendance',
     description: 'View your attendance records',
     icon: UserCheck,
-    path: '/employee/my-attendance',
+    path: '/employee/my-attendance-enhanced',
     keywords: ['attendance', 'present', 'absent', 'records'],
   },
   {

@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/store/authStore';
-import { useProfile } from '@/contexts/ProfileContext';
+import { useProfile } from '@/hooks/useProfile';
 import { EmployeeDashboard } from '@/pages/employee/EmployeeDashboard';
 import { HRDashboard } from '@/pages/hr/HRDashboard';
 import { RMGDashboard } from '@/pages/rmg/RMGDashboard';

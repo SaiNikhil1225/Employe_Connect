@@ -20,6 +20,7 @@ import { UDAConfigurationTable } from "./components/UDAConfigurationTable";
 import { CreateUDAConfigurationDialog } from "./components/CreateUDAConfigurationDialog";
 import { BulkUploadDialog } from "./components/BulkUploadDialog";
 import type { UDAConfigurationFilters } from "@/types/udaConfiguration";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   Select,
   SelectContent,
@@ -67,50 +68,42 @@ export function UDAConfigurationPage() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="page-header mb-6">
-        <div className="page-header-content">
-          <div className="flex items-start gap-3">
-            <Settings2 className="h-7 w-7 text-primary mt-1" />
-            <div>
-              <h1 className="page-title">
-                UDA Configuration
-              </h1>
-              <p className="page-description">
-                Manage User Defined Attributes for Timesheet Management
-              </p>
-            </div>
+      <PageHeader
+        icon={Settings2}
+        title="UDA Configuration"
+        description="Manage User Defined Attributes for Timesheet Management"
+        actions={
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowFilters(!showFilters)}
+              variant="outline"
+              className="gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              {showFilters ? "Hide Filters" : "Show Filters"}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90 text-white gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add New
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add UDA
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsBulkUploadDialogOpen(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Bulk Upload
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setShowFilters(!showFilters)}
-            variant="outline"
-            className="gap-2"
-          >
-            <Filter className="h-4 w-4" />
-            {showFilters ? "Hide Filters" : "Show Filters"}
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-white gap-2">
-                <Plus className="h-4 w-4" />
-                Add New
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add UDA
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsBulkUploadDialogOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Bulk Upload
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters Card - Conditionally Rendered */}
       {showFilters && (

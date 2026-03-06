@@ -1,18 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FolderOpen, Construction } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function Documents() {
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <FolderOpen className="h-7 w-7 text-primary" />
-            Documents
-          </h1>
-          <p className="page-description">Access company policies and personal documents</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={FolderOpen}
+        title="Documents"
+        description="Access company policies and personal documents"
+      />
 
       <Card>
         <CardHeader>

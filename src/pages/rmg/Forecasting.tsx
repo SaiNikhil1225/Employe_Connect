@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { LineChart, AlertTriangle, TrendingUp, RefreshCw, Loader2, Users } from 'lucide-react';
 import { rmgAnalyticsService, type DemandForecastData, type SkillsGapData } from '@/services/rmgAnalyticsService';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function Forecasting() {
   const [forecastData, setForecastData] = useState<DemandForecastData | null>(null);
@@ -84,19 +85,17 @@ export function Forecasting() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <TrendingUp className="h-7 w-7 text-primary" />
-            Demand Forecasting
-          </h1>
-          <p className="page-description">Plan for upcoming resource requirements</p>
-        </div>
-        <Button variant="outline" onClick={handleRefresh}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        icon={TrendingUp}
+        title="Demand Forecasting"
+        description="Plan for upcoming resource requirements"
+        actions={
+          <Button variant="outline" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>

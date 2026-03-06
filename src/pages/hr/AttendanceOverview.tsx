@@ -104,7 +104,7 @@ export default function AdminAttendanceOverview() {
         status: statusFilter === 'all' ? undefined : statusFilter
       }),
       fetchRegularizationRequests(requestStatusFilter === 'all' ? undefined : requestStatusFilter),
-      fetchWFHRequests(requestStatusFilter === 'all' ? undefined : requestStatusFilter)
+      fetchWFHRequests(undefined, requestStatusFilter === 'all' ? undefined : requestStatusFilter)
     ]);
   };
 

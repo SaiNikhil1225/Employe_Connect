@@ -1,18 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, Construction } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function Performance() {
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <TrendingUp className="h-7 w-7 text-primary" />
-            Performance
-          </h1>
-          <p className="page-description">Track your goals and performance metrics</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={TrendingUp}
+        title="Performance"
+        description="Track your goals and performance metrics"
+      />
 
       <Card>
         <CardHeader>

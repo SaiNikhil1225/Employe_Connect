@@ -86,6 +86,7 @@ import type {
     ObservanceType,
     HolidayGroup
 } from '@/types/holiday';
+import { PageHeader } from '@/components/ui/page-header';
 
 const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -382,66 +383,61 @@ export function HolidayManagement() {
         <TooltipProvider>
             <div className="space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                            <Calendar className="h-6 w-6 text-primary" />
+                <PageHeader
+                    icon={Calendar}
+                    title="Holiday Calendar"
+                    description="Manage holidays by groups and publish to employees"
+                    actions={
+                        <div className="flex gap-2">
+                            <Select value={filterYear.toString()} onValueChange={(v) => setFilterYear(v === 'all' ? 'all' : Number(v))}>
+                                <SelectTrigger className="w-[120px]">
+                                    <SelectValue placeholder="Year" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Years</SelectItem>
+                                    <SelectItem value="2024">2024</SelectItem>
+                                    <SelectItem value="2025">2025</SelectItem>
+                                    <SelectItem value="2026">2026</SelectItem>
+                                    <SelectItem value="2027">2027</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={filterGroup} onValueChange={setFilterGroup}>
+                                <SelectTrigger className="w-[160px]">
+                                    <SelectValue placeholder="Group" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Groups</SelectItem>
+                                    {holidayGroups.filter(g => g.isActive).map(group => (
+                                        <SelectItem key={group._id} value={group._id}>{group.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
+                                <Download className="h-4 w-4 mr-2" />
+                                Bulk Upload
+                            </Button>
+                            {selectedHolidays.length > 0 && (
+                                <>
+                                    <Button onClick={handleBulkPublish} variant="default">
+                                        <Send className="h-4 w-4 mr-2" />
+                                        Publish Selected ({selectedHolidays.length})
+                                    </Button>
+                                    <Button onClick={() => setIsBulkDeleteOpen(true)} variant="destructive">
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete Selected ({selectedHolidays.length})
+                                    </Button>
+                                </>
+                            )}
+                            <Button onClick={() => {
+                                setEditingHoliday(null);
+                                setIsFormOpen(true);
+                            }}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Holiday
+                            </Button>
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-bold">Holiday Calendar</h1>
-                            <p className="text-muted-foreground">Manage holidays by groups and publish to employees</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
-                        {/* Year and Group Filters */}
-                        <Select value={filterYear.toString()} onValueChange={(v) => setFilterYear(v === 'all' ? 'all' : Number(v))}>
-                            <SelectTrigger className="w-[120px]">
-                                <SelectValue placeholder="Year" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Years</SelectItem>
-                                <SelectItem value="2024">2024</SelectItem>
-                                <SelectItem value="2025">2025</SelectItem>
-                                <SelectItem value="2026">2026</SelectItem>
-                                <SelectItem value="2027">2027</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Select value={filterGroup} onValueChange={setFilterGroup}>
-                            <SelectTrigger className="w-[160px]">
-                                <SelectValue placeholder="Group" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Groups</SelectItem>
-                                {holidayGroups.filter(g => g.isActive).map(group => (
-                                    <SelectItem key={group._id} value={group._id}>{group.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
-                            <Download className="h-4 w-4 mr-2" />
-                            Bulk Upload
-                        </Button>
-                        {selectedHolidays.length > 0 && (
-                            <>
-                                <Button onClick={handleBulkPublish} variant="default">
-                                    <Send className="h-4 w-4 mr-2" />
-                                    Publish Selected ({selectedHolidays.length})
-                                </Button>
-                                <Button onClick={() => setIsBulkDeleteOpen(true)} variant="destructive">
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete Selected ({selectedHolidays.length})
-                                </Button>
-                            </>
-                        )}
-                        <Button onClick={() => {
-                            setEditingHoliday(null);
-                            setIsFormOpen(true);
-                        }}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Holiday
-                        </Button>
-                    </div>
-                </div>
+                    }
+                />
 
                 {/* Dashboard Cards */}
                 <HolidayDashboardCards

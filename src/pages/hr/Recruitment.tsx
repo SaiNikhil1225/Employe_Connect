@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -367,19 +368,17 @@ export function Recruitment() {
     <div className="page-container">
       <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 flex items-center gap-2 text-amber-800 dark:text-amber-200 text-sm"><AlertTriangle className="h-4 w-4 flex-shrink-0" /><span>This page displays demo data. API integration pending.</span></div>
       {/* Header */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <Briefcase className="h-7 w-7 text-primary" />
-            Recruitment
-          </h1>
-          <p className="page-description">Manage job openings and candidate pipeline</p>
-        </div>
-        <Button onClick={() => setShowJobDialog(true)}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Post New Job
-        </Button>
-      </div>
+      <PageHeader
+        icon={Briefcase}
+        title="Recruitment"
+        description="Manage job openings and candidate pipeline"
+        actions={
+          <Button onClick={() => setShowJobDialog(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Post New Job
+          </Button>
+        }
+      />
 
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

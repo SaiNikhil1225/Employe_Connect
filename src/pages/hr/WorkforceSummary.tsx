@@ -4,16 +4,20 @@ import { useAnnouncementStore } from '@/store/announcementStore';
 import { useHolidayStore } from '@/store/holidayStore';
 import { useEmployeeStore } from '@/store/employeeStore';
 import { useLeaveStore } from '@/store/leaveStore';
+import apiClient from '@/services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DataTable, type DataTableColumn, type DataTableAction } from '@/components/ui/data-table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetCloseButton } from '@/components/ui/sheet';
-import { Calendar, Clock, TrendingUp, FileText, Users, CalendarDays, Plane, LogIn, LogOut, Megaphone, Cake, Gift, UserPlus, Heart, MessageCircle, Send, Plus, Flame, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Sparkles, Tag, BadgeCheck, Eye, Share2, Pin, BarChart3, CheckCircle2, Pencil, AlertCircle, Trash2, MoreVertical, Palmtree, Award, Baby, Briefcase, Circle, Upload, Search, Filter, Download, X, ArrowUpDown, ArrowUp, ArrowDown, Minus, ExternalLink, Edit3, Columns3 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Calendar, Clock, TrendingUp, FileText, Users, CalendarDays, Plane, LogIn, LogOut, Megaphone, Cake, Gift, UserPlus, Heart, MessageCircle, Send, Plus, Flame, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Sparkles, Tag, BadgeCheck, Eye, Share2, Pin, BarChart3, CheckCircle2, Pencil, AlertCircle, Trash2, MoreVertical, Palmtree, Award, Baby, Briefcase, Circle, Upload, Search, Filter, Download, X, ArrowUpDown, ArrowUp, ArrowDown, Minus, ExternalLink, Edit3, Columns3, PieChart, User, UserX } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
-import { useProfile } from '@/contexts/ProfileContext';
+import { BarChart, Bar, LabelList, PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
+import { useProfile } from '@/hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { AddHolidayModal } from '@/components/modals/AddHolidayModal';
@@ -32,16 +36,23 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { differenceInMonths, differenceInYears, parseISO } from 'date-fns';
+import { differenceInMonths, differenceInYears, parseISO, differenceInCalendarYears } from 'date-fns';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Get time-based greeting
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return { text: 'Good Morning', emoji: '🌅', gradient: 'from-orange-400 to-yellow-400' };
+  if (hour < 17) return { text: 'Good Afternoon', emoji: '☀️', gradient: 'from-blue-400 to-cyan-400' };
+  return { text: 'Good Evening', emoji: '🌙', gradient: 'from-indigo-400 to-purple-400' };
+};
 
 export function WorkforceSummary() {
   const navigate = useNavigate();
   const { permissions } = useProfile();
   const [hoveredEmployee, setHoveredEmployee] = useState<string | null>(null);
   const user = useAuthStore((state) => state.user);
+  const greeting = getGreeting();
   const { checkIn, checkOut, getTodayRecord } = useAttendanceStore();
   const todayRecord = getTodayRecord(user?.employeeId || '');
 
@@ -60,25 +71,45 @@ export function WorkforceSummary() {
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
+  const [showInactiveDialog, setShowInactiveDialog] = useState(false);
+  const [employeeToInactivate, setEmployeeToInactivate] = useState<any>(null);
+  const [showActivateDialog, setShowActivateDialog] = useState(false);
+  const [employeeToActivate, setEmployeeToActivate] = useState<any>(null);
+  const [pipCount, setPipCount] = useState(0);
+  const [employeeTab, setEmployeeTab] = useState<'active' | 'inactive'>('active');
 
   // Employee DataTable State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-  const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
   const [selectedEmploymentTypes, setSelectedEmploymentTypes] = useState<string[]>([]);
+  const [selectedExperienceRange, setSelectedExperienceRange] = useState<string>('');
+  const [salaryMin, setSalaryMin] = useState<string>('');
+  const [salaryMax, setSalaryMax] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const rowsPerPage = 15;
   const [showColumnToggle, setShowColumnToggle] = useState(false);
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+    employeeIdText: false,
+    email: false,
+    phone: false,
+    nationality: false,
+    personalEmail: false,
+    address: false,
+    currentCTC: false,
+    previousCTC: false,
+    totalExp: false,
+    acuvateExp: false,
+  });
   
   // Export column selection
   const [showExportColumnsDialog, setShowExportColumnsDialog] = useState(false);
   const [selectedExportColumns, setSelectedExportColumns] = useState<string[]>([
-    'employeeId', 'name', 'email', 'department', 'designation', 'location', 
-    'phone', 'dateOfJoining', 'acuvateExp', 'previousExp', 'totalExp', 'employmentType'
+    'employeeId', 'email', 'phone', 'name', 'designation', 'department', 
+    'location', 'gender', 'dateOfBirth', 'age', 'maritalStatus', 
+    'dateOfJoining', 'employmentType', 'reportingManager'
   ]);
 
   // Date range filtering states
@@ -88,7 +119,6 @@ export function WorkforceSummary() {
   const [showToCalendar, setShowToCalendar] = useState(false);
   const [filterApplied, setFilterApplied] = useState(false);
   const [showFilterPopover, setShowFilterPopover] = useState(false);
-  const [selectedDesignations, setSelectedDesignations] = useState<string[]>([]);
   const [selectedKPIFilter, setSelectedKPIFilter] = useState<string | null>(null);
 
   // Workforce statistics state
@@ -127,13 +157,24 @@ export function WorkforceSummary() {
   // Fetch workforce statistics
   const fetchWorkforceStats = async () => {
     try {
-      const response = await fetch(`${API_URL}/employees/stats/workforce`);
-      const result = await response.json();
-      if (result.success) {
-        setWorkforceStats(result.data);
+      const response = await apiClient.get('/employees/stats/workforce');
+      if (response.data.success) {
+        setWorkforceStats(response.data.data);
       }
     } catch (error) {
       console.error('Failed to fetch workforce stats:', error);
+    }
+  };
+
+  // Fetch PIP count
+  const fetchPIPCount = async () => {
+    try {
+      const response = await apiClient.get('/pip/active-count');
+      if (response.data.success) {
+        setPipCount(response.data.data.count || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch PIP count:', error);
     }
   };
 
@@ -143,6 +184,7 @@ export function WorkforceSummary() {
     fetchHolidays();
     fetchEmployees();
     fetchWorkforceStats();
+    fetchPIPCount();
     if (user?.employeeId) {
       fetchLeaveBalance(user.employeeId);
     }
@@ -172,8 +214,7 @@ export function WorkforceSummary() {
   const yearHolidays = useMemo(() => {
     return (allHolidays || [])
       .filter(holiday => {
-        const holidayDate = new Date(holiday.date);
-        const holidayYear = holidayDate.getUTCFullYear();
+        const holidayYear = new Date(holiday.date).getFullYear();
         return holidayYear === selectedYear;
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -186,21 +227,18 @@ export function WorkforceSummary() {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     
-    // 1. Check if today is a holiday (compare date strings directly)
-    const todayHolidayIndex = yearHolidays.findIndex(holiday => {
-      const holidayDate = new Date(holiday.date);
-      const holidayDateStr = `${holidayDate.getUTCFullYear()}-${String(holidayDate.getUTCMonth() + 1).padStart(2, '0')}-${String(holidayDate.getUTCDate()).padStart(2, '0')}`;
-      return holidayDateStr === todayStr;
-    });
+    // 1. Check if today is a holiday
+    const todayHolidayIndex = yearHolidays.findIndex(holiday => 
+      holiday.date === todayStr
+    );
     if (todayHolidayIndex !== -1) {
       return todayHolidayIndex;
     }
     
-    // 2. Find next upcoming holiday (compare date strings, not timestamps)
+    // 2. Find next upcoming holiday
     const upcomingHolidayIndex = yearHolidays.findIndex(holiday => {
       const holidayDate = new Date(holiday.date);
-      const holidayDateStr = `${holidayDate.getUTCFullYear()}-${String(holidayDate.getUTCMonth() + 1).padStart(2, '0')}-${String(holidayDate.getUTCDate()).padStart(2, '0')}`;
-      return holidayDateStr > todayStr;
+      return holidayDate > today;
     });
     if (upcomingHolidayIndex !== -1) {
       return upcomingHolidayIndex;
@@ -556,9 +594,10 @@ export function WorkforceSummary() {
   const getFilteredStats = () => {
     const hasDateFilter = fromDate || toDate;
     const hasOtherFilters = selectedDepartments.length > 0 || selectedLocations.length > 0 || 
-                           selectedGrades.length > 0 || selectedEmploymentTypes.length > 0 || selectedDesignations.length > 0;
+                           selectedEmploymentTypes.length > 0 || selectedExperienceRange !== '' || 
+                           salaryMin !== '' || salaryMax !== '';
     
-    // Show filtered stats if any filter is active (not just when filterApplied is true)
+    // Show default stats if no filters are active
     if (!hasDateFilter && !hasOtherFilters) {
       return {
         totalHeadcount: workforceStats.totalHeadcount,
@@ -573,7 +612,59 @@ export function WorkforceSummary() {
       };
     }
 
-    // Filter employees by all criteria
+    // For Total Headcount: Apply all filters EXCEPT date range
+    let headcountFiltered = employees;
+    
+    // Department filter
+    if (selectedDepartments.length > 0) {
+      headcountFiltered = headcountFiltered.filter(emp => selectedDepartments.includes(emp.department));
+    }
+    
+    // Location filter
+    if (selectedLocations.length > 0) {
+      headcountFiltered = headcountFiltered.filter(emp => selectedLocations.includes(emp.location));
+    }
+    
+    // Employment type filter
+    if (selectedEmploymentTypes.length > 0) {
+      headcountFiltered = headcountFiltered.filter(emp => {
+        const empType = emp.workerType || 'Full-time';
+        return selectedEmploymentTypes.includes(empType);
+      });
+    }
+    
+    // Experience range filter
+    if (selectedExperienceRange) {
+      headcountFiltered = headcountFiltered.filter(emp => {
+        const exp = calculateTotalExp(emp.dateOfJoining, emp.previousExperience);
+        const totalYears = exp.years;
+        
+        switch(selectedExperienceRange) {
+          case '0-2':
+            return totalYears <= 2;
+          case '3-5':
+            return totalYears >= 3 && totalYears <= 5;
+          case '6-10':
+            return totalYears >= 6 && totalYears <= 10;
+          case '10+':
+            return totalYears > 10;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Salary range filter
+    if (salaryMin || salaryMax) {
+      headcountFiltered = headcountFiltered.filter(emp => {
+        const salary = emp.currentCTC || 0;
+        const min = salaryMin ? parseFloat(salaryMin) : 0;
+        const max = salaryMax ? parseFloat(salaryMax) : Infinity;
+        return salary >= min && salary <= max;
+      });
+    }
+    
+    // For Exits and other date-based stats: apply ALL filters including date range
     let filteredEmployees = employees;
     
     // Date range filter
@@ -603,16 +694,6 @@ export function WorkforceSummary() {
       filteredEmployees = filteredEmployees.filter(emp => selectedLocations.includes(emp.location));
     }
     
-    // Grade/Band filter
-    if (selectedGrades.length > 0) {
-      filteredEmployees = filteredEmployees.filter(emp => selectedGrades.includes(emp.designation));
-    }
-    
-    // Designation filter
-    if (selectedDesignations.length > 0) {
-      filteredEmployees = filteredEmployees.filter(emp => selectedDesignations.includes(emp.designation));
-    }
-    
     // Employment type filter
     if (selectedEmploymentTypes.length > 0) {
       filteredEmployees = filteredEmployees.filter(emp => {
@@ -620,15 +701,48 @@ export function WorkforceSummary() {
         return selectedEmploymentTypes.includes(empType);
       });
     }
+    
+    // Experience range filter
+    if (selectedExperienceRange) {
+      filteredEmployees = filteredEmployees.filter(emp => {
+        const exp = calculateTotalExp(emp.dateOfJoining, emp.previousExperience);
+        const totalYears = exp.years;
+        
+        switch(selectedExperienceRange) {
+          case '0-2':
+            return totalYears <= 2;
+          case '3-5':
+            return totalYears >= 3 && totalYears <= 5;
+          case '6-10':
+            return totalYears >= 6 && totalYears <= 10;
+          case '10+':
+            return totalYears > 10;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Salary range filter
+    if (salaryMin || salaryMax) {
+      filteredEmployees = filteredEmployees.filter(emp => {
+        const salary = emp.currentCTC || 0;
+        const min = salaryMin ? parseFloat(salaryMin) : 0;
+        const max = salaryMax ? parseFloat(salaryMax) : Infinity;
+        return salary >= min && salary <= max;
+      });
+    }
 
-    const totalInRange = filteredEmployees.length;
-    const activeInRange = filteredEmployees.filter(e => e.status === 'active').length;
+    // Total Headcount excludes date range filter
+    const totalInRange = headcountFiltered.length;
+    // Exits use fully filtered employees (including date range)
     const exitsInRange = filteredEmployees.filter(e => e.status === 'inactive').length;
+    const activeInRange = filteredEmployees.filter(e => e.status === 'active').length;
 
     return {
       totalHeadcount: totalInRange,
       activeEmployees: activeInRange,
-      newHires: totalInRange,
+      newHires: filteredEmployees.length,
       newHiresMTD: 0,
       exits: exitsInRange,
       exitsMTD: 0,
@@ -642,43 +756,425 @@ export function WorkforceSummary() {
   
   // Check if any filters are active
   const hasAnyFilters = fromDate || toDate || selectedDepartments.length > 0 || 
-                        selectedLocations.length > 0 || selectedGrades.length > 0 || 
-                        selectedDesignations.length > 0 || selectedEmploymentTypes.length > 0;
+                        selectedLocations.length > 0 || selectedEmploymentTypes.length > 0 || 
+                        selectedExperienceRange !== '' || salaryMin !== '' || salaryMax !== '';
+  
+  // Calculate recent joined (current month)
+  const recentJoinedCount = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    // If date filters are applied, use the filtered range
+    if (fromDate || toDate) {
+      return employees.filter(emp => {
+        const joinDate = emp.dateOfJoining ? new Date(emp.dateOfJoining) : null;
+        if (!joinDate) return false;
+
+        if (fromDate && toDate) {
+          return joinDate >= fromDate && joinDate <= toDate;
+        } else if (fromDate) {
+          return joinDate >= fromDate;
+        } else if (toDate) {
+          return joinDate <= toDate;
+        }
+        return false;
+      }).length;
+    }
+    
+    // Otherwise show current month joiners
+    return employees.filter(emp => {
+      const joinDate = emp.dateOfJoining ? new Date(emp.dateOfJoining) : null;
+      if (!joinDate) return false;
+      return joinDate.getMonth() === currentMonth && joinDate.getFullYear() === currentYear;
+    }).length;
+  }, [employees, fromDate, toDate]);
+
+  // Calculate gender statistics (exclude date range, but include other filters)
+  const genderStats = useMemo(() => {
+    let empsForGenderCalc = employees;
+    
+    // Apply all filters EXCEPT date range
+    if (selectedDepartments.length > 0) {
+      empsForGenderCalc = empsForGenderCalc.filter(emp => selectedDepartments.includes(emp.department));
+    }
+    
+    if (selectedLocations.length > 0) {
+      empsForGenderCalc = empsForGenderCalc.filter(emp => selectedLocations.includes(emp.location));
+    }
+    
+    if (selectedEmploymentTypes.length > 0) {
+      empsForGenderCalc = empsForGenderCalc.filter(emp => {
+        const empType = emp.workerType || 'Full-time';
+        return selectedEmploymentTypes.includes(empType);
+      });
+    }
+    
+    if (selectedExperienceRange) {
+      empsForGenderCalc = empsForGenderCalc.filter(emp => {
+        const exp = calculateTotalExp(emp.dateOfJoining, emp.previousExperience);
+        const totalYears = exp.years;
+        
+        switch(selectedExperienceRange) {
+          case '0-2':
+            return totalYears <= 2;
+          case '3-5':
+            return totalYears >= 3 && totalYears <= 5;
+          case '6-10':
+            return totalYears >= 6 && totalYears <= 10;
+          case '10+':
+            return totalYears > 10;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    if (salaryMin || salaryMax) {
+      empsForGenderCalc = empsForGenderCalc.filter(emp => {
+        const salary = emp.currentCTC || 0;
+        const min = salaryMin ? parseFloat(salaryMin) : 0;
+        const max = salaryMax ? parseFloat(salaryMax) : Infinity;
+        return salary >= min && salary <= max;
+      });
+    }
+    
+    const maleCount = empsForGenderCalc.filter(e => e.gender?.toLowerCase() === 'male').length;
+    const femaleCount = empsForGenderCalc.filter(e => e.gender?.toLowerCase() === 'female').length;
+    return { male: maleCount, female: femaleCount };
+  }, [employees, selectedDepartments, selectedLocations, selectedEmploymentTypes, 
+      selectedExperienceRange, salaryMin, salaryMax]);
+
+  // Calculate exit breakdown (notice period vs already exited)
+  const exitStats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Apply all filters EXCEPT date range (same as Total Headcount)
+    let filteredForExits = employees;
+    
+    if (selectedDepartments.length > 0) {
+      filteredForExits = filteredForExits.filter(emp => selectedDepartments.includes(emp.department));
+    }
+    if (selectedLocations.length > 0) {
+      filteredForExits = filteredForExits.filter(emp => selectedLocations.includes(emp.location));
+    }
+    if (selectedEmploymentTypes.length > 0) {
+      filteredForExits = filteredForExits.filter(emp => {
+        const empType = emp.workerType || 'Full-time';
+        return selectedEmploymentTypes.includes(empType);
+      });
+    }
+    if (selectedExperienceRange) {
+      filteredForExits = filteredForExits.filter(emp => {
+        const exp = calculateTotalExp(emp.dateOfJoining, emp.previousExperience);
+        const totalYears = exp.years;
+        
+        switch(selectedExperienceRange) {
+          case '0-2':
+            return totalYears <= 2;
+          case '3-5':
+            return totalYears >= 3 && totalYears <= 5;
+          case '6-10':
+            return totalYears >= 6 && totalYears <= 10;
+          case '10+':
+            return totalYears > 10;
+          default:
+            return true;
+        }
+      });
+    }
+    if (salaryMin || salaryMax) {
+      filteredForExits = filteredForExits.filter(emp => {
+        const salary = emp.currentCTC || 0;
+        const min = salaryMin ? parseFloat(salaryMin) : 0;
+        const max = salaryMax ? parseFloat(salaryMax) : Infinity;
+        return salary >= min && salary <= max;
+      });
+    }
+    
+    // In Notice Period: offboarding in-progress OR lastWorkingDay is in future
+    const inNoticePeriod = filteredForExits.filter(e => {
+      if (e.offboarding?.status === 'in-progress') return true;
+      if (e.offboarding?.lastWorkingDay) {
+        const lastDay = new Date(e.offboarding.lastWorkingDay);
+        lastDay.setHours(0, 0, 0, 0);
+        return lastDay >= today && e.status === 'active';
+      }
+      return false;
+    }).length;
+    
+    // Already Exited: status is inactive
+    const alreadyExited = filteredForExits.filter(e => e.status === 'inactive').length;
+    
+    return { inNoticePeriod, alreadyExited };
+  }, [employees, selectedDepartments, selectedLocations, selectedEmploymentTypes, 
+      selectedExperienceRange, salaryMin, salaryMax]);
+
+  // Filter employees for stats (excludes search and tab filters, only uses filter selections)
+  const filteredEmployees = useMemo(() => {
+    let filtered = employees;
+
+    // Apply filters only (not search or tab)
+    if (selectedDepartments.length > 0) {
+      filtered = filtered.filter(emp => selectedDepartments.includes(emp.department));
+    }
+
+    if (selectedLocations.length > 0) {
+      filtered = filtered.filter(emp => selectedLocations.includes(emp.location));
+    }
+
+    if (selectedEmploymentTypes.length > 0) {
+      filtered = filtered.filter(emp => {
+        const empType = emp.workerType || 'Full-time';
+        return selectedEmploymentTypes.includes(empType);
+      });
+    }
+    
+    // Experience range filter
+    if (selectedExperienceRange) {
+      filtered = filtered.filter(emp => {
+        const exp = calculateTotalExp(emp.dateOfJoining, emp.previousExperience);
+        const totalYears = exp.years;
+        
+        switch(selectedExperienceRange) {
+          case '0-2':
+            return totalYears <= 2;
+          case '3-5':
+            return totalYears >= 3 && totalYears <= 5;
+          case '6-10':
+            return totalYears >= 6 && totalYears <= 10;
+          case '10+':
+            return totalYears > 10;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Salary range filter
+    if (salaryMin || salaryMax) {
+      filtered = filtered.filter(emp => {
+        const salary = emp.currentCTC || 0;
+        const min = salaryMin ? parseFloat(salaryMin) : 0;
+        const max = salaryMax ? parseFloat(salaryMax) : Infinity;
+        return salary >= min && salary <= max;
+      });
+    }
+
+    return filtered;
+  }, [employees, selectedDepartments, selectedLocations, selectedEmploymentTypes, selectedExperienceRange, salaryMin, salaryMax]);
+
+  // Calculate New Hires — respects date range if applied, otherwise current month
+  const newHiresThisMonth = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    if (fromDate || toDate) {
+      return filteredEmployees.filter(emp => {
+        if (emp.status !== 'active') return false;
+        const joinDate = emp.dateOfJoining ? new Date(emp.dateOfJoining) : null;
+        if (!joinDate) return false;
+        if (fromDate && toDate) return joinDate >= fromDate && joinDate <= toDate;
+        if (fromDate) return joinDate >= fromDate;
+        if (toDate) return joinDate <= toDate;
+        return false;
+      }).length;
+    }
+
+    return filteredEmployees.filter(emp => {
+      if (emp.status !== 'active') return false;
+      const joinDate = emp.dateOfJoining ? new Date(emp.dateOfJoining) : null;
+      if (!joinDate) return false;
+      return joinDate.getMonth() === currentMonth && joinDate.getFullYear() === currentYear;
+    }).length;
+  }, [filteredEmployees, fromDate, toDate]);
+
+  // Calculate Exits — respects date range if applied, otherwise current month
+  const exitsThisMonth = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    if (fromDate || toDate) {
+      return filteredEmployees.filter(emp => {
+        if (emp.status !== 'inactive') return false;
+        if (emp.offboarding?.lastWorkingDay) {
+          const exitDate = new Date(emp.offboarding.lastWorkingDay);
+          if (fromDate && toDate) return exitDate >= fromDate && exitDate <= toDate;
+          if (fromDate) return exitDate >= fromDate;
+          if (toDate) return exitDate <= toDate;
+        }
+        return false;
+      }).length;
+    }
+
+    return filteredEmployees.filter(emp => {
+      if (emp.status !== 'inactive') return false;
+      if (emp.offboarding?.lastWorkingDay) {
+        const exitDate = new Date(emp.offboarding.lastWorkingDay);
+        return exitDate.getMonth() === currentMonth && exitDate.getFullYear() === currentYear;
+      }
+      return false;
+    }).length;
+  }, [filteredEmployees, fromDate, toDate]);
+
+  // Calculate Attrition Rate - (Exits / Average Employees) × 100
+  const attritionRate = useMemo(() => {
+    const totalActive = filteredEmployees.filter(e => e.status === 'active').length;
+    const totalInactive = filteredEmployees.filter(e => e.status === 'inactive').length;
+    const avgEmployees = (totalActive + totalInactive) / 2;
+    
+    if (avgEmployees === 0) return '0.0';
+    
+    return ((totalInactive / avgEmployees) * 100).toFixed(1);
+  }, [filteredEmployees]);
+
+  // Calculate Department Count
+  const departmentData = useMemo(() => {
+    const deptCount: Record<string, number> = {};
+    
+    filteredEmployees.filter(e => e.status === 'active').forEach(emp => {
+      const dept = emp.department || 'Unassigned';
+      deptCount[dept] = (deptCount[dept] || 0) + 1;
+    });
+    
+    return Object.entries(deptCount)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  }, [filteredEmployees]);
+
+  // Calculate Age Distribution
+  const ageDistribution = useMemo(() => {
+    const ageGroups: Record<string, { male: number; female: number; other: number }> = {
+      '20-30': { male: 0, female: 0, other: 0 },
+      '31-40': { male: 0, female: 0, other: 0 },
+      '41-50': { male: 0, female: 0, other: 0 },
+      '50+':   { male: 0, female: 0, other: 0 },
+    };
+
+    filteredEmployees.filter(e => e.status === 'active').forEach(emp => {
+      if (emp.dateOfBirth) {
+        const age = differenceInCalendarYears(new Date(), new Date(emp.dateOfBirth));
+        const bucket = age <= 30 ? '20-30' : age <= 40 ? '31-40' : age <= 50 ? '41-50' : '50+';
+        const gender = (emp.gender || '').toLowerCase();
+        if (gender === 'male') ageGroups[bucket].male++;
+        else if (gender === 'female') ageGroups[bucket].female++;
+        else ageGroups[bucket].other++;
+      }
+    });
+
+    return Object.entries(ageGroups).map(([name, counts]) => ({
+      name,
+      Male: counts.male,
+      Female: counts.female,
+      Other: counts.other,
+      total: counts.male + counts.female + counts.other,
+    }));
+  }, [filteredEmployees]);
+
+  // Calculate Average Age
+  const averageAge = useMemo(() => {
+    const activeEmployees = filteredEmployees.filter(e => {
+      if (e.status !== 'active' || !e.dateOfBirth) return false;
+      const d = new Date(e.dateOfBirth);
+      return !isNaN(d.getTime());
+    });
+    if (activeEmployees.length === 0) return 0;
+    
+    const totalAge = activeEmployees.reduce((sum, emp) => {
+      const age = differenceInCalendarYears(new Date(), new Date(emp.dateOfBirth!));
+      return sum + (isNaN(age) ? 0 : age);
+    }, 0);
+    
+    const result = Math.round(totalAge / activeEmployees.length);
+    return isNaN(result) ? 0 : result;
+  }, [filteredEmployees]);
+
+  // Calculate Tenure Distribution
+  const tenureDistribution = useMemo(() => {
+    const tenureGroups = {
+      '0-1 yr': 0,
+      '1-3 yrs': 0,
+      '3-5 yrs': 0,
+      '5+ yrs': 0
+    };
+    
+    filteredEmployees.filter(e => e.status === 'active').forEach(emp => {
+      if (emp.dateOfJoining) {
+        const years = differenceInYears(new Date(), new Date(emp.dateOfJoining));
+        if (years < 1) tenureGroups['0-1 yr']++;
+        else if (years < 3) tenureGroups['1-3 yrs']++;
+        else if (years < 5) tenureGroups['3-5 yrs']++;
+        else tenureGroups['5+ yrs']++;
+      }
+    });
+    
+    return Object.entries(tenureGroups).map(([name, value]) => ({ name, value }));
+  }, [filteredEmployees]);
+
+  // Calculate Average Tenure
+  const averageTenure = useMemo(() => {
+    if (!filteredEmployees || filteredEmployees.length === 0) return "0.0";
+    
+    const activeEmployees = filteredEmployees.filter(e => {
+      if (e.status !== 'active' || !e.dateOfJoining) return false;
+      const d = new Date(e.dateOfJoining);
+      return !isNaN(d.getTime());
+    });
+    if (activeEmployees.length === 0) return "0.0";
+    
+    const totalMonths = activeEmployees.reduce((sum, emp) => {
+      const months = differenceInMonths(new Date(), new Date(emp.dateOfJoining!));
+      return sum + (isNaN(months) ? 0 : months);
+    }, 0);
+    
+    const avgMonths = totalMonths / activeEmployees.length;
+    const result = avgMonths / 12;
+    return isNaN(result) ? "0.0" : result.toFixed(1);
+  }, [filteredEmployees]);
+
+  // Chart colors
+  const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
   const stats = [
     { 
-      label: hasAnyFilters ? 'Total Filtered' : 'Total Headcount', 
+      label: 'Total Headcount', 
       value: filteredStats.totalHeadcount.toString(), 
       icon: Users, 
       color: 'text-blue-600 dark:text-blue-400',
-      trend: filteredStats.trend
+      trend: filteredStats.trend,
+      details: [
+        { label: 'Male', value: genderStats.male, color: 'text-blue-600' },
+        { label: 'Female', value: genderStats.female, color: 'text-pink-600' }
+      ]
     },
     { 
-      label: hasAnyFilters ? 'Active (Filtered)' : 'Active Employees', 
-      value: filteredStats.activeEmployees.toString(), 
-      subValue: `${((filteredStats.activeEmployees / (filteredStats.totalHeadcount || 1)) * 100).toFixed(1)}%`,
-      icon: CheckCircle2, 
-      color: 'text-green-600 dark:text-green-400',
-      trend: filteredStats.activeTrend
-    },
-    { 
-      label: hasAnyFilters ? 'New Joiners' : 'New Hires', 
-      value: filteredStats.newHires.toString(),
-      mtd: hasAnyFilters ? 0 : filteredStats.newHiresMTD,
-      ytd: filteredStats.newHires,
+      label: 'Recent Joined', 
+      value: recentJoinedCount.toString(), 
+      subValue: fromDate || toDate ? 'In selected range' : 'This month',
       icon: UserPlus, 
-      color: 'text-purple-600 dark:text-purple-400',
-      splitDisplay: !hasAnyFilters
+      color: 'text-green-600 dark:text-green-400'
     },
     { 
-      label: hasAnyFilters ? 'Inactive' : 'Exits', 
-      value: filteredStats.exits.toString(),
-      mtd: hasAnyFilters ? 0 : filteredStats.exitsMTD,
-      ytd: filteredStats.exits,
+      label: 'Exits', 
+      value: (exitStats.inNoticePeriod + exitStats.alreadyExited).toString(),
       attritionRate: filteredStats.attritionRate,
       icon: TrendingUp, 
       color: 'text-red-600 dark:text-red-400',
-      splitDisplay: !hasAnyFilters
+      details: [
+        { label: 'Notice Period', value: exitStats.inNoticePeriod, color: 'text-orange-600' },
+        { label: 'Exited', value: exitStats.alreadyExited, color: 'text-red-600' }
+      ]
+    },
+    { 
+      label: 'PIP Count', 
+      value: pipCount.toString(),
+      subValue: 'Active PIPs',
+      icon: AlertCircle, 
+      color: 'text-orange-600 dark:text-orange-400'
     },
   ];
 
@@ -799,46 +1295,52 @@ export function WorkforceSummary() {
   const employeeTableColumns: DataTableColumn<any>[] = [
     {
       key: 'employeeId',
-      label: 'Employee ID',
+      label: 'Employee',
       sortable: true,
       align: 'left',
-      width: '120px',
-      sticky: 'left',
-      render: (value) => <span className="font-medium">{value}</span>,
-    },
-    {
-      key: 'name',
-      label: 'Name',
-      sortable: true,
-      align: 'left',
-      width: '200px',
+      width: '240px',
       sticky: 'left',
       render: (_, employee) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <EmployeeAvatar employee={employee} size="sm" />
-          <span className="font-medium">{employee.name}</span>
+          <div className="min-w-0">
+            <div className="font-medium text-sm leading-tight truncate">{employee.name}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5 truncate">{employee.designation || '—'}</div>
+          </div>
         </div>
       ),
     },
     {
+      key: 'employeeIdText',
+      label: 'Employee ID',
+      sortable: false,
+      align: 'left',
+      width: '120px',
+      render: (_, employee) => <span className="text-sm font-mono text-muted-foreground">{employee.employeeId}</span>,
+    },
+    {
       key: 'email',
-      label: 'Email',
+      label: 'Email ID',
       sortable: true,
       align: 'left',
+      width: '220px',
       render: (value) => <span className="text-sm text-muted-foreground">{value}</span>,
+    },
+    {
+      key: 'phone',
+      label: 'Phone Number',
+      sortable: false,
+      align: 'left',
+      width: '130px',
+      hidden: true,
+      render: (value) => <span className="text-sm text-muted-foreground">{value || 'N/A'}</span>,
     },
     {
       key: 'department',
       label: 'Department',
       sortable: true,
       align: 'left',
-      render: (value) => <span className="text-sm">{value}</span>,
-    },
-    {
-      key: 'designation',
-      label: 'Designation',
-      sortable: true,
-      align: 'left',
+      width: '150px',
       render: (value) => <span className="text-sm">{value}</span>,
     },
     {
@@ -846,55 +1348,144 @@ export function WorkforceSummary() {
       label: 'Location',
       sortable: true,
       align: 'left',
+      width: '130px',
       render: (value) => <span className="text-sm">{value}</span>,
     },
     {
-      key: 'phone',
-      label: 'Phone',
-      sortable: false,
+      key: 'gender',
+      label: 'Gender',
+      sortable: true,
       align: 'left',
-      render: (value) => <span className="text-sm text-muted-foreground">{value || 'N/A'}</span>,
+      width: '100px',
+      render: (value) => (
+        <Badge variant="outline" className="text-xs">
+          {value || 'N/A'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'dateOfBirth',
+      label: 'Date of Birth',
+      sortable: true,
+      align: 'left',
+      width: '130px',
+      render: (value) => <span className="text-sm">{value ? formatDate(value) : 'N/A'}</span>,
+    },
+    {
+      key: 'age',
+      label: 'Age',
+      sortable: true,
+      align: 'left',
+      width: '80px',
+      render: (_, employee) => {
+        if (!employee.dateOfBirth) return <span className="text-sm text-muted-foreground">N/A</span>;
+        const age = differenceInCalendarYears(new Date(), new Date(employee.dateOfBirth));
+        return <span className="text-sm font-medium">{age}</span>;
+      },
+    },
+    {
+      key: 'maritalStatus',
+      label: 'Marital Status',
+      sortable: true,
+      align: 'left',
+      width: '130px',
+      render: (value) => (
+        <Badge variant="secondary" className="text-xs">
+          {value || 'N/A'}
+        </Badge>
+      ),
     },
     {
       key: 'dateOfJoining',
-      label: 'Date of Joining',
+      label: 'Hire Date',
       sortable: true,
       align: 'left',
+      width: '130px',
       render: (value) => <span className="text-sm">{formatDate(value)}</span>,
     },
     {
-      key: 'acuvateExp',
-      label: 'Acuvate Exp',
-      sortable: true,
+      key: 'workerType',
+      label: 'Employment Type',
+      sortable: false,
       align: 'left',
-      render: (_, employee) => {
-        const exp = calculateAcuvateExp(employee.dateOfJoining);
-        return (
-          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-            {formatExperience(exp.years, exp.months)}
-          </span>
-        );
-      },
+      width: '140px',
+      render: (value) => (
+        <Badge variant="outline" className="text-xs">
+          {value || 'Full-time'}
+        </Badge>
+      ),
     },
     {
-      key: 'previousExp',
-      label: 'Previous Exp',
+      key: 'reportingManager',
+      label: 'Reporting Manager',
       sortable: true,
       align: 'left',
-      render: (_, employee) => {
-        const exp = getPreviousExp(employee.previousExperience);
-        return (
-          <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
-            {formatExperience(exp.years, exp.months)}
-          </span>
-        );
-      },
+      width: '180px',
+      render: (_, employee) => (
+        <span className="text-sm">{employee.reportingManager?.name || 'N/A'}</span>
+      ),
+    },
+    // Hidden columns (available via toggle)
+    {
+      key: 'nationality',
+      label: 'Nationality',
+      sortable: true,
+      align: 'left',
+      width: '120px',
+      hidden: true,
+      render: (value) => <span className="text-sm">{value || 'N/A'}</span>,
+    },
+    {
+      key: 'personalEmail',
+      label: 'Personal Email',
+      sortable: true,
+      align: 'left',
+      width: '220px',
+      hidden: true,
+      render: (value) => <span className="text-sm text-muted-foreground">{value || 'N/A'}</span>,
+    },
+    {
+      key: 'address',
+      label: 'Address',
+      sortable: false,
+      align: 'left',
+      width: '250px',
+      hidden: true,
+      render: (value) => <span className="text-sm">{value || 'N/A'}</span>,
+    },
+    {
+      key: 'currentCTC',
+      label: 'Current CTC',
+      sortable: true,
+      align: 'right',
+      width: '130px',
+      hidden: true,
+      render: (value) => (
+        <span className="text-sm font-medium">
+          {value ? `₹${(value / 100000).toFixed(2)}L` : 'N/A'}
+        </span>
+      ),
+    },
+    {
+      key: 'previousCTC',
+      label: 'Previous CTC',
+      sortable: true,
+      align: 'right',
+      width: '130px',
+      hidden: true,
+      render: (value) => (
+        <span className="text-sm font-medium">
+          {value ? `₹${(value / 100000).toFixed(2)}L` : 'N/A'}
+        </span>
+      ),
     },
     {
       key: 'totalExp',
-      label: 'Total Exp',
+      label: 'Total Experience',
       sortable: true,
       align: 'left',
+      width: '150px',
+      hidden: true,
       render: (_, employee) => {
         const exp = calculateTotalExp(employee.dateOfJoining, employee.previousExperience);
         return (
@@ -905,26 +1496,20 @@ export function WorkforceSummary() {
       },
     },
     {
-      key: 'workerType',
-      label: 'Employment Type',
-      sortable: false,
-      align: 'left',
-      render: (value) => (
-        <Badge variant="outline" className="text-xs">
-          {value || 'Full-time'}
-        </Badge>
-      ),
-    },
-    {
-      key: 'holidayPlan',
-      label: 'Holiday Plan',
+      key: 'acuvateExp',
+      label: 'Acuvate Experience',
       sortable: true,
       align: 'left',
-      render: (value) => (
-        <Badge variant="secondary" className="text-xs">
-          {value || 'India'}
-        </Badge>
-      ),
+      width: '160px',
+      hidden: true,
+      render: (_, employee) => {
+        const exp = calculateAcuvateExp(employee.dateOfJoining);
+        return (
+          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+            {formatExperience(exp.years, exp.months)}
+          </span>
+        );
+      },
     },
   ];
 
@@ -937,6 +1522,22 @@ export function WorkforceSummary() {
     {
       label: 'Edit Employee',
       onClick: (employee) => handleEditEmployee(employee),
+    },
+    {
+      label: 'Mark Inactive',
+      onClick: (employee) => {
+        setEmployeeToInactivate(employee);
+        setShowInactiveDialog(true);
+      },
+      condition: (employee) => employeeTab === 'active',
+    },
+    {
+      label: 'Move to Active',
+      onClick: (employee) => {
+        setEmployeeToActivate(employee);
+        setShowActivateDialog(true);
+      },
+      condition: (employee) => employeeTab === 'inactive',
     },
   ];
 
@@ -951,21 +1552,18 @@ export function WorkforceSummary() {
     return Array.from(locs).sort();
   }, [employees]);
 
-  const uniqueGrades = useMemo(() => {
-    const grades = new Set(employees.map(emp => emp.designation).filter(Boolean));
-    return Array.from(grades).sort();
-  }, [employees]);
-  
-  const uniqueDesignations = useMemo(() => {
-    const designations = new Set(employees.map(emp => emp.designation).filter(Boolean));
-    return Array.from(designations).sort();
-  }, [employees]);
-
   const employmentTypes = ['Full-time', 'Part-time', 'Contract', 'Consultant', 'Intern'];
 
-  // Filter and search employees
-  const filteredEmployees = useMemo(() => {
-    let filtered = employees.filter(emp => emp.status === 'active');
+  // Filter and search employees for data table (includes tab and search filters)
+  const filteredAndSearchedEmployees = useMemo(() => {
+    // First filter by tab (active/inactive)
+    let filtered = employees.filter(emp => {
+      if (employeeTab === 'active') {
+        return emp.status === 'active';
+      } else {
+        return emp.status === 'inactive';
+      }
+    });
 
     // Search
     if (searchQuery.trim()) {
@@ -981,23 +1579,17 @@ export function WorkforceSummary() {
       );
     }
 
-    // Filters
+    // Department filter
     if (selectedDepartments.length > 0) {
       filtered = filtered.filter(emp => selectedDepartments.includes(emp.department));
     }
 
+    // Location filter
     if (selectedLocations.length > 0) {
       filtered = filtered.filter(emp => selectedLocations.includes(emp.location));
     }
 
-    if (selectedGrades.length > 0) {
-      filtered = filtered.filter(emp => selectedGrades.includes(emp.designation));
-    }
-    
-    if (selectedDesignations.length > 0) {
-      filtered = filtered.filter(emp => selectedDesignations.includes(emp.designation));
-    }
-
+    // Employment type filter
     if (selectedEmploymentTypes.length > 0) {
       filtered = filtered.filter(emp => {
         const empType = emp.workerType || 'Full-time';
@@ -1005,12 +1597,37 @@ export function WorkforceSummary() {
       });
     }
 
+    // Experience range filter
+    if (selectedExperienceRange) {
+      filtered = filtered.filter(emp => {
+        const exp = calculateTotalExp(emp.dateOfJoining, emp.previousExperience);
+        const totalYears = exp.years;
+        switch (selectedExperienceRange) {
+          case '0-2': return totalYears <= 2;
+          case '3-5': return totalYears >= 3 && totalYears <= 5;
+          case '6-10': return totalYears >= 6 && totalYears <= 10;
+          case '10+': return totalYears > 10;
+          default: return true;
+        }
+      });
+    }
+
+    // Salary range filter
+    if (salaryMin || salaryMax) {
+      filtered = filtered.filter(emp => {
+        const salary = emp.currentCTC || 0;
+        const min = salaryMin ? parseFloat(salaryMin) : 0;
+        const max = salaryMax ? parseFloat(salaryMax) : Infinity;
+        return salary >= min && salary <= max;
+      });
+    }
+
     return filtered;
-  }, [employees, searchQuery, selectedDepartments, selectedLocations, selectedGrades, selectedDesignations, selectedEmploymentTypes]);
+  }, [employees, employeeTab, searchQuery, selectedDepartments, selectedLocations, selectedEmploymentTypes, selectedExperienceRange, salaryMin, salaryMax]);
 
   // Sort employees
   const sortedEmployees = useMemo(() => {
-    const sorted = [...filteredEmployees];
+    const sorted = [...filteredAndSearchedEmployees];
     
     sorted.sort((a, b) => {
       let aValue: any = '';
@@ -1077,7 +1694,7 @@ export function WorkforceSummary() {
     });
 
     return sorted;
-  }, [filteredEmployees, sortField, sortDirection]);
+  }, [filteredAndSearchedEmployees, sortField, sortDirection]);
 
   // Pagination
   const totalPages = Math.ceil(sortedEmployees.length / rowsPerPage);
@@ -1100,33 +1717,43 @@ export function WorkforceSummary() {
   const clearAllFilters = () => {
     setSelectedDepartments([]);
     setSelectedLocations([]);
-    setSelectedGrades([]);
-    setSelectedDesignations([]);
     setSelectedEmploymentTypes([]);
+    setSelectedExperienceRange('');
+    setSalaryMin('');
+    setSalaryMax('');
     setSearchQuery('');
   };
 
   const hasActiveFilters = selectedDepartments.length > 0 || selectedLocations.length > 0 || 
-                           selectedGrades.length > 0 || selectedDesignations.length > 0 || 
-                           selectedEmploymentTypes.length > 0 || 
+                           selectedEmploymentTypes.length > 0 || selectedExperienceRange !== '' || 
+                           salaryMin !== '' || salaryMax !== '' || 
                            searchQuery.trim() !== '';
 
   // Define all available columns for export
   const availableColumns = [
     { id: 'employeeId', label: 'Employee ID' },
+    { id: 'email', label: 'Email ID' },
+    { id: 'phone', label: 'Phone Number' },
     { id: 'name', label: 'Name' },
-    { id: 'email', label: 'Email' },
-    { id: 'department', label: 'Department' },
     { id: 'designation', label: 'Designation' },
+    { id: 'department', label: 'Department' },
     { id: 'location', label: 'Location' },
-    { id: 'phone', label: 'Phone' },
-    { id: 'dateOfJoining', label: 'Date of Joining' },
+    { id: 'gender', label: 'Gender' },
+    { id: 'dateOfBirth', label: 'Date of Birth' },
+    { id: 'age', label: 'Age' },
+    { id: 'maritalStatus', label: 'Marital Status' },
+    { id: 'dateOfJoining', label: 'Hire Date' },
+    { id: 'employmentType', label: 'Employment Type' },
+    { id: 'reportingManager', label: 'Reporting Manager' },
+    { id: 'nationality', label: 'Nationality' },
+    { id: 'personalEmail', label: 'Personal Email' },
+    { id: 'address', label: 'Address' },
+    { id: 'currentCTC', label: 'Current CTC' },
+    { id: 'previousCTC', label: 'Previous CTC' },
+    { id: 'totalExp', label: 'Total Experience' },
     { id: 'acuvateExp', label: 'Acuvate Experience' },
     { id: 'previousExp', label: 'Previous Experience' },
-    { id: 'totalExp', label: 'Total Experience' },
-    { id: 'employmentType', label: 'Employment Type' },
     { id: 'businessUnit', label: 'Business Unit' },
-    { id: 'reportingManager', label: 'Reporting Manager' },
   ];
 
   const toggleExportColumn = (columnId: string) => {
@@ -1147,16 +1774,39 @@ export function WorkforceSummary() {
         return emp.name || '';
       case 'email':
         return emp.email || '';
+      case 'phone':
+        return emp.phone || 'N/A';
       case 'department':
         return emp.department || '';
       case 'designation':
         return emp.designation || '';
       case 'location':
         return emp.location || '';
-      case 'phone':
-        return emp.phone || 'N/A';
+      case 'gender':
+        return emp.gender || 'N/A';
+      case 'dateOfBirth':
+        return emp.dateOfBirth ? formatDate(emp.dateOfBirth) : 'N/A';
+      case 'age':
+        if (!emp.dateOfBirth) return 'N/A';
+        return differenceInCalendarYears(new Date(), new Date(emp.dateOfBirth)).toString();
+      case 'maritalStatus':
+        return emp.maritalStatus || 'N/A';
       case 'dateOfJoining':
         return formatDate(emp.dateOfJoining);
+      case 'employmentType':
+        return emp.workerType || 'Full-time';
+      case 'reportingManager':
+        return emp.reportingManager?.name || 'N/A';
+      case 'nationality':
+        return emp.nationality || 'N/A';
+      case 'personalEmail':
+        return emp.personalEmail || 'N/A';
+      case 'address':
+        return emp.address || 'N/A';
+      case 'currentCTC':
+        return emp.currentCTC ? `₹${(emp.currentCTC / 100000).toFixed(2)}L` : 'N/A';
+      case 'previousCTC':
+        return emp.previousCTC ? `₹${(emp.previousCTC / 100000).toFixed(2)}L` : 'N/A';
       case 'acuvateExp':
         const acuvate = calculateAcuvateExp(emp.dateOfJoining);
         return formatExperience(acuvate.years, acuvate.months);
@@ -1166,12 +1816,8 @@ export function WorkforceSummary() {
       case 'totalExp':
         const total = calculateTotalExp(emp.dateOfJoining, emp.previousExperience);
         return formatExperience(total.years, total.months);
-      case 'employmentType':
-        return emp.workerType || 'Full-time';
       case 'businessUnit':
         return emp.businessUnit || 'N/A';
-      case 'reportingManager':
-        return emp.reportingManager?.name || 'N/A';
       default:
         return '';
     }
@@ -1223,18 +1869,54 @@ export function WorkforceSummary() {
     setShowAddEmployeeModal(true);
   };
 
+  // Mark employee as inactive
+  const handleMarkInactive = async () => {
+    if (!employeeToInactivate) return;
+    
+    try {
+      await useEmployeeStore.getState().markInactive(employeeToInactivate._id);
+      toast.success(`${employeeToInactivate.name} marked as inactive`);
+      setShowInactiveDialog(false);
+      setEmployeeToInactivate(null);
+      fetchEmployees();
+      fetchWorkforceStats();
+      fetchPIPCount();
+    } catch (error) {
+      console.error('Failed to mark employee as inactive:', error);
+      toast.error('Failed to mark employee as inactive');
+    }
+  };
+
+  // Activate employee
+  const handleActivateEmployee = async () => {
+    if (!employeeToActivate) return;
+    
+    try {
+      await useEmployeeStore.getState().activateEmployee(employeeToActivate._id);
+      toast.success(`${employeeToActivate.name} moved to active`);
+      setShowActivateDialog(false);
+      setEmployeeToActivate(null);
+      fetchEmployees();
+      fetchWorkforceStats();
+      fetchPIPCount();
+    } catch (error) {
+      console.error('Failed to activate employee:', error);
+      toast.error('Failed to activate employee');
+    }
+  };
+
   return (
-    <div className="page-container">
+    <div className="space-y-6">
       {/* Employee Management Section */}
       {permissions.canEditEmployees && (
-        <div className="page-header">
+        <div className="flex items-center justify-between">
           <div className="flex items-start gap-3 flex-1">
             <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
               <Briefcase className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
-              <h2 className="page-title">Employee Management</h2>
-              <p className="page-description">Filter by date range and manage employees</p>
+              <h2 className="text-2xl font-bold text-foreground mb-1">Workforce Summary</h2>
+              <p className="text-sm text-muted-foreground">Filter by date range and manage employees</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -1246,9 +1928,6 @@ export function WorkforceSummary() {
                 >
                   <Filter className="h-4 w-4 mr-2" />
                   {showFilterPopover ? 'Hide Filters' : 'Show Filters'}
-                  {filterApplied && (
-                    <span className="ml-2 flex h-2 w-2 rounded-full bg-green-500" />
-                  )}
                 </Button>
 
                 <Button variant="outline" onClick={() => setShowBulkUploadModal(true)} className="h-10">
@@ -1263,19 +1942,78 @@ export function WorkforceSummary() {
         </div>
       )}
 
+      {/* Active Filter Chips — shown when any filter is applied */}
+      {permissions.canEditEmployees && hasAnyFilters && (
+        <div className="flex flex-wrap items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+          <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 mr-1">Active Filters:</span>
+
+          {fromDate && (
+            <Badge variant="secondary" className="gap-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs">
+              <Calendar className="h-3 w-3" />
+              From: {format(fromDate, 'MMM dd, yyyy')}
+              <button onClick={() => setFromDate(undefined)} className="ml-1 hover:text-red-600"><X className="h-3 w-3" /></button>
+            </Badge>
+          )}
+          {toDate && (
+            <Badge variant="secondary" className="gap-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs">
+              <Calendar className="h-3 w-3" />
+              To: {format(toDate, 'MMM dd, yyyy')}
+              <button onClick={() => setToDate(undefined)} className="ml-1 hover:text-red-600"><X className="h-3 w-3" /></button>
+            </Badge>
+          )}
+          {selectedDepartments.map(d => (
+            <Badge key={d} variant="secondary" className="gap-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">
+              Dept: {d}
+              <button onClick={() => setSelectedDepartments(prev => prev.filter(x => x !== d))} className="ml-1 hover:text-red-600"><X className="h-3 w-3" /></button>
+            </Badge>
+          ))}
+          {selectedLocations.map(l => (
+            <Badge key={l} variant="secondary" className="gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs">
+              Loc: {l}
+              <button onClick={() => setSelectedLocations(prev => prev.filter(x => x !== l))} className="ml-1 hover:text-red-600"><X className="h-3 w-3" /></button>
+            </Badge>
+          ))}
+          {selectedEmploymentTypes.map(t => (
+            <Badge key={t} variant="secondary" className="gap-1 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs">
+              Type: {t}
+              <button onClick={() => setSelectedEmploymentTypes(prev => prev.filter(x => x !== t))} className="ml-1 hover:text-red-600"><X className="h-3 w-3" /></button>
+            </Badge>
+          ))}
+          {selectedExperienceRange && (
+            <Badge variant="secondary" className="gap-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 text-xs">
+              Exp: {selectedExperienceRange} yrs
+              <button onClick={() => setSelectedExperienceRange('')} className="ml-1 hover:text-red-600"><X className="h-3 w-3" /></button>
+            </Badge>
+          )}
+          {(salaryMin || salaryMax) && (
+            <Badge variant="secondary" className="gap-1 bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 text-xs">
+              Salary: {salaryMin ? `₹${Number(salaryMin).toLocaleString()}` : '0'} – {salaryMax ? `₹${Number(salaryMax).toLocaleString()}` : '∞'}
+              <button onClick={() => { setSalaryMin(''); setSalaryMax(''); }} className="ml-1 hover:text-red-600"><X className="h-3 w-3" /></button>
+            </Badge>
+          )}
+
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => { clearDateFilters(); clearAllFilters(); setFilterApplied(false); setShowFilterPopover(false); }}
+            >
+              <X className="h-3 w-3 mr-1" />
+              Clear All
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Expandable Filter Section */}
       {permissions.canEditEmployees && showFilterPopover && (
         <Card className="p-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-semibold text-sm">Filter Employees</h4>
-              <Button variant="ghost" size="sm" onClick={() => {
-                clearDateFilters();
-                clearAllFilters();
-                setFilterApplied(false);
-              }} className="h-7 px-2 text-xs">
-                <X className="h-3 w-3 mr-1" />
-                Clear All
+              <Button variant="ghost" size="sm" onClick={() => setShowFilterPopover(false)} className="h-7 w-7 p-0">
+                <X className="h-4 w-4" />
               </Button>
             </div>
             
@@ -1354,31 +2092,6 @@ export function WorkforceSummary() {
                 </Select>
               </div>
 
-              {/* Designation Filter */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Designation</label>
-                <Select
-                  value={selectedDesignations[0] || "all"}
-                  onValueChange={(value) => {
-                    if (value === "all") {
-                      setSelectedDesignations([]);
-                    } else {
-                      setSelectedDesignations([value]);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select designation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Designations</SelectItem>
-                    {uniqueDesignations.map(designation => (
-                      <SelectItem key={designation} value={designation}>{designation}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               {/* Location Filter */}
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</label>
@@ -1428,30 +2141,55 @@ export function WorkforceSummary() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Grade/Band Filter */}
+              
+              {/* Experience Range Filter */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Grade/Band</label>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Experience</label>
                 <Select
-                  value={selectedGrades[0] || "all"}
+                  value={selectedExperienceRange || "all"}
                   onValueChange={(value) => {
                     if (value === "all") {
-                      setSelectedGrades([]);
+                      setSelectedExperienceRange('');
                     } else {
-                      setSelectedGrades([value]);
+                      setSelectedExperienceRange(value);
                     }
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select grade/band" />
+                    <SelectValue placeholder="Select experience range" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Grades</SelectItem>
-                    {uniqueGrades.map(grade => (
-                      <SelectItem key={grade} value={grade}>{grade}</SelectItem>
-                    ))}
+                    <SelectItem value="all">All Experience Levels</SelectItem>
+                    <SelectItem value="0-2">0-2 years</SelectItem>
+                    <SelectItem value="3-5">3-5 years</SelectItem>
+                    <SelectItem value="6-10">6-10 years</SelectItem>
+                    <SelectItem value="10+">10+ years</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              
+              {/* Salary Range Filter - Min */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Salary Min (₹)</label>
+                <Input
+                  type="number"
+                  placeholder="Enter minimum salary"
+                  value={salaryMin}
+                  onChange={(e) => setSalaryMin(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              
+              {/* Salary Range Filter - Max */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Salary Max (₹)</label>
+                <Input
+                  type="number"
+                  placeholder="Enter maximum salary"
+                  value={salaryMax}
+                  onChange={(e) => setSalaryMax(e.target.value)}
+                  className="w-full"
+                />
               </div>
             </div>
 
@@ -1468,160 +2206,198 @@ export function WorkforceSummary() {
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 pt-1">
-              <Button
-                onClick={() => {
-                  setFilterApplied(true);
-                  setShowFilterPopover(false);
-                }}
-                className="flex-1"
-                size="sm"
-              >
-                <Filter className="h-3 w-3 mr-2" />
-                Apply Filters
-              </Button>
-              <Button
-                onClick={() => {
-                  clearDateFilters();
-                  clearAllFilters();
-                  setFilterApplied(false);
-                  setShowFilterPopover(false);
-                }}
-                variant="outline"
-                size="sm"
-                className="flex-1"
-              >
-                Clear All
-              </Button>
-            </div>
           </div>
         </Card>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          
-          // Define card styling per metric
-          const cardStyles = [
-            'border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20',
-            'border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20',
-            'border-l-4 border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20',
-            'border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20'
-          ];
-          
-          const iconStyles = [
-            'bg-blue-100 dark:bg-blue-900/30',
-            'bg-green-100 dark:bg-green-900/30',
-            'bg-purple-100 dark:bg-purple-900/30',
-            'bg-red-100 dark:bg-red-900/30'
-          ];
-          
-          // Handle KPI card click to filter data table
-          const handleCardClick = () => {
-            // Scroll to datatable
-            const tableElement = document.querySelector('[data-table="employee-directory"]');
-            if (tableElement) {
-              tableElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-            
-            // Apply specific filter based on card type
-            clearAllFilters();
-            clearDateFilters();
-            
-            switch(stat.label) {
-              case 'Total Headcount':
-              case 'Total Filtered':
-              case 'Total in Range':
-                // Show all employees - no specific filter
-                setFilterApplied(true);
-                break;
-              case 'Active Employees':
-              case 'Active (Filtered)':
-                // Already filtered by active in filteredEmployees
-                setFilterApplied(true);
-                break;
-              case 'New Hires':
-              case 'New Joiners':
-                // Filter by recent joiners (this year)
-                const startOfYear = new Date(new Date().getFullYear(), 0, 1);
-                setFromDate(startOfYear);
-                setFilterApplied(true);
-                break;
-              case 'Exits':
-              case 'Inactive':
-                // Show inactive employees - would need status filter
-                setFilterApplied(true);
-                break;
-            }
-          };
-          
-          return (
-            <Card 
-              key={stat.label} 
-              className="hover:shadow-md transition-shadow rounded-xl shadow-sm cursor-pointer" 
-              onClick={handleCardClick}
-            >
-              <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
-                {stat.icon && (
-                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${iconStyles[index]}`}>
-                    <Icon className={`h-4 w-4 ${stat.color}`} />
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                {stat.splitDisplay ? (
-                  // MTD/YTD split display for New Hires and Exits
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <div className="text-xs text-muted-foreground font-medium">MTD</div>
-                      <div className="text-2xl font-bold">{stat.mtd}</div>
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xs text-muted-foreground font-medium">YTD</div>
-                      <div className="text-2xl font-bold">{stat.ytd}</div>
-                    </div>
-                  </div>
-                ) : (
-                  // Regular display
+      {/* Stats Cards - 5 in a single row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+
+        {/* 1. Total Employees */}
+        <Card className="hover:shadow-md transition-shadow rounded-xl shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Employees</span>
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-blue-100 dark:bg-blue-900/30">
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-3">
+              {filteredEmployees.filter(e => e.status === 'active').length}
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground flex items-center gap-1"><UserPlus className="h-3 w-3" /> New Hires</span>
+                <span className="font-semibold text-green-600 bg-green-50 dark:bg-green-950/30 px-1.5 py-0.5 rounded">{newHiresThisMonth}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Exits</span>
+                <span className="font-semibold text-red-600 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded">{exitsThisMonth}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 2. Attrition Rate */}
+        <Card className="hover:shadow-md transition-shadow rounded-xl shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Attrition Rate</span>
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-orange-100 dark:bg-orange-900/30">
+                <TrendingUp className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-3">{attritionRate}%</div>
+            <Progress value={parseFloat(attritionRate)} className="h-2" />
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+              <span>0%</span><span>100%</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 3. Demographics */}
+        <Card className="hover:shadow-md transition-shadow rounded-xl shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Demographics</span>
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-pink-100 dark:bg-pink-900/30">
+                <User className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="h-[100px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPie>
+                    <Pie data={[{ name: 'Male', value: genderStats.male }, { name: 'Female', value: genderStats.female }]}
+                      cx="50%" cy="50%" innerRadius={28} outerRadius={46} paddingAngle={2} dataKey="value">
+                      <Cell fill="#3b82f6" />
+                      <Cell fill="#ec4899" />
+                    </Pie>
+                    <Tooltip formatter={(v) => [`${v}`, '']} contentStyle={{ fontSize: 10 }} />
+                  </RechartsPie>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex gap-2 text-[10px]">
+                <div className="flex items-center gap-1.5 p-1.5 rounded bg-blue-50 dark:bg-blue-950/30 flex-1">
+                  <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                   <div>
-                    <div className="flex items-baseline gap-2">
-                      <div className="text-2xl font-bold">{stat.value}</div>
-                      {stat.trend !== undefined && (
-                        <div className={`flex items-center text-xs font-medium ${
-                          stat.trend > 0 
-                            ? 'text-green-600 dark:text-green-400' 
-                            : stat.trend < 0 
-                            ? 'text-red-600 dark:text-red-400' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          {stat.trend > 0 ? (
-                            <ArrowUp className="h-3 w-3" />
-                          ) : stat.trend < 0 ? (
-                            <ArrowDown className="h-3 w-3" />
-                          ) : (
-                            <Minus className="h-3 w-3" />
-                          )}
-                          <span>{Math.abs(stat.trend)}</span>
-                        </div>
-                      )}
-                    </div>
-                    {stat.subValue && (
-                      <div className="text-xs text-muted-foreground mt-1">{stat.subValue}</div>
-                    )}
-                    {stat.attritionRate !== undefined && (
-                      <div className="text-xs text-muted-foreground mt-1">{stat.attritionRate}% attrition</div>
-                    )}
+                    <div className="font-semibold text-blue-700 dark:text-blue-300">Male</div>
+                    <div className="text-muted-foreground">{genderStats.male} ({genderStats.male + genderStats.female > 0 ? ((genderStats.male / (genderStats.male + genderStats.female)) * 100).toFixed(0) : 0}%)</div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+                </div>
+                <div className="flex items-center gap-1.5 p-1.5 rounded bg-pink-50 dark:bg-pink-950/30 flex-1">
+                  <div className="w-2 h-2 rounded-full bg-pink-500 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold text-pink-700 dark:text-pink-300">Female</div>
+                    <div className="text-muted-foreground">{genderStats.female} ({genderStats.male + genderStats.female > 0 ? ((genderStats.female / (genderStats.male + genderStats.female)) * 100).toFixed(0) : 0}%)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 4. Average Age */}
+        <Card className="hover:shadow-md transition-shadow rounded-xl shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Average Age</span>
+              <span className="text-lg font-bold text-pink-600">{averageAge} yrs</span>
+            </div>
+            <div className="h-[120px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={ageDistribution} margin={{ top: 2, right: 4, left: 8, bottom: 14 }} barCategoryGap="25%">
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 8 }} />
+                  <YAxis tick={{ fontSize: 8 }} width={20} allowDecimals={false} />
+                  <Tooltip contentStyle={{ fontSize: 9 }}
+                    formatter={(value: number, name: string, props: any) => {
+                      const total = props.payload?.total || 1;
+                      const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                      return [`${value} (${pct}%)`, name];
+                    }} />
+                  <Bar dataKey="Male"   stackId="a" fill="#0EA5E9" radius={[0,0,0,0]} />
+                  <Bar dataKey="Female" stackId="a" fill="#F43F5E" radius={[0,0,0,0]} />
+                  <Bar dataKey="Other"  stackId="a" fill="#A855F7" radius={[3,3,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex items-center justify-center gap-3 text-[9px]">
+              {[{ label: 'Male', color: '#0EA5E9' }, { label: 'Female', color: '#F43F5E' }, { label: 'Other', color: '#A855F7' }].map(g => (
+                <div key={g.label} className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: g.color }} />
+                  <span className="text-muted-foreground">{g.label}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 5. Average Tenure */}
+        <Card className="hover:shadow-md transition-shadow rounded-xl shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Avg Tenure</span>
+              <span className="text-lg font-bold text-purple-600">{averageTenure} yrs</span>
+            </div>
+            <div className="h-[110px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsPie>
+                  <Pie data={tenureDistribution} cx="50%" cy="50%" outerRadius={46} paddingAngle={2} dataKey="value"
+                    label={({ value }) => value > 0 ? value : ''} labelLine={false}>
+                    {tenureDistribution.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={['#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe'][index]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v, n) => [`${v}`, n]} contentStyle={{ fontSize: 10 }} />
+                </RechartsPie>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid grid-cols-2 gap-1 text-[9px] mt-1">
+              {tenureDistribution.map((t, idx) => (
+                <div key={idx} className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: ['#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe'][idx] }} />
+                  <span className="text-muted-foreground truncate">{t.name}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Department Chart - Full Width (hidden when filters are active) */}
+      {!hasAnyFilters && (
+        <Card className="hover:shadow-md transition-shadow rounded-xl shadow-sm">
+          <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle className="text-base font-semibold">Department Count</CardTitle>
+              <CardDescription className="text-xs mt-1">Top 10 departments by employee count</CardDescription>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{departmentData.length} Depts</span>
+              <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-purple-100 dark:bg-purple-900/30">
+                <BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="h-[240px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={departmentData} layout="vertical" margin={{ top: 2, right: 40, left: 4, bottom: 2 }} barCategoryGap="20%">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.3} />
+                  <XAxis type="number" tick={{ fontSize: 9 }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 9 }}
+                    tickFormatter={(v) => v.length > 14 ? v.slice(0, 14) + '…' : v} />
+                  <Tooltip contentStyle={{ fontSize: 10, borderRadius: 6 }} formatter={(value) => [`${value}`, 'Employees']} />
+                  <Bar dataKey="value" fill="#6366F1" radius={[0, 4, 4, 0]}>
+                    <LabelList dataKey="value" position="right" style={{ fontSize: 9, fill: '#6b7280' }} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Employee DataTable - Only for HR Admin and Super Admin */}
       {permissions.canEditEmployees && (
@@ -1632,7 +2408,6 @@ export function WorkforceSummary() {
                 <CardTitle className="text-xl">Employee Directory</CardTitle>
                 <CardDescription className="mt-1">
                   {sortedEmployees.length} {sortedEmployees.length === 1 ? 'employee' : 'employees'}
-                  {hasActiveFilters && ' (filtered)'}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -1715,44 +2490,41 @@ export function WorkforceSummary() {
               </div>
             </div>
             
-            {/* Active Filters Display */}
-            {hasActiveFilters && (
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                  {selectedDepartments.map(dept => (
-                    <Badge key={dept} variant="secondary" className="gap-1">
-                      {dept}
-                      <button onClick={() => setSelectedDepartments(selectedDepartments.filter(d => d !== dept))}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                  {selectedLocations.map(loc => (
-                    <Badge key={loc} variant="secondary" className="gap-1">
-                      {loc}
-                      <button onClick={() => setSelectedLocations(selectedLocations.filter(l => l !== loc))}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                  {selectedGrades.map(grade => (
-                    <Badge key={grade} variant="secondary" className="gap-1">
-                      {grade}
-                      <button onClick={() => setSelectedGrades(selectedGrades.filter(g => g !== grade))}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                  {selectedEmploymentTypes.map(type => (
-                    <Badge key={type} variant="secondary" className="gap-1">
-                      {type}
-                      <button onClick={() => setSelectedEmploymentTypes(selectedEmploymentTypes.filter(t => t !== type))}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
           </CardHeader>
+          
+          {/* Tabs for Active/Inactive Employees */}
+          <div className="px-6 pt-4 pb-0 bg-muted/20">
+            <div className="flex gap-1 border-b border-border">
+              <button
+                onClick={() => setEmployeeTab('active')}
+                className={`flex items-center gap-2 px-4 py-2.5 font-medium text-sm transition-colors relative ${
+                  employeeTab === 'active'
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                Active Employees ({employees.filter(e => e.status === 'active').length})
+                {employeeTab === 'active' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
+              </button>
+              <button
+                onClick={() => setEmployeeTab('inactive')}
+                className={`flex items-center gap-2 px-4 py-2.5 font-medium text-sm transition-colors relative ${
+                  employeeTab === 'inactive'
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <UserX className="h-4 w-4" />
+                Inactive Employees ({employees.filter(e => e.status === 'inactive').length})
+                {employeeTab === 'inactive' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
+              </button>
+            </div>
+          </div>
           
           <CardContent className="p-0">
             {/* Table */}
@@ -1760,7 +2532,9 @@ export function WorkforceSummary() {
               data={sortedEmployees}
               columns={employeeTableColumns.map(col => ({ 
                 ...col, 
-                hidden: columnVisibility[col.key] === false 
+                hidden: columnVisibility[col.key] !== undefined 
+                  ? columnVisibility[col.key] === false 
+                  : (col.hidden || false)
               }))}
               actions={employeeTableActions}
               searchable={false}
@@ -1768,7 +2542,9 @@ export function WorkforceSummary() {
               pageSize={15}
               emptyMessage={hasActiveFilters 
                 ? 'No employees found. Try adjusting your search filters to see more results.'
-                : 'No active employees in the system yet.'}
+                : employeeTab === 'active' 
+                  ? 'No active employees in the system yet.'
+                  : 'No inactive employees in the system.'}
               onRowClick={(employee) => handleViewEmployee(employee.employeeId)}
             />
           </CardContent>
@@ -2103,6 +2879,54 @@ export function WorkforceSummary() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Mark Inactive Confirmation Dialog */}
+      <AlertDialog open={showInactiveDialog} onOpenChange={setShowInactiveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark Employee as Inactive</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark <strong>{employeeToInactivate?.name}</strong> as inactive? 
+              This will remove them from active employee lists and they will no longer have access to the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowInactiveDialog(false);
+              setEmployeeToInactivate(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkInactive}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Move to Active Confirmation Dialog */}
+      <AlertDialog open={showActivateDialog} onOpenChange={setShowActivateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Move Employee to Active</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to move <strong>{employeeToActivate?.name}</strong> to active status? 
+              This will restore their access to the system and they will appear in active employee lists.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowActivateDialog(false);
+              setEmployeeToActivate(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleActivateEmployee}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

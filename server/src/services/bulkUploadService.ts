@@ -464,6 +464,8 @@ export class BulkUploadService {
         leavePlan: employee.leavePlan,
         role: 'EMPLOYEE', // Default role
         status: 'active',
+        hasLoginAccess: true,
+        isActive: true,
         
         // Step 3: Contact Information
         workPhone: employee.workPhone,

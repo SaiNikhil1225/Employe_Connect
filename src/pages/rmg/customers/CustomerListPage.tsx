@@ -11,6 +11,7 @@ import { StatCard } from '@/components/common/StatCard';
 import { ColumnToggle, type ColumnVisibility } from './components/ColumnToggle';
 import { MultiSelect, type Option } from '@/components/ui/multi-select';
 import type { CustomerFilters } from '@/types/customer';
+import { PageHeader } from '@/components/ui/page-header';
 import {
   Select,
   SelectContent,
@@ -129,21 +130,17 @@ export function CustomerListPage() {
 
   return (
     <div className="page-container">
-      <div className="page-header mb-6">
-        <div className="page-header-content">
-          <div className="flex items-start gap-3">
-            <Users className="h-7 w-7 text-primary mt-1" />
-            <div>
-              <h1 className="page-title">Customers</h1>
-              <p className="page-description">Manage your customer database</p>
-            </div>
-          </div>
-        </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Customer
-        </Button>
-      </div>
+      <PageHeader
+        icon={Users}
+        title="Customers"
+        description="Manage your customer database"
+        actions={
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Customer
+          </Button>
+        }
+      />
 
       {/* Quick Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">

@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import {
   Headphones,
   Plus,
@@ -340,31 +341,23 @@ export default function Helpdesk() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <Headphones className="h-7 w-7 text-primary" />
-            Helpdesk
-          </h1>
-          <p className="page-description">
-            {isSpecialist
-              ? 'Manage and resolve helpdesk tickets'
-              : 'Submit and track your helpdesk requests'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {(isEmployee || isManager) && (
-            <Button
-              onClick={() => setIsDrawerOpen(true)}
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-white"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Raise a Request
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        icon={Headphones}
+        title="Helpdesk"
+        description={isSpecialist
+          ? 'Manage and resolve helpdesk tickets'
+          : 'Submit and track your helpdesk requests'}
+        actions={(isEmployee || isManager) ? (
+          <Button
+            onClick={() => setIsDrawerOpen(true)}
+            size="lg"
+            className="bg-primary hover:bg-primary/90 text-white"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Raise a Request
+          </Button>
+        ) : undefined}
+      />
 
       {/* Statistics Cards with Department Filter Tabs */}
       <div className="space-y-3">

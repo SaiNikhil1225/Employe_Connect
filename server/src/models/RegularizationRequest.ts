@@ -5,7 +5,7 @@ export interface IRegularizationRequest extends Document {
   employeeName: string;
   department: string;
   date: Date;
-  requestType: 'late-arrival' | 'early-departure' | 'missing-punch' | 'wfh-conversion';
+  requestType: 'late-arrival' | 'early-departure' | 'missing-punch' | 'wfh-conversion' | 'general-regularization';
   reason: string;
   proposedCheckIn?: Date;
   proposedCheckOut?: Date;
@@ -40,7 +40,7 @@ const regularizationRequestSchema = new Schema<IRegularizationRequest>({
   },
   requestType: {
     type: String,
-    enum: ['late-arrival', 'early-departure', 'missing-punch', 'wfh-conversion'],
+    enum: ['late-arrival', 'early-departure', 'missing-punch', 'wfh-conversion', 'general-regularization'],
     required: true
   },
   reason: {

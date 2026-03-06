@@ -22,6 +22,7 @@ import {
   ChevronsUpDown,
   Bell,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   format,
   startOfWeek,
@@ -3076,61 +3077,56 @@ const WeeklyTimesheet: React.FC = () => {
   return (
     <div className="page-container">
       {/* Page Header with Week Navigation */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <ClipboardList className="h-7 w-7 text-primary" />
-            Weekly Timesheet
-          </h1>
-          <p className="page-description">
-            Track and manage your weekly work hours
-          </p>
-        </div>
-        {/* Week Navigation */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border gap-4">
-            <button
-              onClick={handlePrevWeek}
-              className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all border border-transparent hover:border-slate-200"
-            >
-              <ChevronLeft className="h-4 w-4 text-slate-600" />
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col items-center">
-                <span className="text-[9px] font-black text-primary/60 uppercase">
-                  Week
-                </span>
-                <span className="text-xs font-black text-primary leading-none">
-                  W{format(startDate, "w")}
+      <PageHeader
+        icon={ClipboardList}
+        title="Weekly Timesheet"
+        description="Track and manage your weekly work hours"
+        actions={
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border gap-4">
+              <button
+                onClick={handlePrevWeek}
+                className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all border border-transparent hover:border-slate-200"
+              >
+                <ChevronLeft className="h-4 w-4 text-slate-600" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col items-center">
+                  <span className="text-[9px] font-black text-primary/60 uppercase">
+                    Week
+                  </span>
+                  <span className="text-xs font-black text-primary leading-none">
+                    W{format(startDate, "w")}
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-200 min-w-[180px] text-center">
+                  {format(startDate, "dd MMM yyyy")} -{" "}
+                  {format(endDate, "dd MMM yyyy")}
                 </span>
               </div>
-              <span className="text-sm font-bold text-slate-700 dark:text-slate-200 min-w-[180px] text-center">
-                {format(startDate, "dd MMM yyyy")} -{" "}
-                {format(endDate, "dd MMM yyyy")}
-              </span>
+              <button
+                onClick={handleNextWeek}
+                className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all border border-transparent hover:border-slate-200"
+              >
+                <ChevronRight className="h-4 w-4 text-slate-600" />
+              </button>
             </div>
+            {/* Color Legend Button - Icon Only */}
             <button
-              onClick={handleNextWeek}
-              className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all border border-transparent hover:border-slate-200"
+              onClick={() => setIsColorGuideOpen(true)}
+              className="h-9 w-9 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 transition-all shadow-sm flex items-center justify-center"
+              title="View Color Guide"
             >
-              <ChevronRight className="h-4 w-4 text-slate-600" />
+              <div className="grid grid-cols-2 gap-0.5 w-4 h-4">
+                <div className="bg-indigo-400 rounded-sm"></div>
+                <div className="bg-emerald-400 rounded-sm"></div>
+                <div className="bg-amber-400 rounded-sm"></div>
+                <div className="bg-purple-400 rounded-sm"></div>
+              </div>
             </button>
           </div>
-          {/* Color Legend Button - Icon Only */}
-          <button
-            onClick={() => setIsColorGuideOpen(true)}
-            className="h-9 w-9 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 transition-all shadow-sm flex items-center justify-center"
-            title="View Color Guide"
-          >
-            <div className="grid grid-cols-2 gap-0.5 w-4 h-4">
-              <div className="bg-indigo-400 rounded-sm"></div>
-              <div className="bg-emerald-400 rounded-sm"></div>
-              <div className="bg-amber-400 rounded-sm"></div>
-              <div className="bg-purple-400 rounded-sm"></div>
-            </div>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Tabs with Action Buttons - Sticky */}
       <div className="sticky top-0 z-40 bg-white">

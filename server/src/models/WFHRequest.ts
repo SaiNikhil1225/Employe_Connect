@@ -4,7 +4,8 @@ export interface IWFHRequest extends Document {
   employeeId: string;
   employeeName: string;
   department: string;
-  date: Date;
+  fromDate: Date;
+  toDate: Date;
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
   approvedBy?: string;
@@ -12,6 +13,8 @@ export interface IWFHRequest extends Document {
   rejectedBy?: string;
   rejectedAt?: Date;
   rejectionReason?: string;
+  reportingManagerId?: string;
+  reportingManagerName?: string;
 }
 
 const wfhRequestSchema = new Schema<IWFHRequest>({
@@ -28,7 +31,12 @@ const wfhRequestSchema = new Schema<IWFHRequest>({
     type: String,
     required: true
   },
-  date: {
+  fromDate: {
+    type: Date,
+    required: true,
+    index: true
+  },
+  toDate: {
     type: Date,
     required: true,
     index: true
@@ -49,14 +57,17 @@ const wfhRequestSchema = new Schema<IWFHRequest>({
   approvedAt: Date,
   rejectedBy: String,
   rejectedAt: Date,
-  rejectionReason: String
+  rejectionReason: String,
+  reportingManagerId: String,
+  reportingManagerName: String
 }, {
   timestamps: true
 });
 
 // Indexes
 wfhRequestSchema.index({ employeeId: 1, status: 1 });
-wfhRequestSchema.index({ status: 1, date: -1 });
-wfhRequestSchema.index({ department: 1, date: -1 });
+wfhRequestSchema.index({ status: 1, fromDate: -1 });
+wfhRequestSchema.index({ department: 1, fromDate: -1 });
+wfhRequestSchema.index({ reportingManagerId: 1, status: 1 });
 
 export default mongoose.model<IWFHRequest>('WFHRequest', wfhRequestSchema);

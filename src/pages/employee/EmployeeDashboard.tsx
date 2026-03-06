@@ -437,15 +437,15 @@ export function EmployeeDashboard() {
                 {(user?.role === 'MANAGER' ? [
                   { label: 'Team Approvals', icon: FileText, path: '/manager/leave-approvals', color: 'bg-purple-500 hover:bg-purple-600' },
                   { label: 'View Team', icon: Users, path: '/my-team', color: 'bg-blue-500 hover:bg-blue-600' },
-                  { label: 'View Attendance', icon: Clock, path: '/employee/my-attendance', color: 'bg-green-500 hover:bg-green-600' },
+                  { label: 'View Attendance', icon: Clock, path: '/employee/my-attendance-enhanced', color: 'bg-green-500 hover:bg-green-600' },
                 ] : user?.role === 'IT_ADMIN' ? [
                   { label: 'View Tickets', icon: Zap, path: '/itadmin/tickets', color: 'bg-green-500 hover:bg-green-600' },
                   { label: 'IT Dashboard', icon: BarChart3, path: '/itadmin/dashboard', color: 'bg-blue-500 hover:bg-blue-600' },
-                  { label: 'View Attendance', icon: Clock, path: '/employee/my-attendance', color: 'bg-gray-500 hover:bg-gray-600' },
+                  { label: 'View Attendance', icon: Clock, path: '/employee/my-attendance-enhanced', color: 'bg-gray-500 hover:bg-gray-600' },
                 ] : [
                   { label: 'Apply Leave', icon: Calendar, path: '/leave', color: 'bg-blue-500 hover:bg-blue-600' },
                   { label: 'Raise Ticket', icon: MessageCircle, path: '/helpdesk', color: 'bg-green-500 hover:bg-green-600' },
-                  { label: 'View Attendance', icon: Clock, path: '/employee/my-attendance', color: 'bg-purple-500 hover:bg-purple-600' },
+                  { label: 'View Attendance', icon: Clock, path: '/employee/my-attendance-enhanced', color: 'bg-purple-500 hover:bg-purple-600' },
                 ]).map((action, index) => {
                   const ActionIcon = action.icon;
                   return (

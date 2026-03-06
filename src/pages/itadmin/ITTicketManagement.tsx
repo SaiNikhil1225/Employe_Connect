@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
+import { PageHeader } from '@/components/ui/page-header';
 import { SpecialistQueuePage } from '@/components/helpdesk/SpecialistQueuePage';
 import { helpdeskService } from '@/services/helpdeskService';
 import type { HelpdeskTicket, SpecialistQueue } from '@/types/helpdeskNew';
@@ -327,20 +328,13 @@ export function ITTicketManagement() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <Headphones className="h-7 w-7 text-primary" />
-            {isITAdmin ? 'IT Tickets - View Only' : 'IT Ticket Management'}
-          </h1>
-          <p className="page-description">
-            {isITAdmin 
-              ? 'View all IT helpdesk tickets. Use IT Admin Dashboard to assign tickets.'
-              : 'Manage and resolve IT helpdesk tickets across all teams'
-            }
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Headphones}
+        title={isITAdmin ? 'IT Tickets - View Only' : 'IT Ticket Management'}
+        description={isITAdmin
+          ? 'View all IT helpdesk tickets. Use IT Admin Dashboard to assign tickets.'
+          : 'Manage and resolve IT helpdesk tickets across all teams'}
+      />
 
       {/* IT Admin Notice */}
       {isITAdmin && (

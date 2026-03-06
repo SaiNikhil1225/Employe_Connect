@@ -1,18 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wallet, Construction } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function Payroll() {
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-content">
-          <h1 className="page-title">
-            <Wallet className="h-7 w-7 text-primary" />
-            My Payroll
-          </h1>
-          <p className="page-description">View your salary and payslips</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Wallet}
+        title="My Payroll"
+        description="View your salary and payslips"
+      />
 
       <Card>
         <CardHeader>

@@ -59,15 +59,18 @@ import {
     CheckSquare,
     XSquare
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 
 // Module definitions with enabled/disabled status
+// Note: HIRING and FINANCE are not yet in the DB schema — kept as disabled placeholders.
 const MODULE_DEFINITIONS = [
     { name: 'Employee', key: 'EMPLOYEE', enabled: true, icon: '👤', color: 'bg-blue-100 dark:bg-blue-900 border-blue-300' },
     { name: 'RMG', key: 'RMG', enabled: true, icon: '📊', color: 'bg-purple-100 dark:bg-purple-900 border-purple-300', description: 'Resource Management Group' },
     { name: 'Helpdesk', key: 'HELPDESK', enabled: true, icon: '🎫', color: 'bg-orange-100 dark:bg-orange-900 border-orange-300', description: 'IT, Facilities & Finance Support' },
     { name: 'Leave Management', key: 'LEAVE', enabled: true, icon: '🏖️', color: 'bg-pink-100 dark:bg-pink-900 border-pink-300' },
-    { name: 'Hiring', key: 'HIRING', enabled: true, icon: '👥', color: 'bg-cyan-100 dark:bg-cyan-900 border-cyan-300', description: 'Recruitment & Onboarding' },
-    { name: 'Finance', key: 'FINANCE', enabled: true, icon: '💰', color: 'bg-green-100 dark:bg-green-900 border-green-300', description: 'Financial Management' },
+    { name: 'HR', key: 'HR', enabled: true, icon: '🏢', color: 'bg-teal-100 dark:bg-teal-900 border-teal-300', description: 'HR Administration' },
+    { name: 'Hiring', key: 'HIRING', enabled: false, icon: '👥', color: 'bg-cyan-100 dark:bg-cyan-900 border-cyan-300', description: 'Coming soon' },
+    { name: 'Finance', key: 'FINANCE', enabled: false, icon: '💰', color: 'bg-green-100 dark:bg-green-900 border-green-300', description: 'Coming soon' },
 ];
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -310,14 +313,16 @@ export default function PermissionsMatrix() {
             prev.map(user => {
                 if (user.employeeId === employeeId) {
                     if (field === 'isAdmin') {
-                        // When admin is toggled on, automatically grant add and modify permissions
+                        // When admin is toggled on, automatically enable the module
+                        // and grant all sub-permissions
                         return {
                             ...user,
                             isAdmin: value,
+                            enabled: value ? true : user.enabled, // enabling admin also enables the module
                             permissions: {
-                                ...user.permissions,
-                                add: value,
-                                modify: value
+                                view: value ? true : user.permissions.view,
+                                add: value ? true : user.permissions.add,
+                                modify: value ? true : user.permissions.modify,
                             }
                         };
                     } else if (field === 'enabled') {
@@ -458,17 +463,11 @@ export default function PermissionsMatrix() {
     return (
         <div className="page-container">
             {/* Header */}
-            <div className="page-header">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                        <Shield className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                        <h1 className="page-title">Module Permissions</h1>
-                        <p className="page-description">View and manage module access permissions across all employees</p>
-                    </div>
-                </div>
-            </div>
+            <PageHeader
+                icon={Shield}
+                title="Module Permissions"
+                description="View and manage module access permissions across all employees"
+            />
 
             {/* Module Cards */}
             {loading ? (

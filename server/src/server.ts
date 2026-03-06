@@ -44,6 +44,7 @@ import teamsRoutes from './routes/teams';
 import surveysRoutes from './routes/surveys';
 import eventsRoutes from './routes/events';
 import pollsRoutes from './routes/polls';
+import pipRoutes from './routes/pip';
 
 dotenv.config();
 
@@ -148,6 +149,7 @@ app.use('/api/new-joiners', newJoinerRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/profiles', profileRoutes);
+app.use('/api/attendance', attendanceRoutes);
 app.use('/api/attendance', attendanceAdvancedRoutes);
 app.use('/api/helpdesk', helpdeskRoutes);
 app.use('/api/notifications', notificationRoutes);
@@ -175,6 +177,7 @@ app.use('/api/teams', teamsRoutes);
 app.use('/api/surveys', surveysRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/polls', pollsRoutes);
+app.use('/api/pip', pipRoutes);
 
 // Health check with DB status
 app.get('/api/health', (req: Request, res: Response) => {
