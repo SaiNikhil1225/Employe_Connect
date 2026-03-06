@@ -1,0 +1,1 @@
+{"version":3,"file":"TicketCounter.d.ts","sourceRoot":"","sources":["../../src/models/TicketCounter.ts"],"names":[],"mappings":"AAAA,OAAiB,EAAE,KAAK,EAAE,MAAM,UAAU,CAAC;AAE3C,UAAU,cAAc;IACtB,GAAG,EAAE,MAAM,CAAC;IACZ,QAAQ,EAAE,MAAM,CAAC;CAClB;AAED,UAAU,mBAAoB,SAAQ,KAAK,CAAC,cAAc,CAAC;IACzD,eAAe,IAAI,OAAO,CAAC,MAAM,CAAC,CAAC;CACpC;;AA0CD,wBAAyG"}

@@ -1,0 +1,22 @@
+import { Request, Response } from 'express';
+export declare const getStats: (req: Request, res: Response) => Promise<void>;
+export declare const getTimings: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getLogs: (req: Request, res: Response) => Promise<void>;
+export declare const submitRegularization: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const submitWFHRequest: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const webClockIn: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const webClockOut: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getAdminStats: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getTeamLogs: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getRegularizationRequests: (req: Request, res: Response) => Promise<void>;
+export declare const approveRegularization: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const rejectRegularization: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getWFHRequests: (req: Request, res: Response) => Promise<void>;
+export declare const approveWFHRequest: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const rejectWFHRequest: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const bulkApprove: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const bulkReject: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const addManualEntry: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const exportData: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getAttendancePolicy: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+//# sourceMappingURL=attendanceController.d.ts.map
