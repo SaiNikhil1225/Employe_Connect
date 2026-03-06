@@ -25,4 +25,7 @@ export default defineConfig({
       '@radix-ui/react-separator',
     ],
   },
+  build: {
+    chunkSizeWarningLimit: 5000,
+  },
 })
