@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios';
+import apiClient from '@/services/api';
 import type { FinancialLine, FinancialLineFormData, FinancialLineFilters } from '@/types/financialLine';
 
 interface FinancialLineStore {
@@ -41,12 +41,7 @@ export const useFinancialLineStore = create<FinancialLineStore>((set, get) => ({
       if (filters.contractType && filters.contractType.trim()) params.append('contractType', filters.contractType);
       if (filters.projectId && filters.projectId.trim()) params.append('projectId', filters.projectId);
 
-      console.log('fetchFLs - Fetching with filters:', filters);
-      console.log('fetchFLs - API URL:', `/api/financial-lines?${params.toString()}`);
-      
-      const response = await axios.get(`/api/financial-lines?${params.toString()}`);
-      console.log('fetchFLs - Received FLs:', response.data.data.length);
-      console.log('fetchFLs - FL data:', response.data.data);
+      const response = await apiClient.get(`/financial-lines?${params.toString()}`);
       
       set({ fls: response.data.data, loading: false });
     } catch (error: unknown) {
@@ -59,10 +54,7 @@ export const useFinancialLineStore = create<FinancialLineStore>((set, get) => ({
   createFL: async (data: FinancialLineFormData) => {
     set({ loading: true, error: null });
     try {
-      console.log('createFL - Sending data:', data);
-      const response = await axios.post('/api/financial-lines', data);
-      console.log('createFL - Response:', response.data);
-      console.log('createFL - Created FL:', response.data.data);
+      const response = await apiClient.post('/financial-lines', data);
       
       set((state) => ({
         fls: [response.data.data, ...state.fls],
@@ -78,7 +70,7 @@ export const useFinancialLineStore = create<FinancialLineStore>((set, get) => ({
   updateFL: async (id: string, data: Partial<FinancialLineFormData>) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.put(`/api/financial-lines/${id}`, data);
+      const response = await apiClient.put(`/financial-lines/${id}`, data);
       set((state) => ({
         fls: state.fls.map((fl) => (fl._id === id ? response.data.data : fl)),
         loading: false
@@ -93,7 +85,7 @@ export const useFinancialLineStore = create<FinancialLineStore>((set, get) => ({
   deleteFL: async (id: string) => {
     set({ loading: true, error: null });
     try {
-      await axios.delete(`/api/financial-lines/${id}`);
+      await apiClient.delete(`/financial-lines/${id}`);
       set((state) => ({
         fls: state.fls.filter((fl) => fl._id !== id),
         loading: false

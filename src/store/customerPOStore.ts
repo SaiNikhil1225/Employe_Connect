@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios';
+import apiClient from '@/services/api';
 import type { CustomerPO, CustomerPOFormData, CustomerPOFilters } from '@/types/customerPO';
 
 interface CustomerPOStore {
@@ -41,7 +41,7 @@ export const useCustomerPOStore = create<CustomerPOStore>((set, get) => ({
       if (filters.customerId && filters.customerId.trim()) params.append('customerId', filters.customerId);
       if (filters.projectId && filters.projectId.trim()) params.append('projectId', filters.projectId);
 
-      const response = await axios.get(`/api/customer-pos?${params.toString()}`);
+      const response = await apiClient.get(`/customer-pos?${params.toString()}`);
       set({ pos: response.data.data, loading: false });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to fetch customer POs';
@@ -52,7 +52,7 @@ export const useCustomerPOStore = create<CustomerPOStore>((set, get) => ({
   createPO: async (data: CustomerPOFormData) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.post('/api/customer-pos', data);
+      const response = await apiClient.post('/customer-pos', data);
       set((state) => ({
         pos: [response.data.data, ...state.pos],
         loading: false
@@ -85,7 +85,7 @@ export const useCustomerPOStore = create<CustomerPOStore>((set, get) => ({
   updatePO: async (id: string, data: Partial<CustomerPOFormData>) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.put(`/api/customer-pos/${id}`, data);
+      const response = await apiClient.put(`/customer-pos/${id}`, data);
       set((state) => ({
         pos: state.pos.map((po) => (po._id === id ? response.data.data : po)),
         loading: false
@@ -100,7 +100,8 @@ export const useCustomerPOStore = create<CustomerPOStore>((set, get) => ({
   deletePO: async (id: string) => {
     set({ loading: true, error: null });
     try {
-      await axios.delete(`/api/customer-pos/${id}`);
+      await apiClient.delete(`/customer-pos/${id}`);
+
       set((state) => ({
         pos: state.pos.filter((po) => po._id !== id),
         loading: false
