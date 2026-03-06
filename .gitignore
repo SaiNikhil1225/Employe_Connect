@@ -23,6 +23,10 @@ node_modules
 # Sensitive data files
 src/data/users.json
 
+# Migration scripts (contain or reference credentials)
+migrate-to-atlas.cjs
+server/migrate-to-atlas.cjs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
