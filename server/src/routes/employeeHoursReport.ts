@@ -36,6 +36,7 @@ interface EmployeeHoursData {
   employeeName: string;
   email: string;
   department: string;
+  projectName?: string;
   allocationHours: number;
   actualBillableHours: number;
   actualNonBillableHours: number;
