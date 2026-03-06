@@ -184,9 +184,12 @@ app.get('/api/health', (req: Request, res: Response) => {
   const dbState = mongoose.connection.readyState;
   const dbStates: Record<number, string> = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
   const uri = process.env.MONGODB_URI || '';
-  // Show only the host part for diagnostics (no credentials)
+  // Diagnostics: mask password but show full structure
   const uriHost = uri ? uri.split('@')[1]?.split('/')[0] || 'parse-error' : 'not-set';
   const uriUser = uri ? uri.split('//')[1]?.split(':')[0] || 'unknown' : 'not-set';
+  const uriMasked = uri ? uri.replace(/:([^@]+)@/, ':***@') : 'not-set';
+  const uriHasDbName = uri ? /\.mongodb\.net\/[a-zA-Z]/.test(uri) : false;
+  const uriPasswordLength = uri ? (uri.match(/:([^@]+)@/)?.[1]?.length ?? 0) : 0;
   res.json({ 
     status: 'ok', 
     message: 'Server is running',
@@ -197,8 +200,11 @@ app.get('/api/health', (req: Request, res: Response) => {
     nodeVersion: process.version,
     env: process.env.NODE_ENV || 'not set',
     mongoUriSet: !!process.env.MONGODB_URI,
+    mongoUriMasked: uriMasked,
     mongoUriHost: uriHost,
     mongoUriUser: uriUser,
+    mongoUriHasDbName: uriHasDbName,
+    mongoUriPasswordLength: uriPasswordLength,
     port: process.env.PORT || 'not set'
   });
 });
