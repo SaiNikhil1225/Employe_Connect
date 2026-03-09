@@ -564,7 +564,12 @@ export function ProjectForm({
                   <FormItem>
                     <FormLabel>HubSpot Deal ID</FormLabel>
                     <FormControl>
-                      <Input placeholder="DEAL-12345" {...field} disabled={isEditMode} />
+                      <Input
+                        placeholder="DEAL-12345"
+                        {...field}
+                        readOnly={isEditMode || isCustomerSelected}
+                        className={(isEditMode || isCustomerSelected) ? 'bg-muted cursor-not-allowed' : ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -727,20 +732,31 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Region *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    {isCustomerSelected ? (
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select region" />
-                        </SelectTrigger>
+                        <Input
+                          value={field.value || ''}
+                          readOnly
+                          placeholder="Auto-populated from customer"
+                          className="bg-muted cursor-not-allowed"
+                        />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="UK">UK</SelectItem>
-                        <SelectItem value="India">India</SelectItem>
-                        <SelectItem value="USA">USA</SelectItem>
-                        <SelectItem value="ME">Middle East</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    ) : (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select region" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="UK">UK</SelectItem>
+                          <SelectItem value="India">India</SelectItem>
+                          <SelectItem value="USA">USA</SelectItem>
+                          <SelectItem value="ME">Middle East</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -753,20 +769,31 @@ export function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Industry *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || isCustomerSelected}>
+                    {(isEditMode || isCustomerSelected) ? (
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select industry" />
-                        </SelectTrigger>
+                        <Input
+                          value={field.value || ''}
+                          readOnly
+                          placeholder="Auto-populated from customer"
+                          className="bg-muted cursor-not-allowed"
+                        />
                       </FormControl>
-                      <SelectContent>
-                        {INDUSTRIES.map((industry) => (
-                          <SelectItem key={industry} value={industry}>
-                            {industry}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    ) : (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select industry" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {INDUSTRIES.map((industry) => (
+                            <SelectItem key={industry} value={industry}>
+                              {industry}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -776,18 +803,20 @@ export function ProjectForm({
               <FormField
                 control={form.control}
                 name="regionHead"
-                render={({ field }) => {
-                  if (isEditMode) {
-                    console.log('🔵 Region Head Field:', {
-                      value: field.value,
-                      availableOptions: REGION_HEADS,
-                      isInOptions: REGION_HEADS.includes(field.value || ''),
-                    });
-                  }
-                  return (
-                    <FormItem>
-                      <FormLabel>Region Head *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={isCustomerSelected}>
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Region Head *</FormLabel>
+                    {isCustomerSelected ? (
+                      <FormControl>
+                        <Input
+                          {...field}
+                          readOnly
+                          placeholder="Auto-populated from customer"
+                          className="bg-muted cursor-not-allowed"
+                        />
+                      </FormControl>
+                    ) : (
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select region head" />
@@ -801,10 +830,10 @@ export function ProjectForm({
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
 
               {/* Lead Source */}
