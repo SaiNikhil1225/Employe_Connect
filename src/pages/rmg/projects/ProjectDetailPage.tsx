@@ -122,7 +122,7 @@ export function ProjectDetailPage() {
   const [allocatedDateFrom, setAllocatedDateFrom] = useState<Date | undefined>(undefined);
   const [allocatedDateTo, setAllocatedDateTo] = useState<Date | undefined>(undefined);
   const [allocatedTimeline, setAllocatedTimeline] = useState('all');
-  const [allocatedStatusFilter, setAllocatedStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
+  const [allocatedStatusFilter, setAllocatedStatusFilter] = useState<'active' | 'inactive' | 'all'>('all');
   const [allocatedHoursColumns, setAllocatedHoursColumns] = useState<string[]>(['allocated-percent', 'allocated-hour', 'actual', 'approved']);
 
   // Advanced Filters - Allocated Details Tab
@@ -204,10 +204,10 @@ export function ProjectDetailPage() {
         const responseData = await flResourcesResponse.json();
         const flResources = responseData.data || responseData; // Handle both formats
         
-        // Count unique employees (filter by unique employeeId)
+        // Count all unique allocated employees regardless of status
         const uniqueEmployees = new Set(
           flResources
-            .filter((resource: any) => resource.employeeId && resource.status === 'Active')
+            .filter((resource: any) => resource.employeeId)
             .map((resource: any) => resource.employeeId)
         );
         setCalculatedTeamSize(uniqueEmployees.size);
@@ -241,10 +241,10 @@ export function ProjectDetailPage() {
         const data = responseData.data || responseData; // Handle both formats
         setFlResources(data);
         
-        // Also update team size calculation
+        // Count all unique allocated employees regardless of status
         const uniqueEmployees = new Set(
           data
-            .filter((resource: any) => resource.employeeId && resource.status === 'Active')
+            .filter((resource: any) => resource.employeeId)
             .map((resource: any) => resource.employeeId)
         );
         setCalculatedTeamSize(uniqueEmployees.size);

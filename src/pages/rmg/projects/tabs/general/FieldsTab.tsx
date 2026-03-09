@@ -30,10 +30,10 @@ export function FieldsTab({ project }: FieldsTabProps) {
           const responseData = await flResourcesResponse.json();
           const flResources = responseData.data || responseData; // Handle both formats
           
-          // Count unique employees (filter by unique employeeId)
+          // Count all unique allocated employees regardless of status
           const uniqueEmployees = new Set(
             flResources
-              .filter((resource: any) => resource.employeeId && resource.status === 'Active')
+              .filter((resource: any) => resource.employeeId)
               .map((resource: any) => resource.employeeId)
           );
           setCalculatedTeamSize(uniqueEmployees.size);
