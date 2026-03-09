@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +37,7 @@ export function ResourcePool() {
         const employees = await employeeService.getActive();
 
         // Fetch all active FL Resources
-        const response = await fetch('/api/flresources?status=Active');
+        const response = await fetch(`${API_BASE}/flresources?status=Active`);
         if (!response.ok) throw new Error('Failed to fetch FL resources');
         const responseData = await response.json();
         const flResources = responseData.data || responseData; // Handle both formats

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -143,7 +145,7 @@ export function AddResourceToFLDrawer({
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch('/api/employees/active');
+      const response = await fetch(`${API_BASE}/employees/active`);
       if (response.ok) {
         const data = await response.json();
         setEmployees(data.data || []);
@@ -160,7 +162,7 @@ export function AddResourceToFLDrawer({
     }
     
     try {
-      const response = await fetch(`/api/financial-lines?projectId=${projectId}`);
+      const response = await fetch(`${API_BASE}/financial-lines?projectId=${projectId}`);
       if (response.ok) {
         const data = await response.json();
         // Handle both data.data and direct data array
@@ -185,7 +187,7 @@ export function AddResourceToFLDrawer({
   const fetchResourceCountsForFLs = async (fls: FinancialLine[]) => {
     try {
       const countPromises = fls.map(async (fl) => {
-        const response = await fetch(`/api/flresources?financialLineId=${fl._id}`);
+        const response = await fetch(`${API_BASE}/flresources?financialLineId=${fl._id}`);
         if (response.ok) {
           const responseData = await response.json();
           const resourceData = responseData.data || responseData; // Handle both formats
@@ -211,7 +213,7 @@ export function AddResourceToFLDrawer({
   const fetchEmployeeAllocation = async (employeeId: string) => {
     setLoadingAllocation(true);
     try {
-      const response = await fetch(`/api/flresources/by-employee/${employeeId}`);
+      const response = await fetch(`${API_BASE}/flresources/by-employee/${employeeId}`);
       if (response.ok) {
         const responseData = await response.json();
         const flResources = responseData.data || responseData; // Handle both formats
@@ -279,7 +281,7 @@ export function AddResourceToFLDrawer({
     if (!flToCheck) return;
     
     try {
-      const response = await fetch(`/api/flresources?financialLineId=${flToCheck}`);
+      const response = await fetch(`${API_BASE}/flresources?financialLineId=${flToCheck}`);
       if (response.ok) {
         const responseData = await response.json();
         const data = responseData.data || responseData; // Handle both formats
@@ -490,7 +492,7 @@ export function AddResourceToFLDrawer({
         status: 'Active' as const,
       };
 
-      const response = await fetch('/api/flresources', {
+      const response = await fetch(`${API_BASE}/flresources`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

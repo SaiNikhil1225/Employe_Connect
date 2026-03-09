@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 import { Badge } from '@/components/ui/badge';
 import type { Project } from '@/types/project';
 import { format } from 'date-fns';
@@ -23,7 +25,7 @@ export function FieldsTab({ project }: FieldsTabProps) {
 
       try {
         // Fetch FL Resources to calculate team size
-        const flResourcesResponse = await fetch(`/api/flresources?projectId=${projectId}`);
+        const flResourcesResponse = await fetch(`${API_BASE}/flresources?projectId=${projectId}`);
         if (flResourcesResponse.ok) {
           const responseData = await flResourcesResponse.json();
           const flResources = responseData.data || responseData; // Handle both formats
@@ -38,7 +40,7 @@ export function FieldsTab({ project }: FieldsTabProps) {
         }
 
         // Fetch Customer POs to calculate total budget
-        const poResponse = await fetch(`/api/customer-pos?projectId=${projectId}`);
+        const poResponse = await fetch(`${API_BASE}/customer-pos?projectId=${projectId}`);
         if (poResponse.ok) {
           const poData = await poResponse.json();
           const customerPOs = Array.isArray(poData) ? poData : (poData.data || []);
@@ -51,7 +53,7 @@ export function FieldsTab({ project }: FieldsTabProps) {
         }
 
         // Fetch Financial Lines to calculate budget consumed from FL funding allocations
-        const flResponse = await fetch(`/api/financial-lines?projectId=${projectId}`);
+        const flResponse = await fetch(`${API_BASE}/financial-lines?projectId=${projectId}`);
         if (flResponse.ok) {
           const flData = await flResponse.json();
           const financialLines = Array.isArray(flData) ? flData : (flData.data || []);

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 import { useProjectStore } from '@/store/projectStore';
 import { useCustomerPOStore } from '@/store/customerPOStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -184,7 +186,7 @@ export function ProjectDetailPage() {
 
     try {
       // Fetch Financial Lines to calculate total budget
-      const flResponse = await fetch(`/api/financial-lines?projectId=${id}`);
+      const flResponse = await fetch(`${API_BASE}/financial-lines?projectId=${id}`);
       if (flResponse.ok) {
         const flData = await flResponse.json();
         const financialLines = Array.isArray(flData) ? flData : (flData.data || []);
@@ -197,7 +199,7 @@ export function ProjectDetailPage() {
       }
 
       // Fetch FL Resources to calculate team size
-      const flResourcesResponse = await fetch(`/api/flresources?projectId=${id}`);
+      const flResourcesResponse = await fetch(`${API_BASE}/flresources?projectId=${id}`);
       if (flResourcesResponse.ok) {
         const responseData = await flResourcesResponse.json();
         const flResources = responseData.data || responseData; // Handle both formats
@@ -233,7 +235,7 @@ export function ProjectDetailPage() {
       }
       
       // Use the new endpoint that calculates hours dynamically
-      const response = await fetch(`/api/flresources/with-hours?${params.toString()}`);
+      const response = await fetch(`${API_BASE}/flresources/with-hours?${params.toString()}`);
       if (response.ok) {
         const responseData = await response.json();
         const data = responseData.data || responseData; // Handle both formats
@@ -259,7 +261,7 @@ export function ProjectDetailPage() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch('/api/employees/active');
+      const response = await fetch(`${API_BASE}/employees/active`);
       if (response.ok) {
         const data = await response.json();
         setEmployees(data.data || []);
@@ -621,7 +623,7 @@ export function ProjectDetailPage() {
         };
       }
       
-      const response = await fetch(`/api/flresources/${resourceToRelease.id}`, {
+      const response = await fetch(`${API_BASE}/flresources/${resourceToRelease.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -649,7 +651,7 @@ export function ProjectDetailPage() {
   const handleDeleteResourceConfirm = async () => {
     if (resourceToDelete) {
       try {
-        const response = await fetch(`/api/flresources/${resourceToDelete.id}`, {
+        const response = await fetch(`${API_BASE}/flresources/${resourceToDelete.id}`, {
           method: 'DELETE',
         });
         
@@ -1801,7 +1803,7 @@ export function ProjectDetailPage() {
                         });
                       }
 
-                      const response = await fetch(`/api/flresources/${fullResource._id}`, {
+                      const response = await fetch(`${API_BASE}/flresources/${fullResource._id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

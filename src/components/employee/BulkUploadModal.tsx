@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, SheetDescription, SheetCloseButton } from '@/components/ui/sheet';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, XCircle, Users } from 'lucide-react';
@@ -40,7 +42,7 @@ export function BulkUploadModal({ open, onClose, onSuccess }: BulkUploadModalPro
 
   const handleDownloadTemplate = async () => {
     try {
-      const response = await fetch('/api/employees/bulk-upload/template', {
+      const response = await fetch(`${API_BASE}/employees/bulk-upload/template`, {
         method: 'GET',
       });
       
@@ -126,7 +128,7 @@ export function BulkUploadModal({ open, onClose, onSuccess }: BulkUploadModalPro
         setProgress(prev => Math.min(prev + 10, 90));
       }, 200);
       
-      const response = await fetch('/api/employees/bulk-upload/validate', {
+      const response = await fetch(`${API_BASE}/employees/bulk-upload/validate`, {
         method: 'POST',
         body: formData,
       });
@@ -165,7 +167,7 @@ export function BulkUploadModal({ open, onClose, onSuccess }: BulkUploadModalPro
     formData.append('file', selectedFile);
     
     try {
-      const response = await fetch('/api/employees/bulk-upload/process', {
+      const response = await fetch(`${API_BASE}/employees/bulk-upload/process`, {
         method: 'POST',
         body: formData,
       });

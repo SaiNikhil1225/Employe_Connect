@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Info, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -33,7 +35,7 @@ export function CustomerPOTab({ projectId }: CustomerPOTabProps) {
   // Fetch financial lines for the project
   const fetchFinancialLines = async () => {
     try {
-      const response = await fetch(`/api/financial-lines?projectId=${projectId}`);
+      const response = await fetch(`${API_BASE}/financial-lines?projectId=${projectId}`);
       if (response.ok) {
         const data = await response.json();
         console.log('Fetched financial lines:', data.data);
