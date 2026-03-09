@@ -288,6 +288,8 @@ const WeeklyTimesheet: React.FC = () => {
   // State to track if user is a project approver/manager
   const [isProjectApprover, setIsProjectApprover] = useState(false);
   const [isCheckingApproverStatus, setIsCheckingApproverStatus] = useState(true);
+  // Employee-specific holidays fetched from the assigned HolidayCalendar
+  const [timesheetHolidays, setTimesheetHolidays] = useState<Array<{ name: string; date: string; type: string; description?: string }>>([]);
 
   const todayStart = startOfDay(new Date());
   const weekStartDate = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -616,6 +618,28 @@ const WeeklyTimesheet: React.FC = () => {
     fetchHolidays();
     fetchActiveEmployees();
   }, [fetchConfigurations, fetchFLs, fetchHolidays, fetchActiveEmployees]);
+
+  // Fetch employee-specific holidays from the assigned HolidayCalendar
+  useEffect(() => {
+    if (!user?.employeeId) return;
+    const weekStartStr = format(startDate, "yyyy-MM-dd");
+    const weekEndStr = format(endDate, "yyyy-MM-dd");
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const token = localStorage.getItem('auth-token');
+    fetch(`${API_BASE}/timesheets/holidays/${user.employeeId}?weekStart=${weekStartStr}&weekEnd=${weekEndStr}`, {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.success && Array.isArray(data.data)) {
+          setTimesheetHolidays(data.data);
+        }
+      })
+      .catch(() => {/* silently ignore; fall back to global holidays from store */});
+  }, [user?.employeeId, startDate, endDate]);
 
   useEffect(() => {
     if (udaConfigError) {
@@ -3047,15 +3071,20 @@ const WeeklyTimesheet: React.FC = () => {
   };
 
   // Helper to check if a day is a holiday
+  // Uses employee-specific holidays (from HolidayCalendar assignment) when available,
+  // otherwise falls back to globally published holidays from the holiday store.
+  // Supports ISO format ("2025-01-01T00:00:00.000Z") for both sources.
+  const effectiveHolidays = timesheetHolidays.length > 0 ? timesheetHolidays : holidays;
+
   const isHoliday = (date: Date) => {
-    const dateStr = format(date, "MMM d, yyyy");
-    return holidays.some((holiday) => holiday.date === dateStr);
+    const dateStr = format(date, "yyyy-MM-dd");
+    return effectiveHolidays.some((holiday) => holiday.date.substring(0, 10) === dateStr);
   };
 
   // Helper to get holiday name
   const getHolidayName = (date: Date) => {
-    const dateStr = format(date, "MMM d, yyyy");
-    const holiday = holidays.find((h) => h.date === dateStr);
+    const dateStr = format(date, "yyyy-MM-dd");
+    const holiday = effectiveHolidays.find((h) => h.date.substring(0, 10) === dateStr);
     return holiday?.name || "";
   };
 
@@ -4116,12 +4145,13 @@ const WeeklyTimesheet: React.FC = () => {
                                     }
                                   }
 
-                                  // Disable if approved, after project end, future day, or outside allocation
+                                  // Disable if approved, after project end, future day, outside allocation, or holiday
                                   const isDisabled =
                                     timesheetStatus === "approved" ||
                                     isAfterProjectEnd ||
                                     isFutureDay ||
-                                    isOutsideAllocation;
+                                    isOutsideAllocation ||
+                                    isHolidayDay;
 
                                   // Check for any revision requests or approvals in categories
                                   const hasRevisionRequested =
@@ -4151,6 +4181,9 @@ const WeeklyTimesheet: React.FC = () => {
                                   } else if (isAfterProjectEnd) {
                                     placeholderText = "Project Ended";
                                     disabledReason = "Project has ended";
+                                  } else if (isHolidayDay) {
+                                    placeholderText = getHolidayName(dayDate) || "Holiday";
+                                    disabledReason = `Holiday: ${getHolidayName(dayDate) || "Public Holiday"}. Timesheet entry is not allowed on holidays.`;
                                   } else if (isFutureDay) {
                                     disabledReason = "Future date";
                                   }

@@ -599,54 +599,6 @@ export function RecognitionCelebrations() {
   // Column definitions for celebrations table
   const celebrationColumns = [
     {
-      key: 'employeeId',
-      label: 'Employee ID',
-      sortable: true,
-      width: '130px',
-      render: (value: string) => (
-        <div className="text-xs font-mono text-muted-foreground">
-          {value || 'N/A'}
-        </div>
-      ),
-    },
-    {
-      key: 'employeeName',
-      label: 'Employee Name',
-      sortable: true,
-      width: '200px',
-      render: (_value: any, row: Celebration) => {
-        const nameParts = row.employeeName?.split(' ') || [];
-        return (
-          <div className="flex items-center gap-2">
-            <EmployeeAvatar
-              employee={{
-                employeeId: row.employeeId || '',
-                name: row.employeeName || 'Unknown',
-                firstName: nameParts[0] || 'Unknown',
-                lastName: nameParts[1] || ''
-              }}
-              size="sm"
-            />
-            <div>
-              <div className="text-sm font-medium">{row.employeeName || 'Unknown'}</div>
-              <div className="text-xs text-muted-foreground">{row.employeeId || 'N/A'}</div>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'eventType',
-      label: 'Event Type',
-      sortable: true,
-      width: '120px',
-      render: (value: string) => (
-        <Badge variant="outline" className="capitalize">
-          {value || 'N/A'}
-        </Badge>
-      ),
-    },
-    {
       key: 'eventTitle',
       label: 'Event Title',
       sortable: true,

@@ -1,6 +1,9 @@
 import express from 'express';
 import Timesheet from '../models/Timesheet';
 import TimesheetEntry from '../models/TimesheetEntry';
+import { HolidayCalendar } from '../models/HolidayCalendar';
+import Holiday from '../models/Holiday';
+import Employee from '../models/Employee';
 import {
     weekRowsToDateEntries,
     dateEntriesToWeekRows,
@@ -348,6 +351,68 @@ router.delete('/:id', async (req, res) => {
     } catch (error) {
         console.error('Error deleting timesheet:', error);
         res.status(500).json({ message: 'Failed to delete timesheet' });
+    }
+});
+
+/**
+ * GET /api/timesheets/holidays/:employeeId
+ * Returns holidays for an employee for a given date range.
+ * Looks up the employee's assigned HolidayCalendar first;
+ * falls back to published global holidays from the Holiday model.
+ * Query params: weekStart (ISO date), weekEnd (ISO date)
+ */
+router.get('/holidays/:employeeId', async (req, res) => {
+    try {
+        const { employeeId } = req.params;
+        const { weekStart, weekEnd } = req.query as { weekStart?: string; weekEnd?: string };
+
+        const startDate = weekStart ? new Date(weekStart) : new Date();
+        const endDate = weekEnd ? new Date(weekEnd) : new Date(startDate);
+        if (!weekEnd) endDate.setDate(endDate.getDate() + 6);
+
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+
+        // Look up employee to get holidayCalendarId
+        const employee = await Employee.findOne({ employeeId }).lean() as Record<string, unknown> | null;
+        const calendarId = employee?.holidayCalendarId as string | null | undefined;
+
+        let holidays: Array<{ name: string; date: string; type: string; description?: string }> = [];
+
+        if (calendarId) {
+            // Employee has an assigned holiday calendar
+            const calendar = await HolidayCalendar.findById(calendarId).lean();
+            if (calendar) {
+                holidays = calendar.holidays.filter((h) => {
+                    const d = new Date(h.date);
+                    return d >= startDate && d <= endDate;
+                }).map((h) => ({
+                    name: h.name,
+                    date: new Date(h.date).toISOString(),
+                    type: h.type || 'PUBLIC',
+                    description: h.description
+                }));
+            }
+        } else {
+            // No calendar assigned — use published global holidays from Holiday model
+            const publishedHolidays = await Holiday.find({
+                status: 'PUBLISHED',
+                isActive: true,
+                date: { $gte: startDate, $lte: endDate }
+            }).populate('typeId', 'name').lean();
+
+            holidays = publishedHolidays.map((h) => ({
+                name: h.name,
+                date: new Date(h.date as Date).toISOString(),
+                type: typeof h.typeId === 'object' && h.typeId !== null && 'name' in h.typeId ? String((h.typeId as { name: unknown }).name) : 'Holiday',
+                description: h.description
+            }));
+        }
+
+        res.json({ success: true, data: holidays });
+    } catch (error) {
+        console.error('Error fetching employee holidays:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch holidays' });
     }
 });
 

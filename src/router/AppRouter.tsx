@@ -46,6 +46,7 @@ import { NewAnnouncement } from '@/pages/hr/NewAnnouncement';
 import { AdminAnnouncements } from '@/pages/hr/AdminAnnouncements';
 import { WorkforceSummary } from '@/pages/hr/WorkforceSummary';
 import { RecognitionCelebrations } from '@/pages/hr/RecognitionCelebrations';
+import { RecognitionNewEvent } from '@/pages/hr/RecognitionNewEvent';
 
 // RMG Pages
 import { Utilization } from '@/pages/rmg/Utilization';
@@ -376,6 +377,14 @@ export function AppRouter() {
             element={
               <ProtectedRoute requiredPath="/hr/recognition-celebrations">
                 <RecognitionCelebrations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/recognition-new-event"
+            element={
+              <ProtectedRoute requiredPath="/hr/recognition-celebrations">
+                <RecognitionNewEvent />
               </ProtectedRoute>
             }
           />

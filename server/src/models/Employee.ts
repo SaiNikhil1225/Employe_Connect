@@ -382,6 +382,14 @@ const employeeSchema = new mongoose.Schema({
   githubUrl: String,
   portfolioUrl: String,
   
+  // Holiday Calendar Assignment
+  // Assigned automatically based on location/department or manually by HR
+  holidayCalendarId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'HolidayCalendar',
+    default: null
+  },
+  
   // Experience Fields
   previousExperience: {
     years: {
