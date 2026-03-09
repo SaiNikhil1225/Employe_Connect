@@ -4,6 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import Employee from '../models/Employee';
+import { HolidayCalendar } from '../models/HolidayCalendar';
 import EmployeeDocument from '../models/EmployeeDocument';
 import OnboardingChecklist from '../models/OnboardingChecklist';
 import OffboardingChecklist from '../models/OffboardingChecklist';
@@ -904,6 +905,22 @@ router.put('/:id', authenticateToken, employeeValidation.update, async (req: Req
     );
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
+    }
+
+    // Auto-reassign holiday calendar if location changed and employee has no calendar assigned
+    const locationChanged = updateData.location && updateData.location !== employee.location;
+    const deptChanged = updateData.department && updateData.department !== employee.department;
+    if ((locationChanged || deptChanged) && !employee.holidayCalendarId) {
+      const matchingCalendar = await HolidayCalendar.findOne({
+        $or: [
+          { state: employee.location },
+          { country: employee.location },
+        ],
+        isActive: true,
+      }).sort({ year: -1 });
+      if (matchingCalendar) {
+        await Employee.findByIdAndUpdate(employee._id, { holidayCalendarId: matchingCalendar._id });
+      }
     }
 
     // Send targeted notification about employee update

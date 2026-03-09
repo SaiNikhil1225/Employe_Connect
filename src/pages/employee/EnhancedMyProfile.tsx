@@ -812,6 +812,9 @@ export default function EnhancedMyProfile({ employeeId: propEmployeeId }: Enhanc
                   joiningDate={formatDate(employee.dateOfJoining)}
                   contractEndDate={formatDate(employee.contractEndDate)}
                   probationEndDate={formatDate(employee.probationEndDate)}
+
+                  // Holiday Configuration
+                  holidayGroupId={employee.holidayGroupId}
                   
                   // Permission control
                   canEdit={canEditProfile}

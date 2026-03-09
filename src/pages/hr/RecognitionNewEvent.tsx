@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEmployeeStore } from '@/store/employeeStore';
 import { useAuthStore } from '@/store/authStore';
 import { useRecognitionPostStore } from '@/store/recognitionPostStore';
+import { useAnnouncementStore } from '@/store/announcementStore';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -104,6 +105,7 @@ export function RecognitionNewEvent() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { addPost } = useRecognitionPostStore();
+  const { addAnnouncement } = useAnnouncementStore();
   const { employees: storeEmployees, fetchEmployees } = useEmployeeStore();
   const EMPLOYEES = storeEmployees
     .filter(e => e.status === 'active')
@@ -220,6 +222,7 @@ export function RecognitionNewEvent() {
     setIsPublishing(true);
     try {
       await new Promise(res => setTimeout(res, 800));
+      // Save to recognition-post store (localStorage) for the HR Recognition & Celebrations page
       addPost({
         type: 'birthday',
         employeeName: birthdayData.employeeName,
@@ -242,6 +245,28 @@ export function RecognitionNewEvent() {
         publishedBy: user?.name || 'HR Admin',
         status: birthdayData.publishType === 'later' ? 'scheduled' : 'published',
       });
+      // Also persist to MongoDB so every employee sees it in Company Announcements
+      if (birthdayData.publishType !== 'later') {
+        const today = new Date();
+        await addAnnouncement({
+          title: birthdayData.title,
+          description: birthdayData.message,
+          author: user?.name || 'HR Admin',
+          authorId: user?.id,
+          employeeId: user?.employeeId,
+          role: user?.role || 'HR',
+          date: today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          time: 'Just now',
+          avatar: getInitials(user?.name || 'HR'),
+          priority: 'medium',
+          imageUrl: birthdayData.bannerImage || undefined,
+          category: 'celebration',
+          isPinned: birthdayData.isPinned,
+          views: 0,
+          status: 'published',
+          reactions: [],
+        });
+      }
       toast.success('Birthday recognition published!', {
         description: `Birthday wishes for ${birthdayData.employeeName} have been saved.`,
       });
@@ -261,6 +286,7 @@ export function RecognitionNewEvent() {
     setIsPublishing(true);
     try {
       await new Promise(res => setTimeout(res, 800));
+      // Save to recognition-post store (localStorage) for the HR Recognition & Celebrations page
       addPost({
         type: 'anniversary',
         employeeName: anniversaryData.employeeName,
@@ -285,6 +311,28 @@ export function RecognitionNewEvent() {
         publishedBy: user?.name || 'HR Admin',
         status: anniversaryData.publishType === 'later' ? 'scheduled' : 'published',
       });
+      // Also persist to MongoDB so every employee sees it in Company Announcements
+      if (anniversaryData.publishType !== 'later') {
+        const today = new Date();
+        await addAnnouncement({
+          title: anniversaryData.title,
+          description: anniversaryData.message,
+          author: user?.name || 'HR Admin',
+          authorId: user?.id,
+          employeeId: user?.employeeId,
+          role: user?.role || 'HR',
+          date: today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          time: 'Just now',
+          avatar: getInitials(user?.name || 'HR'),
+          priority: 'medium',
+          imageUrl: anniversaryData.bannerImage || undefined,
+          category: 'achievement',
+          isPinned: anniversaryData.isPinned,
+          views: 0,
+          status: 'published',
+          reactions: [],
+        });
+      }
       toast.success('Anniversary recognition published!', {
         description: `Work anniversary for ${anniversaryData.employeeName} has been saved.`,
       });

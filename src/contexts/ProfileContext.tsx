@@ -252,6 +252,28 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [modulePermsLoading, availableProfiles]);
 
+  // Map each profile to its module's main landing page
+  const getProfileLandingPath = (profile: string): string => {
+    switch (profile) {
+      case 'HR_ADMIN':
+        return '/hr/workforce-summary';
+      case 'RMG_ADMIN':
+        return '/utilization';
+      case 'IT_ADMIN':
+        return '/itadmin/dashboard';
+      case 'FINANCE_ADMIN':
+        return '/financeadmin/dashboard';
+      case 'FACILITIES_ADMIN':
+        return '/facilitiesadmin/dashboard';
+      case 'SUPER_ADMIN':
+        return '/superadmin/dashboard';
+      case 'MANAGER':
+        return '/manager/dashboard';
+      default:
+        return '/dashboard';
+    }
+  };
+
   // Switch profile handler
   const switchProfile = (profile: string) => {
     if (!availableProfiles.some(p => p.value === profile)) {
@@ -270,9 +292,9 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       });
     }
 
-    // Redirect to dashboard after profile switch to avoid access denied on current page
-    // Use window.location for a clean navigation that re-evaluates permissions
-    window.location.href = '/dashboard';
+    // Navigate to the module's main landing page for a clean context switch
+    // Use window.location for a full reload that re-evaluates all permissions
+    window.location.href = getProfileLandingPath(profile);
   };
 
   // Calculate permissions based on active profile

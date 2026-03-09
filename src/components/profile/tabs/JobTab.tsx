@@ -6,12 +6,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Briefcase, MapPin, Calendar, Users, Award, Edit2, Save, X, Building2, Check, ChevronsUpDown } from 'lucide-react';
+import { Briefcase, MapPin, Calendar, Users, Award, Edit2, Save, X, Building2, Check, ChevronsUpDown, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import EmployeeTimeTab from '@/components/employee/EmployeeTimeTab';
 import OrganizationTab from '@/components/employee/OrganizationTab';
 import { useEmployeeStore } from '@/store/employeeStore';
+import { getHolidayGroups } from '@/services/holidayService';
+import type { HolidayGroup } from '@/types/holiday';
+import axios from 'axios';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const getAuthToken = () => localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token') || '';
 
 interface JobTabProps {
   // Basic Job Info
@@ -48,6 +54,9 @@ interface JobTabProps {
   // Organization
   organization?: any;
   
+  // Holiday Configuration
+  holidayGroupId?: string;
+
   // Permission control
   canEdit?: boolean;
   isHRAdmin?: boolean;
@@ -62,6 +71,7 @@ export default function JobTab({
   reportingManager, reportingManagerId, dottedLineManager, dottedLineManagerId,
   joiningDate, contractEndDate, probationEndDate, probationPolicy,
   employeeTime, organization,
+  holidayGroupId,
   canEdit = true, // Default to true for backward compatibility
   isHRAdmin = false,
   onUpdate,
@@ -77,6 +87,10 @@ export default function JobTab({
   const [reportingManagerOpen, setReportingManagerOpen] = useState(false);
   const [dottedLineManagerOpen, setDottedLineManagerOpen] = useState(false);
   const { activeEmployees, fetchActiveEmployees } = useEmployeeStore();
+  const [holidayGroups, setHolidayGroups] = useState<HolidayGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(holidayGroupId || 'none');
+  const [isEditingHoliday, setIsEditingHoliday] = useState(false);
+  const [isSavingHoliday, setIsSavingHoliday] = useState(false);
   const [formData, setFormData] = useState({
     designation: designation || '',
     department: department || '',
@@ -108,6 +122,15 @@ export default function JobTab({
   useEffect(() => {
     fetchActiveEmployees();
   }, [fetchActiveEmployees]);
+
+  useEffect(() => {
+    getHolidayGroups().then(setHolidayGroups).catch(() => {});
+  }, []);
+
+  // Sync selectedGroupId when prop changes
+  useEffect(() => {
+    setSelectedGroupId(holidayGroupId || 'none');
+  }, [holidayGroupId]);
 
   // Update formData when props change (e.g., after successful update)
   useEffect(() => {
@@ -173,6 +196,32 @@ export default function JobTab({
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveHolidayGroup = async () => {
+    if (!employeeId) return;
+    try {
+      setIsSavingHoliday(true);
+      // Find the employee's MongoDB _id from activeEmployees store
+      const empRecord = activeEmployees.find(e => e.employeeId === employeeId);
+      const mongoId = empRecord?._id;
+      if (!mongoId) {
+        toast.error('Could not resolve employee record');
+        return;
+      }
+      await axios.patch(
+        `${API_BASE}/holidays/config/groups/set-employee-group`,
+        { employeeId: mongoId, groupId: selectedGroupId },
+        { headers: { Authorization: `Bearer ${getAuthToken()}` } }
+      );
+      toast.success('Holiday group updated successfully');
+      setIsEditingHoliday(false);
+    } catch (err) {
+      console.error('Failed to update holiday group:', err);
+      toast.error('Failed to update holiday group');
+    } finally {
+      setIsSavingHoliday(false);
     }
   };
 
@@ -456,6 +505,66 @@ export default function JobTab({
             </CardContent>
           </Card>
         </div>
+
+        {/* Holiday Configuration Widget */}
+        <Card className="border border-gray-200 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-lg font-semibold">
+                <CalendarDays className="h-5 w-5 text-orange-600" />
+                Holiday Configuration
+              </div>
+              {isHRAdmin && !isEditingHoliday && (
+                <Button onClick={() => setIsEditingHoliday(true)} variant="ghost" size="sm">
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
+                  Holiday Group
+                </label>
+                {isEditingHoliday ? (
+                  <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select holiday group..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {holidayGroups.filter(g => g.isActive).map(g => (
+                        <SelectItem key={g._id} value={g._id}>{g.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-base font-medium text-gray-900">
+                    {holidayGroups.find(g => g._id === selectedGroupId)?.name || 'Not Assigned'}
+                  </p>
+                )}
+              </div>
+            </div>
+            {isEditingHoliday && (
+              <div className="flex gap-2 justify-end mt-4">
+                <Button
+                  onClick={() => { setIsEditingHoliday(false); setSelectedGroupId(holidayGroupId || 'none'); }}
+                  variant="outline"
+                  size="sm"
+                  disabled={isSavingHoliday}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveHolidayGroup} disabled={isSavingHoliday} size="sm">
+                  <Save className="h-4 w-4 mr-2" />
+                  {isSavingHoliday ? 'Saving...' : 'Save'}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Employee Time Tab */}
         {employeeId && (

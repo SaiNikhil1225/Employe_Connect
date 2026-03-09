@@ -285,13 +285,16 @@ export function EmployeeDashboard() {
     setExpandedPosts(prev => ({ ...prev, [postId]: !prev[postId] }));
   };
 
-  // Filter out expired announcements for employees, then sort: pinned first, then by date
+  // Filter out expired/non-published announcements for employees, then sort: pinned first, then by date
   const sortedAnnouncements = useMemo(() => {
     if (!announcements) return [];
     const now = new Date();
     
-    // Filter out expired announcements (employees should not see expired posts)
+    // Only show published announcements (or legacy ones without a status field)
+    // Filter out drafts, archived, and scheduled announcements
     const activeAnnouncements = announcements.filter(announcement => {
+      // Status filter: only show published or legacy (no status) announcements
+      if (announcement.status && announcement.status !== 'published') return false;
       // Check announcement expiry
       if (announcement.expiresAt) {
         const expiryDate = new Date(announcement.expiresAt);

@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { useHelpdeskStore } from '@/store/helpdeskStore';
+import { useProfile } from '@/hooks/useProfile';
 import { RaiseRequestDrawer, type ReopenTicketData } from '@/components/helpdesk/RaiseRequestDrawer';
 import { MyRequests } from '@/components/helpdesk/MyRequests';
 import { MyTeamRequests } from '@/components/helpdesk/MyTeamRequests';
@@ -25,11 +26,30 @@ import type { HelpdeskTicket, HelpdeskFormData, SpecialistQueue, TicketStatus } 
 export default function Helpdesk() {
   const { user } = useAuthStore();
   const { createWithWorkflow } = useHelpdeskStore();
+  const { activeProfile } = useProfile();
   const location = useLocation();
+
+  // Derive the effective role from the active profile, NOT from user.role.
+  // This ensures that HR/IT/RMG admins in "My Workplace" mode see their
+  // personal requests instead of specialist queues.
+  const effectiveRole = (() => {
+    switch (activeProfile) {
+      case 'IT_ADMIN': return 'IT_ADMIN';
+      case 'FINANCE_ADMIN': return 'FINANCE_ADMIN';
+      case 'FACILITIES_ADMIN': return 'FACILITIES_ADMIN';
+      case 'MANAGER': return 'MANAGER';
+      default: return 'EMPLOYEE';
+    }
+  })();
+
   const [activeTab, setActiveTab] = useState(() => {
-    // Set default tab based on role
-    if (user?.role === 'MANAGER') return 'my-team-requests';
-    if (user?.role === 'IT_ADMIN') return 'it-queue';
+    // Default tab based on the active profile, read directly from localStorage
+    // so the initializer runs with the correct value even before first render.
+    const storedProfile = localStorage.getItem('activeProfile') || '';
+    if (storedProfile === 'MANAGER') return 'my-team-requests';
+    if (storedProfile === 'IT_ADMIN') return 'it-queue';
+    if (storedProfile === 'FINANCE_ADMIN') return 'finance-queue';
+    if (storedProfile === 'FACILITIES_ADMIN') return 'facilities-queue';
     return 'my-requests';
   });
   const [kpiFilter, setKpiFilter] = useState<'All' | 'IT' | 'Finance' | 'Facilities'>('All');
@@ -54,16 +74,15 @@ export default function Helpdesk() {
     cancelled: 0,
   });
 
-  // Determine user role and access
-  const isEmployee = user?.role === 'EMPLOYEE' || user?.role === 'MANAGER';
-  const isManager = user?.role === 'MANAGER';
-  const isSpecialist = user?.role === 'IT_ADMIN' || user?.role === 'FINANCE_ADMIN' || user?.role === 'FACILITIES_ADMIN';
-  
-  // Department-based tab visibility
-  const userDepartment = user?.department;
-  const showITQueue = isSpecialist || userDepartment === 'IT';
-  const showFacilitiesQueue = isSpecialist || userDepartment === 'Facilities';
-  const showFinanceQueue = isSpecialist || userDepartment === 'Finance';
+  // Determine access using the profile-based effective role
+  const isEmployee = effectiveRole === 'EMPLOYEE' || effectiveRole === 'MANAGER';
+  const isManager = effectiveRole === 'MANAGER';
+  const isSpecialist = effectiveRole === 'IT_ADMIN' || effectiveRole === 'FINANCE_ADMIN' || effectiveRole === 'FACILITIES_ADMIN';
+
+  // Specialist queues only show when the user is actively in a specialist profile
+  const showITQueue = effectiveRole === 'IT_ADMIN';
+  const showFacilitiesQueue = effectiveRole === 'FACILITIES_ADMIN';
+  const showFinanceQueue = effectiveRole === 'FINANCE_ADMIN';
 
   const calculateStats = useCallback((ticketData: HelpdeskTicket[], currentTab?: string) => {
     // Define status groups based on Employee KPI requirements

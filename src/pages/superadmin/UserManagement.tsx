@@ -69,6 +69,8 @@ import {
   updateUserStatus,
   deleteUser
 } from '@/services/superAdminService';
+import { getHolidayCalendars, assignCalendarToEmployees } from '@/services/holidayCalendarService';
+import type { HolidayCalendar } from '@/services/holidayCalendarService';
 import type { SuperAdminUser, UserFormData, PaginationInfo } from '@/types/superAdmin';
 import { PageHeader } from '@/components/ui/page-header';
 
@@ -138,6 +140,12 @@ export function UserManagement() {
   const [viewingUser, setViewingUser] = useState<SuperAdminUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<SuperAdminUser | null>(null);
   const [saving, setSaving] = useState(false);
+  const [holidayCalendars, setHolidayCalendars] = useState<HolidayCalendar[]>([]);
+  const [selectedCalendarId, setSelectedCalendarId] = useState<string>('none');
+
+  useEffect(() => {
+    getHolidayCalendars({ isActive: true }).then(setHolidayCalendars).catch(() => {});
+  }, []);
 
   // Form state
   const [formData, setFormData] = useState<UserFormData>({
@@ -186,6 +194,7 @@ export function UserManagement() {
         designation: user.designation || '',
         employeeId: user.employeeId || ''
       });
+      setSelectedCalendarId('none');
     } else {
       setEditingUser(null);
       setFormData({
@@ -197,6 +206,7 @@ export function UserManagement() {
         designation: '',
         employeeId: ''
       });
+      setSelectedCalendarId('none');
     }
     setIsFormOpen(true);
   };
@@ -225,6 +235,7 @@ export function UserManagement() {
 
     try {
       setSaving(true);
+      let savedEmployeeId = formData.employeeId;
       if (editingUser) {
         // Remove password and email from update data (email cannot be changed)
         const { password, email, ...updateData } = formData;
@@ -235,6 +246,15 @@ export function UserManagement() {
       } else {
         await createUser(formData);
         toast.success('User created successfully');
+      }
+      // Assign holiday calendar if selected and employee ID available
+      if (selectedCalendarId !== 'none' && savedEmployeeId) {
+        try {
+          await assignCalendarToEmployees(selectedCalendarId, [savedEmployeeId]);
+          toast.success('Holiday calendar assigned');
+        } catch {
+          toast.error('User saved but failed to assign holiday calendar');
+        }
       }
       setIsFormOpen(false);
       fetchUsers();
@@ -560,6 +580,22 @@ export function UserManagement() {
                   onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                   placeholder="Software Engineer"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Holiday Calendar</Label>
+                <Select value={selectedCalendarId} onValueChange={setSelectedCalendarId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select holiday calendar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {holidayCalendars.map((cal) => (
+                      <SelectItem key={cal._id!} value={cal._id!}>
+                        {cal.title} ({cal.year})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             </div>

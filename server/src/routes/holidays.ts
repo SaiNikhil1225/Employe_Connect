@@ -7,6 +7,7 @@ import Department from '../models/Department';
 import HolidayType from '../models/HolidayType';
 import ObservanceType from '../models/ObservanceType';
 import HolidayGroup from '../models/HolidayGroup';
+import Employee from '../models/Employee';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
 
 const router = express.Router();
@@ -686,6 +687,38 @@ router.put('/config/types/:id', authenticateToken, authorizeRoles('SUPER_ADMIN')
   } catch (error) {
     console.error('Failed to update holiday type:', error);
     res.status(500).json({ success: false, message: 'Failed to update holiday type' });
+  }
+});
+
+// Assign employee to a holiday group (HR Admin / Super Admin / IT Admin)
+// Removes employee from any previous group, adds to the new one, updates employee.holidayGroupId
+router.patch('/config/groups/set-employee-group', authenticateToken, authorizeRoles('SUPER_ADMIN', 'HR', 'IT_ADMIN'), async (req: Request, res: Response) => {
+  try {
+    const { employeeId, groupId } = req.body;
+    if (!employeeId) {
+      return res.status(400).json({ success: false, message: 'employeeId is required' });
+    }
+
+    // Remove employee from all existing groups
+    await HolidayGroup.updateMany(
+      { employeeIds: employeeId },
+      { $pull: { employeeIds: employeeId } }
+    );
+
+    if (groupId && groupId !== 'none') {
+      // Add employee to the new group
+      await HolidayGroup.findByIdAndUpdate(groupId, { $addToSet: { employeeIds: employeeId } });
+      // Persist groupId on the employee document for quick lookup
+      await Employee.findByIdAndUpdate(employeeId, { holidayGroupId: groupId });
+    } else {
+      // Clear group assignment from employee
+      await Employee.findByIdAndUpdate(employeeId, { $unset: { holidayGroupId: '' } });
+    }
+
+    res.json({ success: true, message: 'Holiday group assignment updated' });
+  } catch (error) {
+    console.error('Failed to set employee holiday group:', error);
+    res.status(500).json({ success: false, message: 'Failed to update holiday group assignment' });
   }
 });
 

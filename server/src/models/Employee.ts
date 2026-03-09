@@ -389,7 +389,15 @@ const employeeSchema = new mongoose.Schema({
     ref: 'HolidayCalendar',
     default: null
   },
-  
+
+  // Holiday Group Assignment
+  // Assigned by HR Admin from the employee profile Job tab
+  holidayGroupId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'HolidayGroup',
+    default: null
+  },
+
   // Experience Fields
   previousExperience: {
     years: {

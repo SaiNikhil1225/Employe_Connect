@@ -22,7 +22,22 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { RotateCcw, Save } from 'lucide-react';
+import { RotateCcw, Save, ChevronsUpDown, Check } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import { useEmployeeStore } from '@/store/employeeStore';
 
 const customerSchema = z.object({
   customerNo: z.string().optional().or(z.literal('')),
@@ -48,7 +63,14 @@ export function CustomerForm({
   submitLabel = 'Create Customer',
 }: CustomerFormProps) {
   const [nextCustomerNo, setNextCustomerNo] = useState<string>('Auto-generated');
+  const [regionHeadOpen, setRegionHeadOpen] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+  const { activeEmployees, fetchActiveEmployees } = useEmployeeStore();
+
+  useEffect(() => {
+    fetchActiveEmployees();
+  }, [fetchActiveEmployees]);
 
   const form = useForm({
     resolver: zodResolver(customerSchema),
@@ -197,19 +219,56 @@ export function CustomerForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Region Head</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select region head" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Anil Kumar">Anil Kumar</SelectItem>
-                    <SelectItem value="James Wilson">James Wilson</SelectItem>
-                    <SelectItem value="Sarah Mitchell">Sarah Mitchell</SelectItem>
-                    <SelectItem value="Mohammed Al-Rashid">Mohammed Al-Rashid</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover open={regionHeadOpen} onOpenChange={setRegionHeadOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          'w-full justify-between font-normal',
+                          !field.value && 'text-muted-foreground',
+                        )}
+                      >
+                        {field.value || 'Select region head'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search employee..." />
+                      <CommandList>
+                        <CommandEmpty>No employee found.</CommandEmpty>
+                        <CommandGroup>
+                          {activeEmployees.map((emp) => (
+                            <CommandItem
+                              key={emp.employeeId}
+                              value={emp.name}
+                              onSelect={(value) => {
+                                field.onChange(value);
+                                setRegionHeadOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  field.value === emp.name ? 'opacity-100' : 'opacity-0',
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span className="font-medium">{emp.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {emp.department} · {emp.employeeId}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
