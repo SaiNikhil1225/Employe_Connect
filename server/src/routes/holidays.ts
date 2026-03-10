@@ -31,7 +31,8 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
       groupId,
       year,
       page = 1,
-      limit = 20
+      limit = 20,
+      includeImage
     } = req.query;
 
     const query: any = { isActive: true };
@@ -70,10 +71,11 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 
     const skip = (Number(page) - 1) * Number(limit);
 
-    // Run data fetch and count in parallel; exclude imageUrl (can be large base64) from list
+    // Exclude imageUrl by default (large base64); pass includeImage=true to include it
+    const selectFields = includeImage === 'true' ? '' : '-imageUrl';
     const [holidays, total] = await Promise.all([
       Holiday.find(query)
-        .select('-imageUrl')
+        .select(selectFields)
         .populate('groupIds', 'name')
         .populate('typeId', 'name')
         .populate('createdBy', 'name email')

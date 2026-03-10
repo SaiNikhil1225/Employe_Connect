@@ -21,6 +21,7 @@ import {
   Check,
   ChevronsUpDown,
   Bell,
+  Loader2,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import {
@@ -191,6 +192,8 @@ const WeeklyTimesheet: React.FC = () => {
     udaId: string;
     label: string;
   } | null>(null);
+  // Track which specific employee a per-row rejection targets
+  const [revertEmployeeId, setRevertEmployeeId] = useState<string | null>(null);
   const [forceReloadCounter, setForceReloadCounter] = useState(0);
   const [selectedDaysForApproval, setSelectedDaysForApproval] = useState<
     Set<number>
@@ -2138,9 +2141,9 @@ const WeeklyTimesheet: React.FC = () => {
       }
 
       const allocStart = new Date(allocationDates.start);
+      allocStart.setHours(0, 0, 0, 0);
       const allocEnd = new Date(allocationDates.end);
-
-      // Check each day's hours
+      allocEnd.setHours(23, 59, 59, 999);
       row.hours.forEach((hours, dayIndex) => {
         if (hours && hours !== "00:00" && hours !== "0:00") {
           const dayDate = weekDays[dayIndex];
@@ -3019,9 +3022,9 @@ const WeeklyTimesheet: React.FC = () => {
 
     try {
       const weekStart = format(startDate, "yyyy-MM-dd");
-      // Use first employee for single cell revert
+      // Use revertEmployeeId for per-row rejection, fallback to first employee
       const employeeId =
-        approvalFilters.employeeIds[0] || approvalTimesheet?.employeeId;
+        revertEmployeeId || approvalFilters.employeeIds[0] || approvalTimesheet?.employeeId;
 
       if (!employeeId) {
         toast.error("No employee selected for revision request");
@@ -3057,6 +3060,7 @@ const WeeklyTimesheet: React.FC = () => {
       setRevertDialogOpen(false);
       setRevertTarget(null);
       setRevertComment("");
+      setRevertEmployeeId(null);
 
       // Reload approvals to show updated status
       await loadApprovals();
@@ -3105,6 +3109,17 @@ const WeeklyTimesheet: React.FC = () => {
 
   return (
     <div className="page-container">
+      {/* Full-page loading overlay */}
+      {(isLoading || isSaving) && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[999] flex items-center justify-center">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+              {isSaving ? "Saving timesheet..." : "Loading timesheet..."}
+            </p>
+          </div>
+        </div>
+      )}
       {/* Page Header with Week Navigation */}
       <PageHeader
         icon={ClipboardList}
@@ -3275,30 +3290,31 @@ const WeeklyTimesheet: React.FC = () => {
                           setIsSaving(true);
                           try {
                             const weekStart = format(startDate, "yyyy-MM-dd");
-                            const entries = rows.flatMap((row) =>
-                              row.hours.map((hours, dayIndex) => {
-                                const dayDate = format(
-                                  weekDays[dayIndex],
-                                  "yyyy-MM-dd",
-                                );
-                                const minutes = parseTimeToMinutes(hours);
-                                return {
-                                  employeeId: user.employeeId,
-                                  projectId: row.projectId,
-                                  udaId: row.udaId,
-                                  date: dayDate,
-                                  hours: minutes / 60,
-                                  comment: row.comments[dayIndex] || "",
-                                };
-                              }),
-                            );
-                            await timesheetService.saveEntries({
+                            const weekEnd = format(endDate, "yyyy-MM-dd");
+                            const preparedRows = rows.map(({ id, ...row }) => ({
+                              projectId: row.projectId || "N/A",
+                              projectCode: row.projectCode,
+                              projectName: row.projectName,
+                              udaId: row.udaId,
+                              udaName: row.udaName,
+                              type: row.type || "General",
+                              financialLineItem: row.financialLineItem,
+                              billable: row.billable,
+                              hours: row.hours,
+                              comments: row.comments,
+                            }));
+                            await timesheetService.saveDraft({
                               employeeId: user.employeeId,
+                              employeeName: user.name,
                               weekStartDate: weekStart,
-                              entries: entries.filter((e) => e.hours > 0),
+                              weekEndDate: weekEnd,
+                              rows: preparedRows,
+                              status: "draft" as const,
+                              totalHours: 0,
                             });
                             toast.success("Timesheet saved successfully");
-                            setForceReloadCounter((prev) => prev + 1);
+                            setTimesheetStatus("draft");
+                            await loadTimesheet();
                           } catch (error: any) {
                             console.error("Failed to save timesheet:", error);
                             toast.error(
@@ -3317,7 +3333,7 @@ const WeeklyTimesheet: React.FC = () => {
                         className="border-primary text-primary hover:bg-primary/10 gap-2 h-10"
                       >
                         <CheckCircle2 className="h-4 w-4" />
-                        {isSaving ? "Saving..." : "Save"}
+                        {isSaving ? "Saving..." : timesheetStatus === "submitted" ? "Save & Edit" : "Save"}
                       </Button>
                       <Button
                         onClick={() => setSubmitConfirmDialogOpen(true)}
@@ -3329,7 +3345,7 @@ const WeeklyTimesheet: React.FC = () => {
                         className="bg-primary hover:bg-primary/90 text-white gap-2 h-10"
                       >
                         <Send className="h-4 w-4" />
-                        {isSaving ? "Submitting..." : "Submit"}
+                        {isSaving ? "Submitting..." : timesheetStatus === "submitted" ? "Re-submit" : "Submit"}
                       </Button>
                     </>
                   )}
@@ -3670,7 +3686,7 @@ const WeeklyTimesheet: React.FC = () => {
                 </SheetHeader>
 
                 <SheetBody className="space-y-4">
-                  {/* Filled Entry */}
+                  {/* Draft / Saved Entry */}
                   <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border-2 border-slate-100 hover:border-indigo-200 transition-all">
                     <div className="w-16 h-12 bg-indigo-50 border-2 border-indigo-400 rounded-lg flex items-center justify-center shadow-sm">
                       <span className="text-sm font-extrabold text-indigo-700">
@@ -3679,10 +3695,30 @@ const WeeklyTimesheet: React.FC = () => {
                     </div>
                     <div className="flex-1">
                       <p className="text-base font-black text-slate-900">
-                        Filled Entry
+                        Saved (Draft)
                       </p>
                       <p className="text-sm text-slate-600">
-                        Hours entered successfully
+                        Hours saved — not yet submitted
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Submitted / Pending Approval */}
+                  <div className="flex items-center gap-4 p-4 bg-sky-50 rounded-xl border-2 border-sky-200 hover:border-sky-300 transition-all">
+                    <div className="w-16 h-12 bg-sky-50 border-2 border-sky-400 rounded-lg flex items-center justify-center relative shadow-sm">
+                      <span className="text-sm font-extrabold text-sky-700">
+                        08:00
+                      </span>
+                      <div className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-sky-500 rounded-full flex items-center justify-center shadow-md">
+                        <Send className="h-2.5 w-2.5 text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-base font-black text-sky-800">
+                        Submitted (Pending Approval)
+                      </p>
+                      <p className="text-sm text-sky-600">
+                        Awaiting manager approval — editable
                       </p>
                     </div>
                   </div>
@@ -4153,7 +4189,7 @@ const WeeklyTimesheet: React.FC = () => {
                                     isOutsideAllocation ||
                                     isHolidayDay;
 
-                                  // Check for any revision requests or approvals in categories
+                                  // Check for any revision requests, approvals, or pending entries
                                   const hasRevisionRequested =
                                     projectGroup.categories.some(
                                       (cat) =>
@@ -4166,6 +4202,13 @@ const WeeklyTimesheet: React.FC = () => {
                                       (cat) =>
                                         cat.entryMeta?.[hIdx]
                                           ?.approvalStatus === "approved",
+                                    );
+                                  const hasPending =
+                                    timesheetStatus === "submitted" &&
+                                    projectGroup.categories.some(
+                                      (cat) =>
+                                        cat.entryMeta?.[hIdx]
+                                          ?.approvalStatus === "pending",
                                     );
 
                                   // Show 00:00 for all conditions
@@ -4182,7 +4225,7 @@ const WeeklyTimesheet: React.FC = () => {
                                     placeholderText = "Project Ended";
                                     disabledReason = "Project has ended";
                                   } else if (isHolidayDay) {
-                                    placeholderText = getHolidayName(dayDate) || "Holiday";
+                                    placeholderText = "Holiday";
                                     disabledReason = `Holiday: ${getHolidayName(dayDate) || "Public Holiday"}. Timesheet entry is not allowed on holidays.`;
                                   } else if (isFutureDay) {
                                     disabledReason = "Future date";
@@ -4222,6 +4265,10 @@ const WeeklyTimesheet: React.FC = () => {
                                               "bg-purple-100 border-purple-300 text-purple-600",
                                             isAfterProjectEnd &&
                                               "bg-red-100 border-red-300 text-red-600",
+                                            hasPending &&
+                                              !hasRevisionRequested &&
+                                              !hasApproved &&
+                                              "bg-sky-50 border-2 border-sky-400 ring-2 ring-sky-200 text-sky-700 font-extrabold cursor-pointer hover:ring-4 hover:border-sky-500",
                                             hasRevisionRequested &&
                                               "bg-amber-100 border-2 border-amber-500 ring-2 ring-amber-200 text-amber-900 font-extrabold cursor-pointer",
                                             hasApproved &&
@@ -5212,9 +5259,23 @@ const WeeklyTimesheet: React.FC = () => {
                                                                         <Button
                                                                           size="sm"
                                                                           className="h-9 w-9 p-0 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full"
-                                                                          onClick={() => {
-                                                                            // Individual approval logic here
-                                                                            console.log("Approve entry:", entryKey);
+                                                                          onClick={async () => {
+                                                                            const managerId = user?.employeeId || user?.id;
+                                                                            if (!managerId) return;
+                                                                            try {
+                                                                              const weekStart = format(startDate, "yyyy-MM-dd");
+                                                                              await timesheetService.bulkApproveSelectedDays({
+                                                                                managerId,
+                                                                                projectId: entry.projectId === "N/A" ? approvalFilters.projectId : entry.projectId,
+                                                                                employeeId,
+                                                                                weekStartDate: weekStart,
+                                                                                dayIndices: [entry.dayIdx],
+                                                                              });
+                                                                              toast.success("Entry approved");
+                                                                              loadApprovals();
+                                                                            } catch {
+                                                                              toast.error("Failed to approve entry");
+                                                                            }
                                                                           }}
                                                                           title="Approve"
                                                                         >
@@ -5227,8 +5288,8 @@ const WeeklyTimesheet: React.FC = () => {
                                                                           variant="outline"
                                                                           className="h-9 w-9 p-0 border-2 border-red-500 text-red-600 hover:bg-red-50 rounded-full"
                                                                           onClick={() => {
-                                                                            // Individual rejection logic here
-                                                                            console.log("Reject entry:", entryKey);
+                                                                            setRevertEmployeeId(employeeId);
+                                                                            openRevertDialog(entry.row, entry.dayIdx);
                                                                           }}
                                                                           title="Reject"
                                                                         >
@@ -5322,13 +5383,35 @@ const WeeklyTimesheet: React.FC = () => {
                     Submit Timesheet?
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to submit your timesheet for the week
-                    of{" "}
+                    Are you sure you want to submit your timesheet? The
+                    following dates will be submitted:{" "}
                     <strong>
-                      {format(startDate, "MMM dd")} -{" "}
-                      {format(endDate, "MMM dd, yyyy")}
+                      {(() => {
+                        const datesWithHours = weekDays.filter((_, i) =>
+                          rows.some(
+                            (r) =>
+                              r.hours[i] &&
+                              r.hours[i] !== "00:00" &&
+                              r.hours[i] !== "0:00",
+                          ),
+                        );
+                        if (datesWithHours.length === 0) {
+                          return `${format(startDate, "MMM dd")} – ${format(endDate, "MMM dd, yyyy")}`;
+                        }
+                        const year = format(
+                          datesWithHours[datesWithHours.length - 1],
+                          "yyyy",
+                        );
+                        return (
+                          datesWithHours
+                            .map((d) => format(d, "EEE, MMM dd"))
+                            .join(" • ") +
+                          " " +
+                          year
+                        );
+                      })()}
                     </strong>
-                    ?
+                    .
                     <br />
                     <br />
                     Once submitted, your timesheet will be sent to your project
@@ -5569,6 +5652,9 @@ const WeeklyTimesheet: React.FC = () => {
                             entryMeta?.approvalStatus === "revision_requested";
                           const isApproved =
                             entryMeta?.approvalStatus === "approved";
+                          const isPendingApproval =
+                            timesheetStatus === "submitted" &&
+                            entryMeta?.approvalStatus === "pending";
                           const revisionReason = entryMeta?.rejectedReason;
 
                           return (
@@ -5578,6 +5664,7 @@ const WeeklyTimesheet: React.FC = () => {
                                 "grid grid-cols-12 gap-3 px-4 py-3 transition-colors hover:bg-slate-50",
                                 isRevisionRequested && "bg-amber-50/50",
                                 isApproved && "bg-emerald-50/50",
+                                isPendingApproval && !isApproved && !isRevisionRequested && "bg-sky-50/50",
                               )}
                             >
                               {/* Category Type Column */}
@@ -5603,6 +5690,11 @@ const WeeklyTimesheet: React.FC = () => {
                                   {isRevisionRequested && revisionReason && (
                                     <p className="text-xs text-amber-700 mt-1 line-clamp-1 break-words">
                                       ⚠️ {revisionReason}
+                                    </p>
+                                  )}
+                                  {isPendingApproval && !isRevisionRequested && (
+                                    <p className="text-xs text-sky-600 mt-1">
+                                      ⏳ Pending approval
                                     </p>
                                   )}
                                 </div>
