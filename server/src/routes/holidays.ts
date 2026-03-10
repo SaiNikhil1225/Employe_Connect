@@ -70,21 +70,18 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 
     const skip = (Number(page) - 1) * Number(limit);
 
-    const holidays = await Holiday.find(query)
-      .populate('countryId', 'name code')
-      .populate('regionId', 'name')
-      .populate('clientId', 'name code')
-      .populate('departmentId', 'name')
-      .populate('groupIds', 'name description')
-      .populate('typeId', 'name')
-      .populate('observanceTypeId', 'name')
-      .populate('createdBy', 'name email')
-      .populate('approvedBy', 'name email')
-      .sort({ date: 1 })
-      .skip(skip)
-      .limit(Number(limit));
-
-    const total = await Holiday.countDocuments(query);
+    // Run data fetch and count in parallel; exclude imageUrl (can be large base64) from list
+    const [holidays, total] = await Promise.all([
+      Holiday.find(query)
+        .select('-imageUrl')
+        .populate('groupIds', 'name')
+        .populate('typeId', 'name')
+        .populate('createdBy', 'name email')
+        .sort({ date: 1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      Holiday.countDocuments(query),
+    ]);
 
     res.json({
       success: true,

@@ -173,26 +173,18 @@ export function HolidayManagement() {
     const fetchHolidays = useCallback(async () => {
         try {
             setLoading(true);
-            const filters: any = {
-                page: currentPage,
-                limit: 10
-            };
+            const baseFilters: any = {};
+            if (filterYear !== 'all') baseFilters.year = filterYear;
+            if (filterStatus !== 'all') baseFilters.status = filterStatus;
+            if (filterGroup !== 'all') baseFilters.groupId = filterGroup;
 
-            if (filterYear !== 'all') filters.year = filterYear;
-            if (filterStatus !== 'all') filters.status = filterStatus;
-            if (filterGroup !== 'all') filters.groupId = filterGroup;
-
-            const response = await getHolidays(filters);
+            // Run both fetches in parallel instead of sequentially
+            const [response, allResponse] = await Promise.all([
+                getHolidays({ ...baseFilters, page: currentPage, limit: 10 }),
+                getHolidays({ ...baseFilters, limit: 1000 }),
+            ]);
             setHolidays(response.data.holidays);
             setTotalPages(response.data.pagination?.totalPages || 1);
-
-            // Fetch all holidays for dashboard (without pagination)
-            const allFilters: any = {};
-            if (filterYear !== 'all') allFilters.year = filterYear;
-            if (filterStatus !== 'all') allFilters.status = filterStatus;
-            if (filterGroup !== 'all') allFilters.groupId = filterGroup;
-
-            const allResponse = await getHolidays({ ...allFilters, limit: 1000 });
             setAllHolidaysForDashboard(allResponse.data.holidays);
         } catch (err) {
             console.error('Error fetching holidays:', err);
