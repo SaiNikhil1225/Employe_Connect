@@ -69,6 +69,7 @@ import {
   type DirectReport,
 } from "@/services/managerAssignmentService";
 import { toast } from "sonner";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export function EmployeeDirectory() {
   const navigate = useNavigate();
@@ -85,6 +86,8 @@ export function EmployeeDirectory() {
     [],
   );
   const [selectedExperiences, setSelectedExperiences] = useState<string[]>([]);
+  const [allocationDateFrom, setAllocationDateFrom] = useState<Date | undefined>(undefined);
+  const [allocationDateTo, setAllocationDateTo] = useState<Date | undefined>(undefined);
   const [showFiltersPopover, setShowFiltersPopover] = useState(false);
   const [currentTime] = useState(() => Date.now());
   const [allocations, setAllocations] = useState<Map<string, number>>(
@@ -1079,29 +1082,19 @@ export function EmployeeDirectory() {
                               <AccordionContent>
                                 <div className="space-y-3">
                                   <div>
-                                    <label className="text-xs text-muted-foreground">From</label>
-                                    <input
-                                      type="date"
-                                      value={allocationDateFrom ? allocationDateFrom.toISOString().split('T')[0] : ''}
-                                      onChange={e =>
-                                        setAllocationDateFrom(
-                                          e.target.value ? new Date(e.target.value) : undefined
-                                        )
-                                      }
-                                      className="w-full mt-1 px-2 py-1 text-sm border rounded-md bg-background text-foreground"
+                                    <label className="text-xs text-muted-foreground mb-1 block">From</label>
+                                    <DatePicker
+                                      value={allocationDateFrom ? `${allocationDateFrom.getFullYear()}-${String(allocationDateFrom.getMonth()+1).padStart(2,'0')}-${String(allocationDateFrom.getDate()).padStart(2,'0')}` : ''}
+                                      onChange={val => setAllocationDateFrom(val ? new Date(val + 'T00:00:00') : undefined)}
+                                      placeholder="From date"
                                     />
                                   </div>
                                   <div>
-                                    <label className="text-xs text-muted-foreground">To</label>
-                                    <input
-                                      type="date"
-                                      value={allocationDateTo ? allocationDateTo.toISOString().split('T')[0] : ''}
-                                      onChange={e =>
-                                        setAllocationDateTo(
-                                          e.target.value ? new Date(e.target.value) : undefined
-                                        )
-                                      }
-                                      className="w-full mt-1 px-2 py-1 text-sm border rounded-md bg-background text-foreground"
+                                    <label className="text-xs text-muted-foreground mb-1 block">To</label>
+                                    <DatePicker
+                                      value={allocationDateTo ? `${allocationDateTo.getFullYear()}-${String(allocationDateTo.getMonth()+1).padStart(2,'0')}-${String(allocationDateTo.getDate()).padStart(2,'0')}` : ''}
+                                      onChange={val => setAllocationDateTo(val ? new Date(val + 'T00:00:00') : undefined)}
+                                      placeholder="To date"
                                     />
                                   </div>
                                 </div>
