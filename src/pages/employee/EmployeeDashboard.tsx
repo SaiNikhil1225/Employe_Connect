@@ -22,7 +22,7 @@ import { getAvatarGradient, getInitials } from '@/constants/design-system';
 export function EmployeeDashboard() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const { checkIn, checkOut, getTodayRecord } = useAttendanceStore();
+  const { webClockIn, webClockOut, logs, fetchLogs } = useAttendanceStore();
   const announcements = useAnnouncementStore((state) => state.announcements);
   const { toggleLike, addComment: addAnnouncementComment, fetchAnnouncements, addReaction } = useAnnouncementStore();
   const isLoadingAnnouncements = useAnnouncementStore((state) => state.isLoading);
@@ -99,10 +99,14 @@ export function EmployeeDashboard() {
     fetchEmployees();
     if (user?.employeeId) {
       fetchLeaveBalance(user.employeeId);
+      fetchLogs(user.employeeId);
     }
-  }, [fetchAnnouncements, fetchHolidays, fetchEmployees, fetchLeaveBalance, user?.employeeId]);
+  }, [fetchAnnouncements, fetchHolidays, fetchEmployees, fetchLeaveBalance, fetchLogs, user?.employeeId]);
 
-  const todayRecord = getTodayRecord(user?.employeeId || '');
+  const todayRecord = logs.find(log => {
+    const today = new Date().toISOString().split('T')[0];
+    return new Date(log.date).toISOString().split('T')[0] === today;
+  });
 
   // Holiday navigation functions with boundary handling
   const handlePrevHoliday = () => {
@@ -735,10 +739,10 @@ export function EmployeeDashboard() {
             <CardContent className="space-y-4">
               {/* Large Check-In Button */}
               <div className="flex justify-center">
-                {!todayRecord?.checkIn || todayRecord?.checkOut ? (
+                {!todayRecord?.checkInTime || todayRecord?.checkOutTime ? (
                   <Button
                     size="lg"
-                    onClick={() => checkIn(user?.employeeId || '')}
+                    onClick={() => webClockIn(user?.employeeId)}
                     className="w-full h-20 text-lg font-semibold bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl transition-all duration-300 group"
                   >
                     <div className="flex flex-col items-center gap-1">
@@ -750,7 +754,7 @@ export function EmployeeDashboard() {
                   <Button
                     variant="outline"
                     size="lg"
-                    onClick={() => checkOut(user?.employeeId || '')}
+                    onClick={() => webClockOut(user?.employeeId)}
                     className="w-full h-20 text-lg font-semibold border-2 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-300 group"
                   >
                     <div className="flex flex-col items-center gap-1">
@@ -766,24 +770,24 @@ export function EmployeeDashboard() {
                 <div className="p-3 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20">
                   <p className="text-xs text-muted-foreground mb-1">Status</p>
                   <Badge
-                    variant={todayRecord?.checkOut ? 'secondary' : todayRecord?.checkIn ? 'default' : 'outline'}
+                    variant={todayRecord?.checkOutTime ? 'secondary' : todayRecord?.checkInTime ? 'default' : 'outline'}
                     className={`w-full justify-center ${
-                      todayRecord?.checkIn && !todayRecord?.checkOut
+                      todayRecord?.checkInTime && !todayRecord?.checkOutTime
                         ? 'bg-green-500 hover:bg-green-600 animate-pulse'
                         : ''
                     }`}
                   >
-                    {todayRecord?.checkOut ? '✓ Checked Out' : todayRecord?.checkIn ? '● Active' : 'Not Checked In'}
+                    {todayRecord?.checkOutTime ? '✓ Checked Out' : todayRecord?.checkInTime ? '● Active' : 'Not Checked In'}
                   </Badge>
                 </div>
                 <div className="p-3 rounded-lg border bg-purple-50/50 dark:bg-purple-950/20">
                   <p className="text-xs text-muted-foreground mb-1">Check-in Time</p>
-                  <p className="font-semibold text-sm">{todayRecord?.checkIn || '--:--'}</p>
+                  <p className="font-semibold text-sm">{todayRecord?.checkInTime || '--:--'}</p>
                 </div>
               </div>
 
               {/* Hours Info */}
-              {todayRecord?.checkOut && (
+              {todayRecord?.checkOutTime && (
                 <div className="p-3 rounded-lg border bg-green-50/50 dark:bg-green-950/20">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -791,7 +795,7 @@ export function EmployeeDashboard() {
                       <span className="text-sm font-medium">Total Hours Today</span>
                     </div>
                     <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                      {todayRecord.effectiveHours}
+                      {`${Math.floor(todayRecord.effectiveHours)}h ${Math.round((todayRecord.effectiveHours % 1) * 60)}m`}
                     </span>
                   </div>
                 </div>

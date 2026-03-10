@@ -700,13 +700,28 @@ export function EmployeeDirectory() {
         return false;
       });
 
+    const matchesDateRange = !isRMGModule || (() => {
+      if (!allocationDateFrom && !allocationDateTo) return true;
+      const projects = allocationDetails.get(emp.employeeId) || [];
+      if (projects.length === 0) return false;
+      const from = allocationDateFrom ?? new Date(0);
+      const to = allocationDateTo ?? new Date(8640000000000000);
+      return projects.some(proj => {
+        if (!proj.fromDate || !proj.toDate) return false;
+        const pFrom = new Date(proj.fromDate);
+        const pTo = new Date(proj.toDate);
+        return pFrom <= to && pTo >= from;
+      });
+    })();
+
     return (
       matchesSearch &&
       matchesBusinessUnit &&
       matchesDepartment &&
       matchesLocation &&
       matchesDesignation &&
-      matchesExperience
+      matchesExperience &&
+      matchesDateRange
     );
   });
 
@@ -716,7 +731,9 @@ export function EmployeeDirectory() {
     selectedDepartments.length +
     selectedLocations.length +
     selectedDesignations.length +
-    selectedExperiences.length;
+    selectedExperiences.length +
+    (allocationDateFrom ? 1 : 0) +
+    (allocationDateTo ? 1 : 0);
 
   // Clear all filters
   const clearAllFilters = () => {
@@ -725,6 +742,8 @@ export function EmployeeDirectory() {
     setSelectedLocations([]);
     setSelectedDesignations([]);
     setSelectedExperiences([]);
+    setAllocationDateFrom(undefined);
+    setAllocationDateTo(undefined);
   };
 
   // Toggle checkbox selection
@@ -1048,6 +1067,47 @@ export function EmployeeDirectory() {
                               </div>
                             </AccordionContent>
                           </AccordionItem>
+
+                          {/* Allocation Date Range Filter — RMG module only */}
+                          {isRMGModule && (
+                            <AccordionItem value="allocation-date">
+                              <AccordionTrigger className="text-sm font-medium">
+                                Allocation Date Range{" "}
+                                {(allocationDateFrom || allocationDateTo) &&
+                                  `(${(allocationDateFrom ? 1 : 0) + (allocationDateTo ? 1 : 0)})`}
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="space-y-3">
+                                  <div>
+                                    <label className="text-xs text-muted-foreground">From</label>
+                                    <input
+                                      type="date"
+                                      value={allocationDateFrom ? allocationDateFrom.toISOString().split('T')[0] : ''}
+                                      onChange={e =>
+                                        setAllocationDateFrom(
+                                          e.target.value ? new Date(e.target.value) : undefined
+                                        )
+                                      }
+                                      className="w-full mt-1 px-2 py-1 text-sm border rounded-md bg-background text-foreground"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-muted-foreground">To</label>
+                                    <input
+                                      type="date"
+                                      value={allocationDateTo ? allocationDateTo.toISOString().split('T')[0] : ''}
+                                      onChange={e =>
+                                        setAllocationDateTo(
+                                          e.target.value ? new Date(e.target.value) : undefined
+                                        )
+                                      }
+                                      className="w-full mt-1 px-2 py-1 text-sm border rounded-md bg-background text-foreground"
+                                    />
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          )}
                         </Accordion>
                       </div>
                     </PopoverContent>

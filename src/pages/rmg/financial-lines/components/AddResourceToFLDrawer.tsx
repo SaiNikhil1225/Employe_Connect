@@ -219,19 +219,31 @@ export function AddResourceToFLDrawer({
         const flResources = responseData.data || responseData; // Handle both formats
         
         if (flResources.length === 0) {
-          setEmployeeAllocation(null);
+          setEmployeeAllocation({ totalAllocated: 0, availableCapacity: 100, allocations: [] });
           setLoadingAllocation(false);
           return;
         }
+
+        // Get requested date range from form for overlap check
+        const reqFrom = formData.requestedFromDate;
+        const reqTo = formData.requestedToDate;
+
+        // Helper: check if two date ranges overlap
+        const overlaps = (from: string | null, to: string | null): boolean => {
+          if (!from || !to) return true; // no dates = assume overlap
+          if (!reqFrom || !reqTo) return true; // no requested range yet = show all
+          const existingStart = new Date(from);
+          const existingEnd = new Date(to);
+          return existingStart <= reqTo && existingEnd >= reqFrom;
+        };
         
-        // Calculate total allocation from monthly allocations across all active FL resources
+        // Calculate total allocation only from overlapping allocations
         let totalAllocated = 0;
         
-        // For each FL resource, calculate average allocation from monthly allocations
         const allocations = flResources.map((flResource: any) => {
           const monthlyAllocations = flResource.monthlyAllocations || [];
+          const doesOverlap = overlaps(flResource.requestedFromDate, flResource.requestedToDate);
           
-          // Calculate average allocation from monthly allocations
           let avgAllocation = 0;
           if (monthlyAllocations.length > 0) {
             const totalMonthlyAllocation = monthlyAllocations.reduce(
@@ -240,11 +252,13 @@ export function AddResourceToFLDrawer({
             );
             avgAllocation = totalMonthlyAllocation / monthlyAllocations.length;
           } else if (flResource.utilizationPercentage) {
-            // Fallback to utilizationPercentage if no monthly allocations
             avgAllocation = flResource.utilizationPercentage;
           }
           
-          totalAllocated += avgAllocation;
+          // Only count toward totalAllocated if it overlaps with the requested period
+          if (doesOverlap) {
+            totalAllocated += avgAllocation;
+          }
           
           return {
             projectId: flResource.projectId || 'N/A',
@@ -351,6 +365,14 @@ export function AddResourceToFLDrawer({
     } else {
       setMonthlyAllocations([]);
     }
+  }, [formData.requestedFromDate, formData.requestedToDate]);
+
+  // Re-calculate available capacity when requested dates change
+  useEffect(() => {
+    if (formData.employeeId && (formData.requestedFromDate || formData.requestedToDate)) {
+      fetchEmployeeAllocation(formData.employeeId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.requestedFromDate, formData.requestedToDate]);
 
   // Calculate total allocation hours (8 hours/day, weekdays only)
