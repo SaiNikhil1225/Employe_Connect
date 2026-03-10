@@ -132,7 +132,6 @@ export function EmployeeDirectory() {
   const [orgChartView, setOrgChartView] = useState<"me" | "department" | "top">(
     "me",
   );
-  const [groupByDepartment, setGroupByDepartment] = useState(false);
   const orgTreeRef = useRef<HTMLDivElement>(null);
   const orgChartRef = useRef<HTMLDivElement>(null);
 
@@ -796,14 +795,10 @@ export function EmployeeDirectory() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         {!isRMGModule && (
-          <TabsList className="grid w-full max-w-[48rem] grid-cols-3 mb-6">
+          <TabsList className="grid w-full max-w-[32rem] grid-cols-2 mb-6">
             <TabsTrigger value="directory" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Employee Directory
-            </TabsTrigger>
-            <TabsTrigger value="org-tree" className="flex items-center gap-2">
-              <Network className="h-4 w-4" />
-              Organization Tree
             </TabsTrigger>
             <TabsTrigger value="org-chart" className="flex items-center gap-2">
               <GitBranch className="h-4 w-4" />
@@ -2223,17 +2218,7 @@ export function EmployeeDirectory() {
                     <User className="h-4 w-4" />
                     Me
                   </Button>
-                  <div className="ml-auto flex items-center gap-2">
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={groupByDepartment}
-                        onChange={(e) => setGroupByDepartment(e.target.checked)}
-                        className="rounded border-gray-300"
-                      />
-                      <span>Group by department</span>
-                    </label>
-                  </div>
+
                 </div>
               </div>
             </CardHeader>
@@ -2276,69 +2261,102 @@ export function EmployeeDirectory() {
                         lineWidth="0.5px"
                         lineColor="#D8DDE6"
                         lineBorderRadius="10px"
-                        label={
-                          orgTree.reportingManager &&
-                          orgChartView === "me" && (
-                            <div className="relative inline-block">
-                              <Card className="w-[260px] h-[110px] border-2 border-primary/60 shadow-xl bg-gradient-to-br from-primary/5 to-transparent">
-                                <CardContent className="p-4 h-full">
-                                  <div className="flex items-center gap-3 h-full">
-                                    <div className="relative flex-shrink-0">
-                                      <div
-                                        className="w-[35px] h-[35px] rounded-full flex items-center justify-center text-white font-semibold text-[15px]"
-                                        style={{
-                                          backgroundColor: getAvatarColor(
-                                            orgTree.reportingManager
-                                              .employeeId ||
-                                              orgTree.reportingManager.id ||
-                                              "manager",
-                                          ),
-                                        }}
-                                      >
-                                        {orgTree.reportingManager.name
-                                          ?.split(" ")
-                                          .map((n) => n[0])
-                                          .join("")
-                                          .toUpperCase()
-                                          .slice(0, 2) || "??"}
+                        label={(() => {
+                          // Me view: show reporting manager at root
+                          if (orgChartView === "me" && orgTree.reportingManager) {
+                            return (
+                              <div className="relative inline-block">
+                                <Card className="w-[260px] h-[110px] border-2 border-primary/60 shadow-xl bg-gradient-to-br from-primary/5 to-transparent">
+                                  <CardContent className="p-4 h-full">
+                                    <div className="flex items-center gap-3 h-full">
+                                      <div className="relative flex-shrink-0">
+                                        <div
+                                          className="w-[35px] h-[35px] rounded-full flex items-center justify-center text-white font-semibold text-[15px]"
+                                          style={{
+                                            backgroundColor: getAvatarColor(
+                                              orgTree.reportingManager.employeeId ||
+                                                orgTree.reportingManager.id ||
+                                                "manager",
+                                            ),
+                                          }}
+                                        >
+                                          {orgTree.reportingManager.name
+                                            ?.split(" ")
+                                            .map((n) => n[0])
+                                            .join("")
+                                            .toUpperCase()
+                                            .slice(0, 2) || "??"}
+                                        </div>
+                                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                          <Users className="h-2 w-2 text-primary-foreground" />
+                                        </div>
                                       </div>
-                                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                                        <Users className="h-2 w-2 text-primary-foreground" />
+                                      <div className="flex-1 min-w-0">
+                                        <h3 className="text-left font-semibold text-sm break-words">
+                                          {orgTree.reportingManager.name || "N/A"}
+                                        </h3>
+                                        <p className="text-xs text-muted-foreground break-words text-left">
+                                          {orgTree.reportingManager.designation || "N/A"}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground/80 break-words text-left">
+                                          {orgTree.reportingManager.department || "N/A"}
+                                        </p>
                                       </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <h3 className="text-left font-semibold text-sm break-words">
-                                        {orgTree.reportingManager.name || "N/A"}
-                                      </h3>
-                                      <p className="text-xs text-muted-foreground break-words text-left">
-                                        {orgTree.reportingManager.designation ||
-                                          "N/A"}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground/80 break-words text-left">
-                                        {orgTree.reportingManager.department ||
-                                          "N/A"}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                              {/* Count Badge for Manager */}
-                              {(reportingManagerTree?.directReports?.filter(
-                                (r) => r.relationship === "direct",
-                              ).length ?? 0) > 0 && (
-                                <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg z-10">
-                                  <span className="text-sm font-bold">
-                                    {
-                                      reportingManagerTree?.directReports?.filter(
+                                  </CardContent>
+                                </Card>
+                                {/* Count Badge for Manager */}
+                                {(reportingManagerTree?.directReports?.filter(
+                                  (r) => r.relationship === "direct",
+                                ).length ?? 0) > 0 && (
+                                  <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg z-10">
+                                    <span className="text-sm font-bold">
+                                      {reportingManagerTree?.directReports?.filter(
                                         (r) => r.relationship === "direct",
-                                      ).length
-                                    }
-                                  </span>
+                                      ).length}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          // Department view: show current user's reporting manager at root
+                          if (orgChartView === "department") {
+                            const currentUser = employees.find(e => e.employeeId === user?.employeeId);
+                            const deptRM = currentUser?.reportingManagerId
+                              ? employees.find(e => e.employeeId === currentUser.reportingManagerId)
+                              : null;
+                            if (deptRM) {
+                              return (
+                                <div className="relative inline-block">
+                                  <Card className="w-[260px] h-[110px] border-2 border-primary/60 shadow-xl bg-gradient-to-br from-primary/5 to-transparent">
+                                    <CardContent className="p-4 h-full">
+                                      <div className="flex items-center gap-3 h-full">
+                                        <div className="relative flex-shrink-0">
+                                          <div
+                                            className="w-[35px] h-[35px] rounded-full flex items-center justify-center text-white font-semibold text-[15px]"
+                                            style={{ backgroundColor: getAvatarColor(deptRM.employeeId || "manager") }}
+                                          >
+                                            {deptRM.name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "??"}
+                                          </div>
+                                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                            <Users className="h-2 w-2 text-primary-foreground" />
+                                          </div>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <h3 className="text-left font-semibold text-sm break-words">{deptRM.name || "N/A"}</h3>
+                                          <p className="text-xs text-muted-foreground break-words text-left">{deptRM.designation || "N/A"}</p>
+                                          <p className="text-xs text-muted-foreground/80 break-words text-left">{deptRM.department || "N/A"}</p>
+                                        </div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
                                 </div>
-                              )}
-                            </div>
-                          )
-                        }
+                              );
+                            }
+                          }
+                          return undefined;
+                        })()}
                       >
                         {orgChartView === "me"
                           ? /* "ME" VIEW: Show manager at top, then current user and peers */
@@ -2753,16 +2771,19 @@ export function EmployeeDirectory() {
                                                 </Card>
                                                 {/* Count Badge - only if has same-dept reports */}
                                                 {deptReportCount > 0 && (
-                                                  <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg z-10">
+                                                  <button
+                                                    onClick={(e) => { e.stopPropagation(); toggleDirectReportsForEmployee(deepEmpId); }}
+                                                    className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg z-10 cursor-pointer transition-all"
+                                                  >
                                                     <span className="text-sm font-bold">
-                                                      {deptReportCount}
+                                                      {expandedDirectReports.has(deepEmpId) ? "−" : deptReportCount}
                                                     </span>
-                                                  </div>
+                                                  </button>
                                                 )}
                                               </div>
                                             }
                                           >
-                                            {renderEmployeeSubtree(deepEmpId)}
+                                            {expandedDirectReports.has(deepEmpId) && renderEmployeeSubtree(deepEmpId)}
                                           </TreeNode>
                                         );
                                       },
@@ -2857,16 +2878,19 @@ export function EmployeeDirectory() {
                                                 </Card>
                                                 {/* Count Badge - only if has same-dept reports */}
                                                 {deptReportCount > 0 && (
-                                                  <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg z-10">
+                                                  <button
+                                                    onClick={(e) => { e.stopPropagation(); toggleDirectReportsForEmployee(empId); }}
+                                                    className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg z-10 cursor-pointer transition-all"
+                                                  >
                                                     <span className="text-sm font-bold">
-                                                      {deptReportCount}
+                                                      {expandedDirectReports.has(empId) ? "−" : deptReportCount}
                                                     </span>
-                                                  </div>
+                                                  </button>
                                                 )}
                                               </div>
                                             }
                                           >
-                                            {renderEmployeeSubtree(empId)}
+                                            {expandedDirectReports.has(empId) && renderEmployeeSubtree(empId)}
                                           </TreeNode>
                                         );
                                       })}
@@ -2985,17 +3009,20 @@ export function EmployeeDirectory() {
                                             </Card>
                                             {/* Count Badge */}
                                             {directReportCount > 0 && (
-                                              <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg z-10">
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); toggleDirectReportsForEmployee(empId); }}
+                                                className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg z-10 cursor-pointer transition-all"
+                                              >
                                                 <span className="text-sm font-bold">
-                                                  {directReportCount}
+                                                  {expandedDirectReports.has(empId) ? "−" : directReportCount}
                                                 </span>
-                                              </div>
+                                              </button>
                                             )}
                                           </div>
                                         }
                                       >
                                         {/* Recursively render all direct reports */}
-                                        {subTree?.directReports &&
+                                        {(level === 0 || expandedDirectReports.has(empId)) && subTree?.directReports &&
                                           subTree.directReports
                                             .filter(
                                               (r) =>

@@ -357,9 +357,9 @@ export const deleteHolidayGroup = async (id: string): Promise<void> => {
  */
 export const holidayService = {
   getAll: async () => {
-    // Filter for published holidays only for backward compatibility
-    const response = await getHolidays({ status: HolidayStatusEnum.PUBLISHED });
-    return response.data.holidays;
+    // Fetch all published holidays (high limit to avoid pagination cutoff)
+    const response = await getHolidays({ status: HolidayStatusEnum.PUBLISHED, limit: 500 });
+    return response.data?.holidays ?? [];
   },
   create: createHoliday,
   update: updateHoliday,
