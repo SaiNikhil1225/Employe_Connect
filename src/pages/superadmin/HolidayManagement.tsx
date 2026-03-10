@@ -87,6 +87,7 @@ import type {
     HolidayGroup
 } from '@/types/holiday';
 import { PageHeader } from '@/components/ui/page-header';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -490,9 +491,36 @@ export function HolidayManagement() {
                 <Card>
                     <CardContent className="pt-6">
                         {loading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                            </div>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-12"><Skeleton className="h-4 w-4 rounded" /></TableHead>
+                                        <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                                        <TableHead><Skeleton className="h-4 w-32" /></TableHead>
+                                        <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                                        <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                                        <TableHead><Skeleton className="h-4 w-16 ml-auto" /></TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {Array.from({ length: 7 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-4 w-4 rounded" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-1">
+                                                    <Skeleton className="h-7 w-7 rounded" />
+                                                    <Skeleton className="h-7 w-7 rounded" />
+                                                    <Skeleton className="h-7 w-7 rounded" />
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         ) : holidays.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">
                                 No holidays found.

@@ -1,4 +1,28 @@
 import { useState, useEffect } from 'react';
+
+// Compress image using Canvas API to reduce payload size before storing in DB
+const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        img.onload = () => {
+            const MAX = 800;
+            let w = img.width;
+            let h = img.height;
+            if (w > MAX) {
+                h = Math.round((h * MAX) / w);
+                w = MAX;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(objectUrl);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = objectUrl;
+    });
+};
 import {
     Sheet,
     SheetContent,
@@ -125,14 +149,10 @@ export function HolidayDrawer({
 
         setSaving(true);
         try {
-            // Convert image file to base64 if present
+            // Compress and convert image file to base64 if present
             let imageUrlToSave = formData.imageUrl;
             if (imageFile) {
-                const reader = new FileReader();
-                imageUrlToSave = await new Promise((resolve) => {
-                    reader.onloadend = () => resolve(reader.result as string);
-                    reader.readAsDataURL(imageFile);
-                });
+                imageUrlToSave = await compressImage(imageFile);
             }
 
             const payload: any = {
@@ -143,15 +163,10 @@ export function HolidayDrawer({
                 notes: formData.notes,
                 imageUrl: imageUrlToSave || undefined,
                 status: publishNow ? 'ACTIVE' : 'DRAFT',
-                // Group-based assignment
+                // Group-based assignment: send all selected groups as array
+                groupIds: formData.groupIds,
                 isGlobal: formData.groupIds.length === 0,
             };
-
-            // If groups are selected, use the first one (backend expects single groupId)
-            // In future, enhance backend to support multiple groups
-            if (formData.groupIds.length > 0) {
-                payload.groupId = formData.groupIds[0];
-            }
 
             if (holiday?._id) {
                 await updateHoliday(holiday._id, payload);
