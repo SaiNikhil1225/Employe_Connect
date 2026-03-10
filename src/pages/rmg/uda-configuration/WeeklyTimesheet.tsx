@@ -3254,7 +3254,7 @@ const WeeklyTimesheet: React.FC = () => {
                       >
                         Select project...
                       </SelectItem>
-                      {allocatedProjects.map((project) => (
+                      {availableProjects.map((project) => (
                         <SelectItem
                           key={project.projectId}
                           value={project.projectId}
@@ -3263,7 +3263,7 @@ const WeeklyTimesheet: React.FC = () => {
                           {project.projectId} ({project.projectName})
                         </SelectItem>
                       ))}
-                      {allocatedProjects.length === 0 && (
+                      {availableProjects.length === 0 && (
                         <div className="px-3 py-2 text-xs font-semibold text-slate-400">
                           No projects assigned
                         </div>
