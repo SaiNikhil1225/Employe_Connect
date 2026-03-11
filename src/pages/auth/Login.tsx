@@ -96,7 +96,7 @@ export function Login() {
             <div className="space-y-4">
               <h1 className="font-semibold text-5xl leading-tight">
                 Hello<br />
-                Employee Connect! 👋
+                OneAcu – Your Unified Workplace! 👋
               </h1>
               
               <p className="text-lg text-white/90 leading-relaxed max-w-md">
@@ -108,7 +108,7 @@ export function Login() {
           {/* Footer */}
           <div className="absolute bottom-8 left-0 right-0 text-center">
             <p className="text-white/70 text-sm">
-              © {new Date().getFullYear()} Employee Connect. All rights reserved.
+              © {new Date().getFullYear()} OneAcu – Your Unified Workplace. All rights reserved.
             </p>
           </div>
         </div>
@@ -121,7 +121,7 @@ export function Login() {
           <div className="text-center space-y-2">
             <img 
               src={acuvateLogo} 
-              alt="Employee Connect" 
+              alt="OneAcu – Your Unified Workplace" 
               className="h-10 mx-auto mb-6"
             />
             <h2 className="font-semibold text-4xl leading-tight text-foreground">

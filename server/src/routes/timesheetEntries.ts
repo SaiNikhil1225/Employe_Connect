@@ -1,6 +1,7 @@
 import express from 'express';
 import TimesheetEntry from '../models/TimesheetEntry';
 import Project from '../models/Project';
+import Notification from '../models/Notification';
 import {
     weekRowsToDateEntries,
     dateEntriesToWeekRows,
@@ -894,6 +895,36 @@ router.put('/approvals/revision-request', async (req, res) => {
     } catch (error) {
         console.error('Error requesting revision:', error);
         res.status(500).json({ message: 'Failed to request revision' });
+    }
+});
+
+/**
+ * Send reminder to an employee to submit their timesheet
+ */
+router.post('/send-reminder', async (req, res) => {
+    try {
+        const { employeeId, managerId, projectId, weekStartDate } = req.body;
+
+        if (!employeeId || !weekStartDate) {
+            return res.status(400).json({ message: 'employeeId and weekStartDate are required' });
+        }
+
+        const project = projectId ? await Project.findOne({ projectId }) : null;
+        const projectName = project?.name || 'your project';
+
+        await Notification.create({
+            title: 'Timesheet Reminder',
+            description: `Please submit your timesheet for the week of ${weekStartDate} for ${projectName}.`,
+            type: 'reminder',
+            userId: employeeId,
+            role: 'EMPLOYEE',
+            meta: { managerId, projectId, weekStartDate }
+        });
+
+        res.json({ message: 'Reminder sent successfully' });
+    } catch (error) {
+        console.error('Error sending reminder:', error);
+        res.status(500).json({ message: 'Failed to send reminder' });
     }
 });
 

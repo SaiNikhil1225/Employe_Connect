@@ -693,7 +693,7 @@ export default function JobTab({
           {/* Organization Details */}
           <OrganizationTab
             organization={{
-              companyName: 'Employee Connect',
+              companyName: 'OneAcu – Your Unified Workplace',
               legalEntity: legalEntity,
               businessUnit: businessUnit,
               department: department,
