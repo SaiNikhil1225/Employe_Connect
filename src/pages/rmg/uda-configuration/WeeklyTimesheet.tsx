@@ -727,8 +727,27 @@ const WeeklyTimesheet: React.FC = () => {
           return;
         }
 
-        // Extract unique employee IDs
-        const employeeIds = [...new Set(flResources.map((a) => a.employeeId))];
+        // Filter employees by allocation date overlap with the selected week
+        const weekStartForFilter = startOfWeek(currentDate, { weekStartsOn: 1 });
+        const weekEndForFilter = endOfWeek(currentDate, { weekStartsOn: 1 });
+        weekStartForFilter.setHours(0, 0, 0, 0);
+        weekEndForFilter.setHours(23, 59, 59, 999);
+
+        const allocDateFilteredResources = flResources.filter((fl) => {
+          const allocStart = fl.startDate || fl.requestedFromDate;
+          const allocEnd = fl.endDate || fl.requestedToDate;
+          if (!allocStart && !allocEnd) return true;
+          const allocStartDate = allocStart ? new Date(allocStart) : null;
+          const allocEndDate = allocEnd ? new Date(allocEnd) : null;
+          if (allocStartDate) allocStartDate.setHours(0, 0, 0, 0);
+          if (allocEndDate) allocEndDate.setHours(23, 59, 59, 999);
+          if (allocEndDate && allocEndDate < weekStartForFilter) return false;
+          if (allocStartDate && allocStartDate > weekEndForFilter) return false;
+          return true;
+        });
+
+        // Extract unique employee IDs (allocation-date filtered)
+        const employeeIds = [...new Set(allocDateFilteredResources.map((a) => a.employeeId))];
         console.log("📋 Unique employee IDs:", employeeIds);
 
         // Build employee list from flresources ONLY (do not use Employee table)
@@ -801,6 +820,7 @@ const WeeklyTimesheet: React.FC = () => {
     viewMode,
     managerProjects,
     isLoadingManagerProjects,
+    currentDate,
   ]);
 
   // Removed: loadAllManagerEmployees useEffect - only using project-specific employee loading
@@ -1488,7 +1508,9 @@ const WeeklyTimesheet: React.FC = () => {
   };
 
   const openDeleteDialog = (row: TimesheetRow) => {
-    if (timesheetStatus === "approved") return;
+    // Don't open if any entry in this row is individually approved
+    const hasApproved = row.entryMeta?.some(m => m?.approvalStatus === "approved");
+    if (hasApproved) return;
     setDeleteRowId(row.id);
     setDeleteRowLabel(row.udaName);
     setDeleteDialogOpen(true);
@@ -2327,9 +2349,7 @@ const WeeklyTimesheet: React.FC = () => {
       return;
     }
 
-    // Clear previous data before loading new search
-    setApprovalTimesheets({});
-    setApprovalTimesheet(null);
+    // Keep existing data visible while loading (avoids empty-state flicker)
     setIsApprovalLoading(true);
     setApprovalSearchAttempted(true);
 
@@ -2433,7 +2453,7 @@ const WeeklyTimesheet: React.FC = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("auth-token")}`,
           },
           body: JSON.stringify({
             employeeId,
@@ -3326,26 +3346,24 @@ const WeeklyTimesheet: React.FC = () => {
                         }}
                         disabled={
                           isSaving ||
-                          timesheetStatus === "approved" ||
                           isLoading
                         }
                         variant="outline"
                         className="border-primary text-primary hover:bg-primary/10 gap-2 h-10"
                       >
                         <CheckCircle2 className="h-4 w-4" />
-                        {isSaving ? "Saving..." : timesheetStatus === "submitted" ? "Save & Edit" : "Save"}
+                        {isSaving ? "Saving..." : "Save"}
                       </Button>
                       <Button
                         onClick={() => setSubmitConfirmDialogOpen(true)}
                         disabled={
                           isSaving ||
-                          timesheetStatus === "approved" ||
                           isLoading
                         }
                         className="bg-primary hover:bg-primary/90 text-white gap-2 h-10"
                       >
                         <Send className="h-4 w-4" />
-                        {isSaving ? "Submitting..." : timesheetStatus === "submitted" ? "Re-submit" : "Submit"}
+                        {isSaving ? "Submitting..." : "Submit"}
                       </Button>
                     </>
                   )}
@@ -4181,14 +4199,6 @@ const WeeklyTimesheet: React.FC = () => {
                                     }
                                   }
 
-                                  // Disable if approved, after project end, future day, outside allocation, or holiday
-                                  const isDisabled =
-                                    timesheetStatus === "approved" ||
-                                    isAfterProjectEnd ||
-                                    isFutureDay ||
-                                    isOutsideAllocation ||
-                                    isHolidayDay;
-
                                   // Check for any revision requests, approvals, or pending entries
                                   const hasRevisionRequested =
                                     projectGroup.categories.some(
@@ -4203,6 +4213,15 @@ const WeeklyTimesheet: React.FC = () => {
                                         cat.entryMeta?.[hIdx]
                                           ?.approvalStatus === "approved",
                                     );
+
+                                  // Disable per-cell: only block cells that are individually approved (no revision pending)
+                                  const isDisabled =
+                                    (hasApproved && !hasRevisionRequested) ||
+                                    isAfterProjectEnd ||
+                                    isFutureDay ||
+                                    isOutsideAllocation ||
+                                    isHolidayDay;
+
                                   const hasPending =
                                     timesheetStatus === "submitted" &&
                                     projectGroup.categories.some(
@@ -4448,11 +4467,9 @@ const WeeklyTimesheet: React.FC = () => {
                                           meta?.approvalStatus === "approved",
                                       ),
                                     );
-                                  const isWeekApproved =
-                                    timesheetStatus === "approved";
 
-                                  // Hide delete button if week is approved OR if any entry is approved
-                                  if (isWeekApproved || hasApprovedEntry) {
+                                  // Hide delete button if any individual entry is approved
+                                  if (hasApprovedEntry) {
                                     return null;
                                   }
 
@@ -4653,7 +4670,7 @@ const WeeklyTimesheet: React.FC = () => {
                                             handleSendReminder(
                                               employeeId,
                                               user?.employeeId || user?.id || "",
-                                              empData?.projectId || "",
+                                              approvalFilters.projectId,
                                               format(startDate, "yyyy-MM-dd"),
                                             )
                                           }
@@ -4802,15 +4819,21 @@ const WeeklyTimesheet: React.FC = () => {
                                   {/* Expand/Collapse Arrow */}
                                   <div
                                     onClick={() => {
-                                      const newExpanded = new Set(
-                                        expandedEmployees,
-                                      );
+                                      const newExpanded = new Set(expandedEmployees);
+                                      const newProjectExpanded = new Set(expandedProjects);
                                       if (isExpanded) {
                                         newExpanded.delete(employeeId);
+                                        empTimesheet?.rows?.forEach((row: any) => {
+                                          newProjectExpanded.delete(`${employeeId}-${row.projectId}`);
+                                        });
                                       } else {
                                         newExpanded.add(employeeId);
+                                        empTimesheet?.rows?.forEach((row: any) => {
+                                          newProjectExpanded.add(`${employeeId}-${row.projectId}`);
+                                        });
                                       }
                                       setExpandedEmployees(newExpanded);
+                                      setExpandedProjects(newProjectExpanded);
                                     }}
                                     className="cursor-pointer hover:bg-slate-100 rounded-full p-1 transition-all"
                                   >
@@ -4825,15 +4848,21 @@ const WeeklyTimesheet: React.FC = () => {
                                   {/* Employee info */}
                                   <div
                                     onClick={() => {
-                                      const newExpanded = new Set(
-                                        expandedEmployees,
-                                      );
+                                      const newExpanded = new Set(expandedEmployees);
+                                      const newProjectExpanded = new Set(expandedProjects);
                                       if (isExpanded) {
                                         newExpanded.delete(employeeId);
+                                        empTimesheet?.rows?.forEach((row: any) => {
+                                          newProjectExpanded.delete(`${employeeId}-${row.projectId}`);
+                                        });
                                       } else {
                                         newExpanded.add(employeeId);
+                                        empTimesheet?.rows?.forEach((row: any) => {
+                                          newProjectExpanded.add(`${employeeId}-${row.projectId}`);
+                                        });
                                       }
                                       setExpandedEmployees(newExpanded);
+                                      setExpandedProjects(newProjectExpanded);
                                     }}
                                     className="flex items-center gap-4 cursor-pointer hover:opacity-80 flex-1"
                                   >
@@ -5721,7 +5750,7 @@ const WeeklyTimesheet: React.FC = () => {
                                       e.target.value,
                                     )
                                   }
-                                  disabled={timesheetStatus === "approved"}
+                                  disabled={isApproved}
                                   placeholder="0.0"
                                   className={cn(
                                     "text-center font-bold text-base w-full min-w-[90px] max-w-[100px]",
@@ -5747,7 +5776,7 @@ const WeeklyTimesheet: React.FC = () => {
                                   }
                                   placeholder="Add notes about this work..."
                                   className="min-h-[60px] text-sm resize-y w-full break-words"
-                                  disabled={timesheetStatus === "approved"}
+                                  disabled={isApproved}
                                 />
                               </div>
 
@@ -5826,7 +5855,7 @@ const WeeklyTimesheet: React.FC = () => {
                                       `Cleared ${category.udaName} for ${format(categoryDialogData.dayDate, "EEEE")}`,
                                     );
                                   }}
-                                  disabled={timesheetStatus === "approved"}
+                                  disabled={isApproved}
                                   className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed"
                                   title="Clear this category for this day"
                                 >
@@ -6087,7 +6116,7 @@ const WeeklyTimesheet: React.FC = () => {
                     variant="secondary"
                     onClick={handleSaveCategoryAssignments}
                     className="rounded-xl font-semibold bg-slate-600 hover:bg-slate-700 text-white"
-                    disabled={isSaving || timesheetStatus === "approved"}
+                    disabled={isSaving}
                   >
                     {isSaving ? "Saving..." : "Save Draft"}
                   </Button>
@@ -6095,7 +6124,7 @@ const WeeklyTimesheet: React.FC = () => {
                     type="button"
                     onClick={handleSubmitCategoryAssignments}
                     className="rounded-xl font-semibold bg-primary hover:bg-primary/90"
-                    disabled={isSaving || timesheetStatus === "approved"}
+                    disabled={isSaving}
                   >
                     {isSaving ? "Submitting..." : "Submit for Approval"}
                   </Button>
