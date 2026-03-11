@@ -1348,22 +1348,11 @@ export function EmployeeDirectory() {
 
                         {/* Profile Picture */}
                         <div className="flex justify-center mb-4">
-                          {member.profilePhoto ? (
-                            <img
-                              src={member.profilePhoto}
-                              alt={member.name}
-                              className="h-20 w-20 rounded-full object-cover border-2 border-border"
-                            />
-                          ) : (
-                            <div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center text-white text-xl font-bold border-2 border-border">
-                              {member.name
-                                .split(" ")
-                                .map((n: string) => n[0])
-                                .join("")
-                                .toUpperCase()
-                                .slice(0, 2)}
-                            </div>
-                          )}
+                          <EmployeeAvatar
+                            employee={member}
+                            size="xl"
+                            className="border-2 border-border"
+                          />
                         </div>
 
                         {/* Contact Information */}

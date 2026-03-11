@@ -24,7 +24,7 @@ import {
 import { leaveService } from "@/services/leaveService";
 import { getHolidays } from "@/services/holidayService";
 import { PageHeader } from "@/components/ui/page-header";
-import { getAvatarGradient } from "@/constants/design-system";
+import { EmployeeAvatar } from "@/components/ui/employee-avatar";
 import type { LeaveRequest } from "@/types/leave";
 import type { Holiday } from "@/types/holiday";
 import {
@@ -310,22 +310,11 @@ export function MyTeam() {
                       key={emp.employeeId}
                       className="flex flex-col items-center"
                     >
-                      {emp.profilePhoto ? (
-                        <img
-                          src={emp.profilePhoto}
-                          alt={emp.name}
-                          className="h-10 w-10 rounded-full object-cover border-2 border-border"
-                        />
-                      ) : (
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold border-2 border-border ${getAvatarGradient(emp.name)}`}>
-                          {emp.name
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </div>
-                      )}
+                      <EmployeeAvatar
+                        employee={emp}
+                        size="md"
+                        className="border-2 border-border"
+                      />
                       <span className="text-xs text-muted-foreground mt-1">
                         {emp.name.split(" ")[0]}
                       </span>
@@ -381,22 +370,11 @@ export function MyTeam() {
                       key={emp.employeeId}
                       className="flex flex-col items-center"
                     >
-                      {emp.profilePhoto ? (
-                        <img
-                          src={emp.profilePhoto}
-                          alt={emp.name}
-                          className="h-10 w-10 rounded-full object-cover border-2 border-border"
-                        />
-                      ) : (
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold border-2 border-border ${getAvatarGradient(emp.name)}`}>
-                          {emp.name
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </div>
-                      )}
+                      <EmployeeAvatar
+                        employee={emp}
+                        size="md"
+                        className="border-2 border-border"
+                      />
                       <span className="text-xs text-muted-foreground mt-1">
                         {emp.name.split(" ")[0]}
                       </span>
@@ -604,22 +582,10 @@ export function MyTeam() {
                       >
                         {/* Employee Info */}
                         <div className="w-48 flex-shrink-0 p-3 flex items-center gap-2">
-                          {employee.profilePhoto ? (
-                            <img
-                              src={employee.profilePhoto}
-                              alt={employee.name}
-                              className="h-8 w-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className={`h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${getAvatarGradient(employee.name)}`}>
-                              {employee.name
-                                .split(" ")
-                                .map((n: string) => n[0])
-                                .join("")
-                                .toUpperCase()
-                                .slice(0, 2)}
-                            </div>
-                          )}
+                          <EmployeeAvatar
+                            employee={employee}
+                            size="sm"
+                          />
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-medium text-foreground truncate">
                               {employee.name.split(" ").slice(0, 2).join(" ")}
@@ -766,22 +732,11 @@ export function MyTeam() {
               <CardContent className="p-5">
                 {/* Profile Picture - Larger at top */}
                 <div className="flex justify-center mb-4">
-                  {member.profilePhoto ? (
-                    <img
-                      src={member.profilePhoto}
-                      alt={member.name}
-                      className="h-24 w-24 rounded-full object-cover border-2 border-border"
-                    />
-                  ) : (
-                    <div className={`h-24 w-24 rounded-full flex items-center justify-center text-white text-2xl font-bold border-2 border-border ${getAvatarGradient(member.name)}`}>
-                      {member.name
-                        .split(" ")
-                        .map((n: string) => n[0])
-                        .join("")
-                        .toUpperCase()
-                        .slice(0, 2)}
-                    </div>
-                  )}
+                  <EmployeeAvatar
+                    employee={member}
+                    size="xl"
+                    className="border-2 border-border"
+                  />
                 </div>
 
                 {/* Name + Designation */}

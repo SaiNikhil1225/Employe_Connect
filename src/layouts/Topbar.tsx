@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
-import { getAvatarGradient, getInitials } from '@/constants/design-system';
+import { EmployeeAvatar } from '@/components/ui/employee-avatar';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
 import { ProfileSwitcher } from '@/components/profile/ProfileSwitcher';
@@ -36,11 +36,8 @@ export function Topbar() {
       <div className="h-full px-4 md:px-6 flex items-center gap-4">
         <div className="flex-shrink-0 min-w-0" style={{ width: '20%' }}>
           <h2 className="text-lg md:text-xl font-medium text-gray-900 dark:text-white truncate">
-            {user?.name?.split(' ')[0]}
+            Welcome, {user?.name?.split(' ')[0]}
           </h2>
-          <p className="text-xs md:text-sm text-muted-foreground mt-0.5 truncate font-normal">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
         </div>
 
         {/* Search - Desktop centered */}
@@ -87,15 +84,16 @@ export function Topbar() {
                 aria-label="User profile menu"
                 aria-haspopup="true"
               >
-                <div className={`h-9 w-9 rounded-full flex items-center justify-center text-white overflow-hidden bg-gradient-to-br ${getAvatarGradient(user?.name || '')}`}>
-                  {user?.avatar ? (
-                    <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="text-sm font-semibold">
-                      {getInitials(user?.name || '')}
-                    </span>
-                  )}
-                </div>
+                {user && (
+                  <EmployeeAvatar
+                    employee={{
+                      employeeId: user.employeeId || user.id,
+                      name: user.name,
+                      profilePhoto: user.avatar,
+                    }}
+                    size="sm"
+                  />
+                )}
                 <ChevronDown className="h-4 w-4 text-muted-foreground hidden md:block" aria-hidden="true" />
               </button>
             </DropdownMenuTrigger>

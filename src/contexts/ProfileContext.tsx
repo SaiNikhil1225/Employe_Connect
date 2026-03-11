@@ -34,7 +34,7 @@ const PROFILE_DEFINITIONS: Record<string, Profile> = {
   },
   HR_ADMIN: {
     value: 'HR_ADMIN',
-    label: 'HR process',
+    label: 'People Hub',
     icon: '⚙️',
     description: 'Full HR administrative access',
     badge: 'Full Access',
@@ -42,10 +42,10 @@ const PROFILE_DEFINITIONS: Record<string, Profile> = {
   },
   SUPER_ADMIN: {
     value: 'SUPER_ADMIN',
-    label: 'Super Admin',
+    label: 'Central Control',
     icon: '👑',
     description: 'Complete system control',
-    badge: 'Super Admin',
+    badge: 'Central Control',
     color: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
   },
   MANAGER: {
@@ -106,7 +106,7 @@ const PROFILE_DEFINITIONS: Record<string, Profile> = {
   },
   RMG_ADMIN: {
     value: 'RMG_ADMIN',
-    label: 'RMG Process',
+    label: 'Resource Hub',
     icon: '📊',
     description: 'Full RMG administrative access',
     badge: 'Full Access',
@@ -127,7 +127,6 @@ function getAvailableProfilesForRole(role: UserRole): Profile[] {
       return [PROFILE_DEFINITIONS.HR_USER, PROFILE_DEFINITIONS.HR_ADMIN];
     case 'SUPER_ADMIN':
       return [
-        PROFILE_DEFINITIONS.EMPLOYEE,
         PROFILE_DEFINITIONS.HR_USER,
         PROFILE_DEFINITIONS.HR_ADMIN,
         PROFILE_DEFINITIONS.SUPER_ADMIN,

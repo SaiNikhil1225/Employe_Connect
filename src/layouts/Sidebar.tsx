@@ -248,7 +248,7 @@ export function Sidebar() {
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          "h-screen sticky top-0 flex flex-col transition-all duration-300 ease-in-out rounded-r-3xl shadow-lg",
+          "h-screen sticky top-0 flex flex-col transition-all duration-300 ease-in-out shadow-lg",
           isCollapsed ? "w-20" : "w-[220px]",
           "bg-gray-900 border-r border-gray-800"
         )}
@@ -266,7 +266,7 @@ export function Sidebar() {
                 <img 
                   src={acuvateLogo} 
                   alt="Acuvate" 
-                  className="h-8 w-auto object-contain"
+                  className="h-12 w-auto object-contain"
                 />
               </div>
             )}
@@ -275,7 +275,7 @@ export function Sidebar() {
                 <img 
                   src={acuvateIcon} 
                   alt="Acuvate" 
-                  className="h-8 w-8 object-contain"
+                  className="h-10 w-10 object-contain"
                 />
               </div>
             )}
@@ -456,6 +456,18 @@ export function Sidebar() {
             </div>
           ))}
         </nav>
+
+        {/* Date/Time Footer */}
+        {!isCollapsed && (
+          <div className="px-4 py-4 border-t border-gray-700 text-center">
+            <p className="text-sm font-semibold text-gray-300">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
+            </p>
+            <p className="text-xs font-medium text-gray-400 mt-0.5">
+              {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            </p>
+          </div>
+        )}
 
         {/* Toggle Button */}
         <button
