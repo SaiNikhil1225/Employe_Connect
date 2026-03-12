@@ -36,7 +36,7 @@ export function Topbar() {
       <div className="h-full px-4 md:px-6 flex items-center gap-4">
         <div className="flex-shrink-0 min-w-0" style={{ width: '20%' }}>
           <h2 className="text-lg md:text-xl font-medium text-gray-900 dark:text-white truncate">
-            Welcome, {user?.name?.split(' ')[0]}
+            OneAcu – Your Unified Workplace
           </h2>
         </div>
 
