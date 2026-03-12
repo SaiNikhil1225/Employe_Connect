@@ -125,7 +125,7 @@ export const useProjectStore = create<ProjectStore>((set) => ({
       let projectId = data.projectId;
       if (!projectId) {
         // Fetch next project ID from backend
-        const response = await api.get('/projects/next-id');
+        const response = await axios.get(`${API_URL}/projects/next-id`);
         projectId = response.data.data;
       }
       

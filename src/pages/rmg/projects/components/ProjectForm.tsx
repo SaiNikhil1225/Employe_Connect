@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+﻿import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useState, useEffect } from 'react';
@@ -6,7 +6,6 @@ import type { ProjectFormData } from '@/types/project';
 import type { Customer } from '@/types/customer';
 import { useCustomerStore } from '@/store/customerStore';
 import { configService, type ConfigMaster } from '@/services/configService';
-import axios from 'axios';
 import {
   Form,
   FormControl,
@@ -17,6 +16,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -25,11 +25,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
 import { SinglePersonPicker } from '@/components/ui/single-person-picker';
 import { RotateCcw, Save, ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Stepper } from '@/components/ui/stepper';
 import { toast } from 'sonner';
 
@@ -65,13 +63,13 @@ const REGION_HEADS = [
 // Validation schema
 const projectSchema = z.object({
   projectId: z.string().optional(),
-  customerId: z.string().default('').refine((val) => val.length > 0, { 
-    message: 'Customer is required. Please select a customer from Account Name.' 
+  customerId: z.string().default('').refine((val) => val.length > 0, {
+    message: 'Customer is required. Please select a customer from Account Name.',
   }),
   projectName: z.string({ message: 'Project name is required' }).min(1, 'Project name is required').max(100, 'Max 100 characters'),
   projectDescription: z.string().optional().or(z.literal('')),
-  accountName: z.string().default('').refine((val) => val.length > 0, { 
-    message: 'Account name is required' 
+  accountName: z.string().default('').refine((val) => val.length > 0, {
+    message: 'Account name is required',
   }),
   hubspotDealId: z.string().optional().or(z.literal('')),
   legalEntity: z.string({ message: 'Legal entity is required' }).min(1, 'Legal entity is required'),
@@ -90,9 +88,17 @@ const projectSchema = z.object({
   projectStartDate: z.string({ message: 'Start date is required' }).min(1, 'Start date is required'),
   projectEndDate: z.string({ message: 'End date is required' }).min(1, 'End date is required'),
   projectCurrency: z.string({ message: 'Currency is required' }).min(1, 'Currency is required'),
-  status: z.string().optional(), // Add status field
-  estimatedValue: z.number().optional(), // Add estimatedValue field
-});
+  status: z.string().optional(),
+  estimatedValue: z.number().optional(),
+}).refine(
+  (data) => {
+    if (data.projectStartDate && data.projectEndDate) {
+      return new Date(data.projectEndDate) >= new Date(data.projectStartDate);
+    }
+    return true;
+  },
+  { message: 'Project End Date must be after or equal to Start Date', path: ['projectEndDate'] },
+);
 
 interface ProjectFormProps {
   onSubmit: (data: ProjectFormData) => Promise<void>;
@@ -112,9 +118,8 @@ export function ProjectForm({
   const { customers, fetchCustomers } = useCustomerStore();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSelected, setIsCustomerSelected] = useState(false);
-  const [nextProjectId, setNextProjectId] = useState<string>(defaultValues?.projectId || '');
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 2;
+  const totalSteps = 3;
 
   // Configuration state
   const [leadSources, setLeadSources] = useState<ConfigMaster[]>([]);
@@ -164,30 +169,17 @@ export function ProjectForm({
   // Set isCustomerSelected to true in edit mode if customer data exists
   useEffect(() => {
     if (isEditMode && defaultValues?.customerId && defaultValues?.accountName && customers.length > 0) {
-      // Wait a bit to ensure form is fully reset
       const timer = setTimeout(() => {
         setIsCustomerSelected(true);
-        // Convert customerId to string for comparison (in case it's an object)
         const customerIdStr = typeof defaultValues.customerId === 'object' && defaultValues.customerId !== null
           ? String((defaultValues.customerId as any)?._id || (defaultValues.customerId as any)?.id || defaultValues.customerId)
           : String(defaultValues.customerId);
-        
-        // Also set the selected customer object
         const customer = customers.find(c => {
           const cIdStr = String(c._id || c.id);
           return cIdStr === customerIdStr;
         });
         setSelectedCustomer(customer || null);
-        console.log('✅ Edit mode: Customer selected state set to true', {
-          customerId: defaultValues.customerId,
-          customerIdStr,
-          'customerId type': typeof defaultValues.customerId,
-          accountName: defaultValues.accountName,
-          customerFound: !!customer,
-          customerObject: customer
-        });
       }, 150);
-      
       return () => clearTimeout(timer);
     }
   }, [isEditMode, defaultValues?.customerId, defaultValues?.accountName, customers]);
@@ -204,7 +196,6 @@ export function ProjectForm({
           configService.getActiveByType('billing-type'),
           configService.getActiveByType('project-currency'),
         ]);
-        
         setLeadSources(leadSourcesData);
         setRevenueTypes(revenueTypesData);
         setClientTypes(clientTypesData);
@@ -216,45 +207,12 @@ export function ProjectForm({
         setConfigLoading(false);
       }
     };
-
     fetchConfigurations();
   }, []);
-
-  // Fetch next project ID for create mode
-  useEffect(() => {
-    if (!isEditMode && !defaultValues?.projectId) {
-      const fetchNextId = async () => {
-        try {
-          const response = await axios.get('/api/projects/next-id');
-          const nextId = response.data.data;
-          setNextProjectId(nextId);
-          form.setValue('projectId', nextId);
-        } catch (error) {
-          console.error('Failed to fetch next project ID:', error);
-        }
-      };
-      fetchNextId();
-    }
-  }, [isEditMode, defaultValues?.projectId, form]);
 
   // Reset form with defaultValues when editing a different project
   useEffect(() => {
     if (isEditMode && defaultValues && defaultValues.projectId) {
-      console.log('📝 ProjectForm: Resetting form with defaultValues:', {
-        projectId: defaultValues.projectId,
-        customerId: defaultValues.customerId,
-        accountName: defaultValues.accountName,
-        projectName: defaultValues.projectName,
-        'customerId type': typeof defaultValues.customerId,
-        'accountName type': typeof defaultValues.accountName,
-        dealOwner: defaultValues.dealOwner,
-        regionHead: defaultValues.regionHead,
-        leadSource: defaultValues.leadSource,
-        projectManager: defaultValues.projectManager,
-        deliveryManager: defaultValues.deliveryManager,
-      });
-      
-      // Ensure customerId and accountName are never undefined
       const safeDefaults = {
         projectId: defaultValues.projectId || '',
         customerId: typeof defaultValues.customerId === 'object' && defaultValues.customerId !== null
@@ -283,33 +241,13 @@ export function ProjectForm({
         status: defaultValues.status || 'Draft',
         estimatedValue: defaultValues.estimatedValue || 0,
       };
-      
       form.reset(safeDefaults);
-      
-      // Force set customerId if it exists to ensure validation passes
       if (defaultValues.customerId) {
         setTimeout(() => {
           form.setValue('customerId', defaultValues.customerId, { shouldValidate: false });
           form.setValue('accountName', defaultValues.accountName || '', { shouldValidate: false });
-          console.log('🔧 Force set customerId:', defaultValues.customerId);
         }, 0);
       }
-      
-      // Log form values after reset
-      setTimeout(() => {
-        const formValues = form.getValues();
-        console.log('✅ Form values after reset:', {
-          customerId: formValues.customerId,
-          accountName: formValues.accountName,
-          projectName: formValues.projectName,
-          'customerId type': typeof formValues.customerId,
-          dealOwner: formValues.dealOwner,
-          regionHead: formValues.regionHead,
-          leadSource: formValues.leadSource,
-          projectManager: formValues.projectManager,
-          deliveryManager: formValues.deliveryManager,
-        });
-      }, 100);
     }
   }, [isEditMode, defaultValues?.projectId, form]);
 
@@ -317,40 +255,16 @@ export function ProjectForm({
   useEffect(() => {
     if (selectedCustomer && !isEditMode) {
       form.setValue('industry', selectedCustomer.industry || '');
-      
-      // Set region with proper type assertion
       const customerRegion = selectedCustomer.region;
       if (customerRegion && ['UK', 'India', 'USA', 'ME', 'Other'].includes(customerRegion)) {
         form.setValue('region', customerRegion as 'UK' | 'India' | 'USA' | 'ME' | 'Other');
       }
-      
       form.setValue('regionHead', selectedCustomer.regionHead || '');
-      
-      // Also set hubspotRecordId if available
       if (selectedCustomer.hubspotRecordId) {
         form.setValue('hubspotDealId', selectedCustomer.hubspotRecordId);
       }
     }
   }, [selectedCustomer, form, isEditMode]);
-
-  // Monitor critical field values (debug)
-  useEffect(() => {
-    if (isEditMode) {
-      const subscription = form.watch((value, { name }) => {
-        if (name === 'dealOwner' || name === 'regionHead' || name === 'leadSource') {
-          console.log(`🔄 Field Change Detected: ${name}`, {
-            newValue: value[name],
-            allValues: {
-              dealOwner: value.dealOwner,
-              regionHead: value.regionHead,
-              leadSource: value.leadSource,
-            }
-          });
-        }
-      });
-      return () => subscription.unsubscribe();
-    }
-  }, [isEditMode, form]);
 
   // Handle customer selection
   const handleCustomerChange = (customerName: string) => {
@@ -358,10 +272,8 @@ export function ProjectForm({
     const customer = customers.find(c => c.customerName === customerName);
     setSelectedCustomer(customer || null);
     setIsCustomerSelected(!!customer);
-    
-    // Set customerId from the selected customer - ensure it's a string
     if (customer && customer._id) {
-      const customerIdStr = typeof customer._id === 'object' 
+      const customerIdStr = typeof customer._id === 'object'
         ? String((customer._id as any)._id || (customer._id as any).id || customer._id)
         : String(customer._id);
       form.setValue('customerId', customerIdStr);
@@ -369,65 +281,47 @@ export function ProjectForm({
   };
 
   const handleSubmit = async (data: ProjectFormData) => {
-    console.log('🔥 Form handleSubmit called with data:', data);
     try {
       await onSubmit(data);
-      console.log('✅ onSubmit completed successfully');
       form.reset();
     } catch (error) {
-      console.error('❌ Error in handleSubmit:', error);
       throw error;
     }
   };
 
   const steps = [
     { id: 1, title: 'Basic Details', description: 'Project information' },
-    { id: 2, title: 'Schedule & Status', description: 'Timeline and status' },
+    { id: 2, title: 'Assigning', description: 'Ownership & classification' },
+    { id: 3, title: 'Schedule & Status', description: 'Timeline and status' },
   ];
 
   const handleNext = async () => {
+    if (currentStep >= totalSteps) return;
+    let fieldsToValidate: string[] = [];
     if (currentStep === 1) {
-      // Validate step 1 fields before proceeding
-      const step1Fields = [
-        'projectId', 'customerId', 'projectName', 'accountName', 
-        'legalEntity', 'projectManager', 'deliveryManager', 'dealOwner', 
-        'billingType', 'practiceUnit', 'region', 'industry'
+      fieldsToValidate = [
+        'customerId', 'accountName', 'projectName',
+        'hubspotDealId', 'legalEntity', 'region', 'industry', 'regionHead',
       ];
-      
-      console.log('🔍 Validating step 1 fields...');
-      const currentFormValues = form.getValues();
-      console.log('Current form values:', {
-        customerId: currentFormValues.customerId,
-        accountName: currentFormValues.accountName,
-        projectName: currentFormValues.projectName,
-        'customerId type': typeof currentFormValues.customerId,
-        'customerId value': JSON.stringify(currentFormValues.customerId),
-        'customerId length': currentFormValues.customerId?.length,
-      });
-      
-      const isValid = await form.trigger(step1Fields as any);
-      
-      if (!isValid) {
-        const errors = form.formState.errors;
-        console.error('❌ Step 1 validation failed:', errors);
-        console.log('Failed fields:', Object.keys(errors));
-        
-        // Find first error
-        const firstError = Object.entries(errors)[0];
-        if (firstError) {
-          const [fieldName, error] = firstError;
-          const errorMessage = (error as any)?.message || 'This field is required';
-          console.error(`First error - ${fieldName}:`, error);
-          toast.error(`${fieldName}: ${errorMessage}`);
-        }
-        return;
-      }
-      
-      console.log('✅ Step 1 validation passed');
+    } else if (currentStep === 2) {
+      fieldsToValidate = [
+        'projectManager', 'deliveryManager', 'dealOwner', 'practiceUnit',
+        'leadSource', 'billingType', 'revenueType', 'clientType', 'projectCurrency',
+      ];
     }
-    
+    const isValid = await form.trigger(fieldsToValidate as any);
+    if (!isValid) {
+      const errors = form.formState.errors;
+      const firstError = Object.entries(errors)[0];
+      if (firstError) {
+        const [fieldName, error] = firstError;
+        toast.error((error as any)?.message || `${fieldName} is required`);
+      }
+      return;
+    }
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
+      form.clearErrors();
     }
   };
 
@@ -440,85 +334,230 @@ export function ProjectForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit, (errors) => {
-        console.error('❌ Form validation errors:', errors);
-        // Find first error and show it to the user
         const firstError = Object.entries(errors)[0];
         if (firstError) {
           const [fieldName, error] = firstError;
-          console.error(`First error field: ${fieldName}`, error);
-          toast.error(`Validation Error: ${error.message || 'Please fix form errors before submitting'}`);
-          
-          // Navigate to step 1 if the error is in basic details
-          const step1Fields = ['projectId', 'customerId', 'projectName', 'projectDescription', 'accountName', 
-                               'hubspotDealId', 'legalEntity', 'projectManager', 'deliveryManager', 'dealOwner', 
-                               'billingType', 'practiceUnit', 'region', 'industry'];
-          if (step1Fields.includes(fieldName)) {
-            setCurrentStep(1);
-          }
+          toast.error((error as any)?.message || 'Please fix form errors before submitting');
+          const step1Fields = ['customerId', 'accountName', 'projectName', 'projectDescription', 'hubspotDealId', 'legalEntity', 'region', 'industry', 'regionHead'];
+          const step2Fields = ['projectManager', 'deliveryManager', 'dealOwner', 'leadSource', 'billingType', 'revenueType', 'clientType', 'projectCurrency'];
+          if (step1Fields.includes(fieldName)) setCurrentStep(1);
+          else if (step2Fields.includes(fieldName)) setCurrentStep(2);
         } else {
           toast.error('Please fix form errors before submitting');
         }
       })} className="flex flex-col h-full">
+
         {/* Step Indicator */}
         <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
           <Stepper steps={steps} currentStep={currentStep} />
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto pr-2">{/* Step 1: Basic Details */}
+        <div className="flex-1 overflow-y-auto pr-2">
+
+          {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              STEP 1 â€” Basic Details
+          â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           {currentStep === 1 && (
-              <Card className="border-0 shadow-none">
-                <CardContent className="p-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              {/* Project ID */}
-              <FormField
-                control={form.control}
-                name="projectId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project ID</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Auto-generated" 
-                        {...field} 
-                        value={field.value || nextProjectId || 'Generating...'} 
-                        disabled 
-                        className="bg-gray-50 dark:bg-gray-800"
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs">
-                      Auto-generated ID (e.g., P001)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
 
-              {/* Project Name */}
-              <FormField
-                control={form.control}
-                name="projectName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter project name" {...field} disabled={isEditMode} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Project Description - Full Width */}
-              <div className="lg:col-span-2">
+                {/* Account Name */}
                 <FormField
                   control={form.control}
-                  name="projectDescription"
+                  name="accountName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Project Description</FormLabel>
+                      <FormLabel>Account Name *</FormLabel>
+                      <Select onValueChange={handleCustomerChange} value={field.value} disabled={isEditMode}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select customer" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {customers.length === 0 ? (
+                            <div className="p-2 text-sm text-muted-foreground">No customers found</div>
+                          ) : (
+                            customers.map((customer) => (
+                              <SelectItem key={customer._id || customer.id} value={customer.customerName}>
+                                {customer.customerName} ({customer.customerNo})
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* HubSpot Deal ID */}
+                <FormField
+                  control={form.control}
+                  name="hubspotDealId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>HubSpot Deal ID</FormLabel>
                       <FormControl>
-                        <Input placeholder="Brief description of the project" {...field} disabled={isEditMode} />
+                        <Input
+                          placeholder="DEAL-12345"
+                          {...field}
+                          readOnly={isEditMode || isCustomerSelected}
+                          className={(isEditMode || isCustomerSelected) ? 'bg-muted opacity-60 cursor-not-allowed' : ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Region */}
+                <FormField
+                  control={form.control}
+                  name="region"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Region *</FormLabel>
+                      {isCustomerSelected ? (
+                        <FormControl>
+                          <Input
+                            value={field.value || ''}
+                            readOnly
+                            placeholder="Auto-populated from customer"
+                            className="bg-muted opacity-60 cursor-not-allowed"
+                          />
+                        </FormControl>
+                      ) : (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select region" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="UK">UK</SelectItem>
+                            <SelectItem value="India">India</SelectItem>
+                            <SelectItem value="USA">USA</SelectItem>
+                            <SelectItem value="ME">Middle East</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Industry */}
+                <FormField
+                  control={form.control}
+                  name="industry"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Industry *</FormLabel>
+                      {(isEditMode || isCustomerSelected) ? (
+                        <FormControl>
+                          <Input
+                            value={field.value || ''}
+                            readOnly
+                            placeholder="Auto-populated from customer"
+                            className="bg-muted opacity-60 cursor-not-allowed"
+                          />
+                        </FormControl>
+                      ) : (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select industry" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {INDUSTRIES.map((industry) => (
+                              <SelectItem key={industry} value={industry}>
+                                {industry}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Region Head */}
+                <FormField
+                  control={form.control}
+                  name="regionHead"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Region Head *</FormLabel>
+                      {isCustomerSelected ? (
+                        <FormControl>
+                          <Input
+                            {...field}
+                            readOnly
+                            placeholder="Auto-populated from customer"
+                            className="bg-muted opacity-60 cursor-not-allowed"
+                          />
+                        </FormControl>
+                      ) : (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select region head" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {REGION_HEADS.map((head) => (
+                              <SelectItem key={head} value={head}>
+                                {head}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Legal Entity */}
+                <FormField
+                  control={form.control}
+                  name="legalEntity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Legal Entity *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select legal entity" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {LEGAL_ENTITIES.map((entity) => (
+                            <SelectItem key={entity} value={entity}>
+                              {entity}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Project Name */}
+                <FormField
+                  control={form.control}
+                  name="projectName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter project name" {...field} disabled={isEditMode} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -526,81 +565,34 @@ export function ProjectForm({
                 />
               </div>
 
-              {/* Account Name */}
+              {/* Project Description â€” full width */}
               <FormField
                 control={form.control}
-                name="accountName"
+                name="projectDescription"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Account Name *</FormLabel>
-                    <Select onValueChange={handleCustomerChange} value={field.value} disabled={isEditMode}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select customer" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {customers.length === 0 ? (
-                          <div className="p-2 text-sm text-muted-foreground">No customers found</div>
-                        ) : (
-                          customers.map((customer) => (
-                            <SelectItem key={customer._id || customer.id} value={customer.customerName}>
-                              {customer.customerName} ({customer.customerNo})
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* HubSpot Deal ID */}
-              <FormField
-                control={form.control}
-                name="hubspotDealId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>HubSpot Deal ID</FormLabel>
+                    <FormLabel>Project Description</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="DEAL-12345"
+                      <Textarea
+                        placeholder="Brief description of the project"
+                        rows={3}
                         {...field}
-                        readOnly={isEditMode || isCustomerSelected}
-                        className={(isEditMode || isCustomerSelected) ? 'bg-muted cursor-not-allowed' : ''}
+                        disabled={isEditMode}
+                        className="resize-none"
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            </div>
+          )}
 
-              {/* Legal Entity */}
-              <FormField
-                control={form.control}
-                name="legalEntity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Legal Entity *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select legal entity" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {LEGAL_ENTITIES.map((entity) => (
-                          <SelectItem key={entity} value={entity}>
-                            {entity}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              STEP 2 â€” Assigning
+          â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {currentStep === 2 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
 
               {/* Project Manager */}
               <FormField
@@ -644,56 +636,16 @@ export function ProjectForm({
               <FormField
                 control={form.control}
                 name="dealOwner"
-                render={({ field }) => {
-                  if (isEditMode) {
-                    console.log('🟢 Deal Owner Field:', {
-                      value: field.value,
-                      type: typeof field.value,
-                    });
-                  }
-                  return (
-                    <FormItem>
-                      <FormLabel>Deal Owner *</FormLabel>
-                      <FormControl>
-                        <SinglePersonPicker
-                          value={field.value}
-                          onChange={field.onChange}
-                          placeholder="Select deal owner"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-
-              {/* Billing Type */}
-              <FormField
-                control={form.control}
-                name="billingType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Billing Type *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={configLoading ? "Loading..." : billingTypes.length === 0 ? "No active values configured" : "Select billing type"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {billingTypes.length === 0 ? (
-                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                            No active billing types configured
-                          </div>
-                        ) : (
-                          billingTypes.map((type) => (
-                            <SelectItem key={type._id} value={type.name}>
-                              {type.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Deal Owner *</FormLabel>
+                    <FormControl>
+                      <SinglePersonPicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Select deal owner"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -713,9 +665,9 @@ export function ProjectForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="AiB & Automation">AiB & Automation</SelectItem>
+                        <SelectItem value="AiB & Automation">AiB &amp; Automation</SelectItem>
                         <SelectItem value="GenAI">GenAI</SelectItem>
-                        <SelectItem value="Data & Analytics">Data & Analytics</SelectItem>
+                        <SelectItem value="Data & Analytics">Data &amp; Analytics</SelectItem>
                         <SelectItem value="Cloud Engineering">Cloud Engineering</SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
@@ -725,157 +677,60 @@ export function ProjectForm({
                 )}
               />
 
-              {/* Region */}
-              <FormField
-                control={form.control}
-                name="region"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Region *</FormLabel>
-                    {isCustomerSelected ? (
-                      <FormControl>
-                        <Input
-                          value={field.value || ''}
-                          readOnly
-                          placeholder="Auto-populated from customer"
-                          className="bg-muted cursor-not-allowed"
-                        />
-                      </FormControl>
-                    ) : (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select region" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="UK">UK</SelectItem>
-                          <SelectItem value="India">India</SelectItem>
-                          <SelectItem value="USA">USA</SelectItem>
-                          <SelectItem value="ME">Middle East</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Industry */}
-              <FormField
-                control={form.control}
-                name="industry"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Industry *</FormLabel>
-                    {(isEditMode || isCustomerSelected) ? (
-                      <FormControl>
-                        <Input
-                          value={field.value || ''}
-                          readOnly
-                          placeholder="Auto-populated from customer"
-                          className="bg-muted cursor-not-allowed"
-                        />
-                      </FormControl>
-                    ) : (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select industry" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {INDUSTRIES.map((industry) => (
-                            <SelectItem key={industry} value={industry}>
-                              {industry}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Region Head */}
-              <FormField
-                control={form.control}
-                name="regionHead"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Region Head *</FormLabel>
-                    {isCustomerSelected ? (
-                      <FormControl>
-                        <Input
-                          {...field}
-                          readOnly
-                          placeholder="Auto-populated from customer"
-                          className="bg-muted cursor-not-allowed"
-                        />
-                      </FormControl>
-                    ) : (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select region head" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {REGION_HEADS.map((head) => (
-                            <SelectItem key={head} value={head}>
-                              {head}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               {/* Lead Source */}
               <FormField
                 control={form.control}
                 name="leadSource"
-                render={({ field }) => {
-                  if (isEditMode && !configLoading) {
-                    console.log('🟣 Lead Source Field:', {
-                      value: field.value,
-                      configLoading,
-                      availableOptions: leadSources.map(s => s.name),
-                      isInOptions: leadSources.some(s => s.name === field.value),
-                    });
-                  }
-                  return (
-                    <FormItem>
-                      <FormLabel>Lead Source *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={configLoading}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={configLoading ? "Loading..." : leadSources.length === 0 ? "No active values configured" : "Select lead source"} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {leadSources.length === 0 ? (
-                            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                              No active lead sources configured
-                            </div>
-                          ) : (
-                            leadSources.map((source) => (
-                              <SelectItem key={source._id} value={source.name}>
-                                {source.name}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lead Source *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={configLoading}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={configLoading ? 'Loading...' : leadSources.length === 0 ? 'No active values configured' : 'Select lead source'} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {leadSources.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">No active lead sources configured</div>
+                        ) : (
+                          leadSources.map((source) => (
+                            <SelectItem key={source._id} value={source.name}>{source.name}</SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Billing Type */}
+              <FormField
+                control={form.control}
+                name="billingType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Billing Type *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={configLoading ? 'Loading...' : billingTypes.length === 0 ? 'No active values configured' : 'Select billing type'} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {billingTypes.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">No active billing types configured</div>
+                        ) : (
+                          billingTypes.map((type) => (
+                            <SelectItem key={type._id} value={type.name}>{type.name}</SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
 
               {/* Revenue Type */}
@@ -888,19 +743,15 @@ export function ProjectForm({
                     <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={configLoading ? "Loading..." : revenueTypes.length === 0 ? "No active values configured" : "Select revenue type"} />
+                          <SelectValue placeholder={configLoading ? 'Loading...' : revenueTypes.length === 0 ? 'No active values configured' : 'Select revenue type'} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {revenueTypes.length === 0 ? (
-                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                            No active revenue types configured
-                          </div>
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">No active revenue types configured</div>
                         ) : (
                           revenueTypes.map((type) => (
-                            <SelectItem key={type._id} value={type.name}>
-                              {type.name}
-                            </SelectItem>
+                            <SelectItem key={type._id} value={type.name}>{type.name}</SelectItem>
                           ))
                         )}
                       </SelectContent>
@@ -920,19 +771,15 @@ export function ProjectForm({
                     <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={configLoading ? "Loading..." : clientTypes.length === 0 ? "No active values configured" : "Select client type"} />
+                          <SelectValue placeholder={configLoading ? 'Loading...' : clientTypes.length === 0 ? 'No active values configured' : 'Select client type'} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {clientTypes.length === 0 ? (
-                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                            No active client types configured
-                          </div>
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">No active client types configured</div>
                         ) : (
                           clientTypes.map((type) => (
-                            <SelectItem key={type._id} value={type.name}>
-                              {type.name}
-                            </SelectItem>
+                            <SelectItem key={type._id} value={type.name}>{type.name}</SelectItem>
                           ))
                         )}
                       </SelectContent>
@@ -942,14 +789,43 @@ export function ProjectForm({
                 )}
               />
 
+              {/* Project Currency */}
+              <FormField
+                control={form.control}
+                name="projectCurrency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Currency *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={configLoading ? 'Loading...' : currencies.length === 0 ? 'No active values configured' : 'Select currency'} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {currencies.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">No active currencies configured</div>
+                        ) : (
+                          currencies.map((currency) => (
+                            <SelectItem key={currency._id} value={currency.name}>
+                              {currency.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               {/* Project Won Through RFP */}
               <FormField
                 control={form.control}
                 name="projectWonThroughRFP"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 col-span-1">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-base">Project Won Through RFP *</FormLabel>
+                      <FormLabel className="text-base">Won Through RFP?</FormLabel>
                       <FormDescription className="text-xs">
                         Was this project won through an RFP process?
                       </FormDescription>
@@ -965,152 +841,102 @@ export function ProjectForm({
                     </FormControl>
                   </FormItem>
                 )}
-              />
-                </div>
-              </CardContent>
-            </Card>
+              />            </div>
           )}
 
-          {/* Step 2: Schedule & Status */}
-          {currentStep === 2 && (
-              <Card className="border-0 shadow-none">
-                <CardContent className="p-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                    {/* Start Date */}
-                    <FormField
-                      control={form.control}
-                      name="projectStartDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Project Start Date *</FormLabel>
-                          <FormControl>
-                            <DatePicker
-                              value={field.value}
-                              onChange={field.onChange}
-                              placeholder="Select start date"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+          {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              STEP 3 â€” Schedule & Status
+          â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {currentStep === 3 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
 
-                    {/* End Date */}
-                    <FormField
-                      control={form.control}
-                      name="projectEndDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Project End Date *</FormLabel>
-                          <FormControl>
-                            <DatePicker
-                              value={field.value}
-                              onChange={field.onChange}
-                              placeholder="Select end date"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              {/* Project Start Date */}
+              <FormField
+                control={form.control}
+                name="projectStartDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Start Date *</FormLabel>
+                    <FormControl>
+                      <DatePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Select start date"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                    {/* Currency */}
-                    <FormField
-                      control={form.control}
-                      name="projectCurrency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Project Currency *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode || configLoading}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={configLoading ? "Loading..." : currencies.length === 0 ? "No active values configured" : "Select currency"} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {currencies.length === 0 ? (
-                                <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                                  No active currencies configured
-                                </div>
-                              ) : (
-                                currencies.map((currency) => (
-                                  <SelectItem key={currency._id} value={currency.name}>
-                                    {currency.name} {currency.description && `- ${currency.description}`}
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              {/* Project End Date */}
+              <FormField
+                control={form.control}
+                name="projectEndDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project End Date *</FormLabel>
+                    <FormControl>
+                      <DatePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Select end date"
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs text-muted-foreground">
+                      Must be on or after the start date.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                    {/* Status */}
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Project Status</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Draft">Draft</SelectItem>
-                              <SelectItem value="Active">Active</SelectItem>
-                              <SelectItem value="On Hold">On Hold</SelectItem>
-                              <SelectItem value="Closed">Closed</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                </div>
-              </CardContent>
-            </Card>
+              {/* Project Status */}
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Status</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Draft">Draft</SelectItem>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="On Hold">On Hold</SelectItem>
+                        <SelectItem value="Closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           )}
         </div>
 
-        {/* Fixed Bottom Action Buttons */}
+        {/* Fixed Footer */}
         <div className="sticky bottom-0 left-0 right-0 bg-background border-t pt-4 mt-6">
           <div className="flex justify-between gap-3">
             <div className="flex gap-2">
               {currentStep > 1 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleBack}
-                  disabled={isLoading}
-                  className="gap-2"
-                >
+                <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading} className="gap-2">
                   <ChevronLeft className="h-4 w-4" />
                   Back
                 </Button>
               )}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => form.reset()}
-                disabled={isLoading}
-                className="gap-2"
-              >
+              <Button type="button" variant="outline" onClick={() => { form.reset(); setCurrentStep(1); }} disabled={isLoading} className="gap-2">
                 <RotateCcw className="h-4 w-4" />
                 Reset
               </Button>
             </div>
             <div className="flex gap-2">
               {currentStep < totalSteps ? (
-                <Button
-                  type="button"
-                  onClick={handleNext}
-                  disabled={isLoading}
-                  className="gap-2"
-                >
+                <Button type="button" onClick={handleNext} disabled={isLoading} className="gap-2">
                   Next
                   <ChevronRight className="h-4 w-4" />
                 </Button>
