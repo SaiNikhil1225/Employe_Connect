@@ -127,12 +127,6 @@ export function Login() {
             <h2 className="font-semibold text-4xl leading-tight text-foreground">
               Welcome Back!
             </h2>
-            <p className="text-muted-foreground text-sm">
-              Don't have an account?{' '}
-              <a href="#" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium hover:underline">
-                Create a new account now
-              </a>
-            </p>
           </div>
 
           {/* Login Form */}
@@ -189,14 +183,6 @@ export function Login() {
                   )}
                 </button>
               </div>
-            </div>
-
-            {/* Forgot Password */}
-            <div className="text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Forgot password? </span>
-              <a href="#" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium hover:underline">
-                Click here
-              </a>
             </div>
 
             {/* Login Button */}

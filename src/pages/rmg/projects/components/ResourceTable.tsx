@@ -17,8 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getAvatarGradient } from '@/constants/design-system';
+import { EmployeeAvatar } from '@/components/ui/employee-avatar';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -72,15 +71,6 @@ export function ResourceTable({ resources, isLoading, onView, onEdit, onRemove, 
 
 
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Active':
@@ -107,12 +97,7 @@ export function ResourceTable({ resources, isLoading, onView, onEdit, onRemove, 
       header: 'Resource',
       cell: ({ row }) => (
         <div className="flex items-center gap-3 min-w-[200px]">
-          <Avatar className="h-10 w-10 flex-shrink-0">
-            <AvatarImage src={row.original.avatar} alt={row.getValue('name')} />
-            <AvatarFallback className={`${getAvatarGradient(row.getValue('name'))} text-white font-semibold`}>
-              {getInitials(row.getValue('name'))}
-            </AvatarFallback>
-          </Avatar>
+          <EmployeeAvatar employee={{ employeeId: row.original.id, name: row.getValue('name'), profilePhoto: row.original.avatar }} size="md" />
           <div className="min-w-0">
             <div className="font-medium truncate">{row.getValue('name')}</div>
             <div className="text-sm text-muted-foreground truncate">{row.original.role}</div>

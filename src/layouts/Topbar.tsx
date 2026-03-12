@@ -34,8 +34,8 @@ export function Topbar() {
       role="banner"
     >
       <div className="h-full px-4 md:px-6 flex items-center gap-4">
-        <div className="flex-shrink-0 min-w-0" style={{ width: '20%' }}>
-          <h2 className="text-lg md:text-xl font-medium text-gray-900 dark:text-white truncate">
+        <div className="flex-shrink-0">
+          <h2 className="text-sm md:text-base font-medium text-gray-900 dark:text-white whitespace-nowrap">
             OneAcu – Your Unified Workplace
           </h2>
         </div>

@@ -12,8 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getAvatarGradient } from '@/constants/design-system';
+import { EmployeeAvatar } from '@/components/ui/employee-avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -185,16 +184,6 @@ export function ProjectTable({ projects, isLoading, onCreateProject, onEditProje
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize);
     setCurrentPage(1);
-  };
-
-  const getInitials = (name?: string) => {
-    if (!name) return 'PM';
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   const formatCurrency = (amount: number | undefined, currency: string = 'USD') => {
@@ -468,12 +457,10 @@ export function ProjectTable({ projects, isLoading, onCreateProject, onEditProje
                   {columns.owner && (
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src="" alt={ownerName} />
-                          <AvatarFallback className={`${getAvatarGradient(ownerName)} text-white text-xs font-semibold`}>
-                            {getInitials(ownerName)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <EmployeeAvatar
+                          employee={{ employeeId: project.projectManager?.employeeId || ownerName, name: ownerName }}
+                          size="sm"
+                        />
                         <span className="text-sm">{ownerName}</span>
                       </div>
                     </TableCell>

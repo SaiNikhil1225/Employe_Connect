@@ -1,6 +1,5 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { getAvatarGradient } from '@/constants/design-system';
+import { EmployeeAvatar } from '@/components/ui/employee-avatar';
 
 interface TeamMember {
   id: string;
@@ -19,48 +18,26 @@ export function AvatarGroup({ members, max = 3, size = 'md', className }: Avatar
   const displayMembers = members.slice(0, max);
   const remainingCount = members.length - max;
 
-  const sizeClasses = {
-    sm: 'h-6 w-6 text-xs',
-    md: 'h-8 w-8 text-sm',
-    lg: 'h-10 w-10 text-base',
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const sizeMap: Record<'sm' | 'md' | 'lg', 'xs' | 'sm' | 'md'> = {
+    sm: 'xs',
+    md: 'sm',
+    lg: 'md',
   };
 
   return (
     <div className={cn("flex -space-x-2", className)}>
       {displayMembers.map((member) => (
-        <Avatar 
-          key={member.id} 
-          className={cn(
-            "border-2 border-background ring-1 ring-border",
-            sizeClasses[size]
-          )}
-        >
-          <AvatarImage src={member.avatar} alt={member.name} />
-          <AvatarFallback className={cn(getAvatarGradient(member.name), "text-white text-xs font-medium")}>
-            {getInitials(member.name)}
-          </AvatarFallback>
-        </Avatar>
+        <div key={member.id} className="ring-2 ring-background rounded-full">
+          <EmployeeAvatar
+            employee={{ employeeId: member.id, name: member.name, profilePhoto: member.avatar }}
+            size={sizeMap[size]}
+          />
+        </div>
       ))}
       {remainingCount > 0 && (
-        <Avatar 
-          className={cn(
-            "border-2 border-background ring-1 ring-border",
-            sizeClasses[size]
-          )}
-        >
-          <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
-            +{remainingCount}
-          </AvatarFallback>
-        </Avatar>
+        <div className="inline-flex items-center justify-center rounded-full bg-muted text-muted-foreground text-xs font-medium ring-2 ring-background h-6 w-6">
+          +{remainingCount}
+        </div>
       )}
     </div>
   );

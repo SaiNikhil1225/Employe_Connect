@@ -10,9 +10,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Activity, RefreshCw, Loader2, BarChart3, Users, TrendingUp, DollarSign, Clock, UserCheck, Eye, Filter } from 'lucide-react';
-import { getAvatarGradient } from '@/constants/design-system';
+import { EmployeeAvatar } from '@/components/ui/employee-avatar';
 import { rmgAnalyticsService, type ResourceUtilizationData } from '@/services/rmgAnalyticsService';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/ui/page-header';
@@ -322,12 +321,7 @@ export function Utilization() {
                         <TableRow key={`active-${employee.employeeId}`} className="hover:bg-muted/50">
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={`/api/avatar/${employee.employeeId}`} />
-                                <AvatarFallback className={`${getAvatarGradient(employee.name)} text-white text-xs font-medium`}>
-                                  {employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                                </AvatarFallback>
-                              </Avatar>
+                              <EmployeeAvatar employee={{ employeeId: employee.employeeId, name: employee.name }} size="sm" />
                               <div>
                                 <p className="font-medium text-sm">{employee.name}</p>
                                 <p className="text-xs text-muted-foreground">{employee.employeeId}</p>
@@ -403,12 +397,7 @@ export function Utilization() {
                         <TableRow key={`bench-${employee.employeeId}`} className="hover:bg-muted/50">
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={`/api/avatar/${employee.employeeId}`} />
-                                <AvatarFallback className={`${getAvatarGradient(employee.name)} text-white text-xs font-medium`}>
-                                  {employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                                </AvatarFallback>
-                              </Avatar>
+                              <EmployeeAvatar employee={{ employeeId: employee.employeeId, name: employee.name }} size="sm" />
                               <div>
                                 <p className="font-medium text-sm">{employee.name}</p>
                                 <p className="text-xs text-muted-foreground">{employee.employeeId}</p>
