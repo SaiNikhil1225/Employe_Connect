@@ -1,5 +1,5 @@
 name: Deploy Frontend to Azure Static Web Apps
-# Last triggered: 2026-03-06 18:00
+# Last triggered: 2026-03-27 — added VITE_AZURE_* secrets for MFA
 
 on:
   push:
