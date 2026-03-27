@@ -33,9 +33,15 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid - clear auth state
-      localStorage.removeItem('auth-token');
-      window.location.href = '/login';
+      // Don't auto-redirect for auth endpoints — they handle their own errors
+      // and calling window.location.href here would swallow the error toast.
+      const url: string = error.config?.url || '';
+      const isAuthEndpoint = url.startsWith('/auth/') || url.includes('/auth/');
+      if (!isAuthEndpoint) {
+        // Token expired or invalid for a protected endpoint — clear auth state
+        localStorage.removeItem('auth-token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

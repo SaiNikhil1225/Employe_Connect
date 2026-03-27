@@ -124,6 +124,32 @@ const authService = {
       newPassword,
     });
   },
+
+  /**
+   * Authenticate using a Microsoft ID token obtained via MSAL.
+   * The backend validates the token signature against Microsoft's JWKS
+   * endpoint, then issues an app-level JWT.
+   *
+   * @param idToken The raw ID token string from the MSAL AuthenticationResult
+   */
+  loginWithMicrosoft: async (idToken: string, graphAccessToken?: string): Promise<LoginResponse> => {
+    try {
+      const response = await apiClient.post<LoginResponse>('/auth/microsoft', { idToken, graphAccessToken });
+
+      if (response.data.token) {
+        localStorage.setItem('auth-token', response.data.token);
+      }
+      if (response.data.refreshToken) {
+        localStorage.setItem('refresh-token', response.data.refreshToken);
+      }
+
+      return response.data;
+    } catch (error) {
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('refresh-token');
+      throw error;
+    }
+  },
 };
 
 export default authService;

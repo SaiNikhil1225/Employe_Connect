@@ -1,19 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Sparkles } from 'lucide-react';
 import authService from '@/services/auth';
+import { loginWithMicrosoftRedirect } from '@/services/msalService';
 import { AxiosError } from 'axios';
 import acuvateLogo from '@/assets/acuvateLogo_dark.png';
 
 export function Login() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isMsLoading, setIsMsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Handle redirect results from Microsoft login (set by main.tsx before React renders)
+  useEffect(() => {
+    // If main.tsx already authenticated via MSAL redirect, navigate away
+    if (isAuthenticated) {
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'HR') {
+        navigate('/hr/workforce-summary', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+      localStorage.removeItem('msal-login-pending');
+      return;
+    }
+
+    // Show any error from the MSAL redirect flow
+    const msalError = localStorage.getItem('msal-login-error');
+    if (msalError) {
+      localStorage.removeItem('msal-login-error');
+      toast.error('Microsoft Sign-In Failed', { description: msalError });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +92,22 @@ export function Login() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    setIsMsLoading(true);
+    try {
+      // Redirect the full page to Microsoft's login.
+      // After authentication (+ MFA), Microsoft redirects back here.
+      // main.tsx handles the redirect response before React renders.
+      await loginWithMicrosoftRedirect();
+      // Note: the page navigates away here, so code below won't run.
+    } catch (error) {
+      setIsMsLoading(false);
+      if (error instanceof Error) {
+        toast.error('Microsoft Sign-In Error', { description: error.message });
+      }
     }
   };
 
@@ -215,20 +256,27 @@ export function Login() {
           {/* Microsoft Login Button */}
           <button
             type="button"
-            onClick={() => {
-              toast.info('Azure AD Integration', {
-                description: 'Microsoft login will be available soon.',
-              });
-            }}
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-md py-3 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center justify-center gap-3"
+            onClick={handleMicrosoftLogin}
+            disabled={isMsLoading || isLoading}
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-md py-3 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Sign in with Microsoft (MFA enabled)"
           >
-            <svg className="h-5 w-5" viewBox="0 0 21 21" aria-hidden="true">
-              <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
-              <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
-              <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
-              <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
-            </svg>
-            <span>Sign in with Microsoft</span>
+            {isMsLoading ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin" aria-hidden="true">⏳</span>
+                <span>Signing in with Microsoft...</span>
+              </span>
+            ) : (
+              <>
+                <svg className="h-5 w-5 shrink-0" viewBox="0 0 21 21" aria-hidden="true">
+                  <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                  <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                  <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                  <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                </svg>
+                <span>Sign in with Microsoft</span>
+              </>
+            )}
           </button>
         </div>
       </div>
